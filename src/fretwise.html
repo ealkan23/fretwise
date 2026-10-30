@@ -1117,14 +1117,14 @@ const pcOf=m=>((Math.round(m)%12)+12)%12;
 // frames: [{rms, m}] at a steady hop. Returns notes [{midi, start, end}]
 function segment(frames,thr){
   const notes=[];let cur=null,lastOn=-99,unv=0;
-  const close=()=>{if(cur&&cur.ms.length>=(cur.soft?8:4)){const r=cur.ms.slice(1).map(Math.round);notes.push({midi:med(r),mf:med(cur.ms.slice(1)),start:cur.start,end:cur.end,soft:!!cur.soft});}cur=null;};
+  const close=()=>{if(cur&&cur.ms.length>=(cur.soft?8:4)){const r=cur.ms.slice(1).map(Math.round);notes.push({midi:med(r),mf:med(cur.ms.slice(1)),start:cur.start,end:cur.end,soft:!!cur.soft,atk:!!cur.atk});}cur=null;};
   for(let i=0;i<frames.length;i++){const fr=frames[i],v=fr.rms>thr&&fr.m!==null;
     const prev=[1,2,3].map(k=>i-k>=0?frames[i-k].rms:0);
     const amp=fr.rms>thr&&i>=3&&fr.rms>1.6*Math.min(...prev)&&fr.rms-prev[0]>thr*0.3&&i-lastOn>=5;
-    if(amp){close();cur={start:i,end:i,ms:[],pend:[]};lastOn=i;}
+    if(amp){close();cur={start:i,end:i,ms:[],pend:[],atk:true};lastOn=i;unv=0;}
     if(!v){unv++;if(cur&&unv>=3)close();continue;}
     unv=0;
-    if(!cur){cur={start:i,end:i,ms:[],pend:[]};lastOn=i;}
+    if(!cur){cur={start:i,end:i,ms:[],pend:[],atk:i>0&&[1,2,3].some(k=>i-k>=0&&frames[i-k].rms<=thr)};lastOn=i;}
     if(cur.ms.length>=4){const cp=pcOf(med(cur.ms.map(Math.round)));
       if(pcOf(fr.m)!==cp){cur.pend.push(fr.m);if(cur.pend.length>3)cur.pend.shift();if(cur.pend.length>=3&&cur.pend.every(x=>pcOf(x)===pcOf(fr.m))){const p=cur.pend;close();cur={start:i-2,end:i,ms:p.slice(),pend:[],soft:true};lastOn=i-2;}continue;}
       cur.pend=[];}
@@ -1148,7 +1148,7 @@ const micLat=()=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
 /* opts: beat, beatStart, limit, endAt (ms, metro), gap (ms of silence between notes), hold (ms the last note sounds before stopping),
    wait (ms for a first note), cap (ms overall), octaveFree, onsets (+ clicks: scheduled click times in ms, calEnd: end of count-in) */
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate;LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
-    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,
+    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,isDone:opts.isDone||null,
     onsets:!!opts.onsets,ons:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat()};
   micUI('live','Listening…');const step=()=>{if(!LS||LS.stopped)return;const now=performance.now();
     // analyse at ~60 Hz whatever the display rate (rAF is 120 Hz on ProMotion screens): segment() counts frames
@@ -1166,16 +1166,16 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
       // a note already sounding when listening began (the last answer still ringing) is not part of this answer
       LS.notes=segment(LS.frames,LS.thr).filter(n=>n.start>2);
       // notes that count toward "all in": longer than a blip, a held or re-struck pitch once
-      let k=0,pv=null;LS.notes.forEach(n=>{if(LS.frames[n.end].t-LS.frames[n.start].t<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv||LS.repeats)k++;pv=p;});LS.real=k;
+      let k=0,pv=null;LS.notes.forEach(n=>{if(LS.frames[n.end].t-LS.frames[n.start].t<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv||(LS.repeats&&n.atk))k++;pv=p;});LS.real=k;
       if(LS.notes.length&&LS.firstAt===null)LS.firstAt=el;}
     drawLive(r);
     const quietMs=(()=>{let i=LS.frames.length-1;while(i>=0&&LS.frames[i].rms<=LS.thr)i--;return i<0?el:el-LS.frames[i].t;})();
     const lastN=LS.notes.at(-1),lastLen=lastN?el-LS.frames[lastN.start].t:0,any=LS.notes.length>0;
-    const done=(LS.real>=LS.max&&(quietMs>=330||lastLen>=LS.hold))||(any&&quietMs>=LS.gap)||(!any&&el>LS.wait)||el>LS.cap||(LS.endAt&&el>LS.endAt)||(LS.limit&&el>LS.limit+LS.beatStart);
+    const done=(LS.real>=LS.max&&(quietMs>=330||lastLen>=LS.hold)&&(!LS.isDone||LS.isDone(LS.notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:LS.frames[n.start].t,dur:LS.frames[n.end].t-LS.frames[n.start].t})))))||(any&&quietMs>=LS.gap)||(!any&&el>LS.wait)||el>LS.cap||(LS.endAt&&el>LS.endAt)||(LS.limit&&el>LS.limit+LS.beatStart);
     if(done)return stopListening(false,!any);requestAnimationFrame(step);};requestAnimationFrame(step);}
 /* silent: stopped on its own without hearing anything; the question is not graded */
 function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const F=LS.frames;
-  const r={notes:LS.notes.map(n=>({midi:n.midi,mf:n.mf,t:F[n.start]?F[n.start].t:0,dur:F[n.end]&&F[n.start]?F[n.end].t-F[n.start].t:0})),onsets:LS.ons,firstAt:LS.firstAt,beat:LS.beat,beatStart:LS.beatStart,lat:LS.lat,silent:!!silent&&!LS.ons.length};
+  const r={notes:LS.notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:F[n.start]?F[n.start].t:0,dur:F[n.end]&&F[n.start]?F[n.end].t-F[n.start].t:0})),onsets:LS.ons,firstAt:LS.firstAt,beat:LS.beat,beatStart:LS.beatStart,lat:LS.lat,silent:!!silent&&!LS.ons.length};
   const cb=LS.onDone;LS=null;if(!cancel)cb(r);}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
@@ -1256,10 +1256,10 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   const o={octaveFree:q.octaveFree,repeats:!!q.repeats,hold:voice?600:400,limit:S.untimed?0:S.limit};
   if(q.metro){const beat=60/q.metro,t0=0.1,last=q.grid?q.grid.at(-1):t.length-1;for(let i=0;i<4+Math.ceil(last)+2;i++)Piano.tick(t0+i*beat,i%4===0);const beatStart=(4*beat+t0)*1000;
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
-  else startListening(got,n,{...o,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
+  else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
 function micGrade(q,res){if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
-  const d=q.repeats?res.notes:res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
+  const d=q.repeats?res.notes.filter((n,i)=>!(i&&n.atk===false&&cmp(n.midi,res.notes[i-1].midi))):res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
   /* a repeated target pitch (a held guide tone) is one heard note: one slot, shared by the repeats */
   const sl=[];t.forEach((m,i)=>{if(q.repeats||!(i&&cmp(m,t[i-1])))sl.push(i);});
   const A=sl.length,B=d.length,D=Array.from({length:A+1},(_,a)=>Array.from({length:B+1},(_,b)=>a+b));
@@ -1275,7 +1275,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
 function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
 function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.extra):(S.live||[]);if(!notes.length)return `<div class="slots"><div class="slot empty"><span class="n">·</span><span class="s">nothing yet</span></div></div>`;
   return `<div class="slots">${notes.map((m,i)=>{const x=r?r.per[i]:null,late=x&&x.onTime===false;return `<div class="slot ${x?(x.ok?'ok':'no'):r?'no':''}${late?' late':''}"><span class="n">${m===null?'–':NOTE_PC[mod(m,12)]}</span><span class="s">${m===null?'missing':late?nameOf(m)+' · off beat':nameOf(m)}${x&&x.gotF!=null&&S.gid==='sing'?` <i class="cents">${(x.gotF-Math.round(x.gotF))*100>=0?'+':''}${Math.round((x.gotF-Math.round(x.gotF))*100)}¢</i>`:''}</span></div>`;}).join('')}</div>`;}
-function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?'Listen…':S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
+function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?'Listen…':S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}${q.target.length>1&&!q.metro?' · Space when done':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
    ${done?'':`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
@@ -1676,8 +1676,8 @@ function toPlay(q){let targets=null,how='';
   else if(q.ui==='fret'){const ok=((q.reveal&&q.reveal.dots)||[]).filter(d=>d.cls==='fb-ok');if(!ok.length)return null;const ms=[...new Set(ok.map(spotMidi))];
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
-  const prompt=q.prompt.replace(/\s*[—–-]?\s*\d+ spots?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} Exact pitch counts: the octave must match.</div>`;
-  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:false,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
+  const prompt=q.prompt.replace(/\s*[—–-]?\s*\d+ spots?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks the note and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
+  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
   return (q.staff?`<div class="staffwrap">${done&&q.staffOk?q.staffOk:q.staff}</div>`:'')+fretSVG({dots,win:q.win});}

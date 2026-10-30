@@ -841,7 +841,7 @@ function huntQ(pool,showCount,two){return ()=>{let ps;if(two){const a=R(pool);ps
   const ans=ps.flatMap(huntPos),names=ps.map(p=>PCN[p]),nm2=names.map(n=>`<b>${n}</b>`).join(' and every ');
   const byStr=ps.map(p=>`${PCN[p]}: `+[6,5,4,3,2,1].map(s=>`S${s} ${huntPos(p).filter(x=>x.s===s).map(x=>x.f).join(' & ')}`).join(', ')).join(' · ');
   const first=huntPos(ps[0]).filter(x=>x.s===6)[0];
-  return {snd:{seq:ps.map(p=>48+p)},key:`hunt-${ps.join('-')}`,label:`Every ${names.join(' + ')}`,ui:'multi',factor:two?4.5:3,answer:ans,need:ans.length,showCount,
+  return {snd:{seq:ps.map(p=>48+p)},key:`hunt-${ps.join('-')}`,label:`Every ${names.join(' + ')}`,ui:'multi',factor:two?4.5:3,answer:ans,need:ans.length,showCount,playAll:true,
    answerText:`${ans.length} spots`,prompt:`Mark every ${nm2} on all six strings, frets 0–12${showCount?` (${ans.length} spots)`:''}. Click to mark or unmark, then press <b>Done</b>.`,
    explain:`${byStr}. Each note sits once on every string between frets 1–11; a string's own open note also sits at fret 0 and 12. Octave shape: two strings over and two frets up (three when you cross onto the B string).`,
    hint:`On string 6 the ${names[0]} is at fret ${first.f}. Work across with octave shapes.`};};}
@@ -1148,7 +1148,7 @@ const micLat=()=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
 /* opts: beat, beatStart, limit, endAt (ms, metro), gap (ms of silence between notes), hold (ms the last note sounds before stopping),
    wait (ms for a first note), cap (ms overall), octaveFree, onsets (+ clicks: scheduled click times in ms, calEnd: end of count-in) */
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate;LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
-    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,
+    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,
     onsets:!!opts.onsets,ons:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat()};
   micUI('live','Listening…');const step=()=>{if(!LS||LS.stopped)return;const now=performance.now();
     // analyse at ~60 Hz whatever the display rate (rAF is 120 Hz on ProMotion screens): segment() counts frames
@@ -1166,7 +1166,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
       // a note already sounding when listening began (the last answer still ringing) is not part of this answer
       LS.notes=segment(LS.frames,LS.thr).filter(n=>n.start>2);
       // notes that count toward "all in": longer than a blip, a held or re-struck pitch once
-      let k=0,pv=null;LS.notes.forEach(n=>{if(LS.frames[n.end].t-LS.frames[n.start].t<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv)k++;pv=p;});LS.real=k;
+      let k=0,pv=null;LS.notes.forEach(n=>{if(LS.frames[n.end].t-LS.frames[n.start].t<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv||LS.repeats)k++;pv=p;});LS.real=k;
       if(LS.notes.length&&LS.firstAt===null)LS.firstAt=el;}
     drawLive(r);
     const quietMs=(()=>{let i=LS.frames.length-1;while(i>=0&&LS.frames[i].rms<=LS.thr)i--;return i<0?el:el-LS.frames[i].t;})();
@@ -1251,22 +1251,22 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   // let the piano die away first, or the mic takes its tail for the first note and for the noise floor
   const w=Piano.quietIn();if(w>0.05){S.playing=true;render();setTimeout(()=>{if(S&&S.q===q&&!S.locked){S.playing=false;render();micListen();}},w*1000+80);return;}
   S.listening=true;S.live=[];S.micMsg='';render();
-  const t=q.target,n=t.filter((m,i)=>!i||(q.octaveFree?mod(m-t[i-1],12)!==0:m!==t[i-1])).length,voice=S.gid==='sing';
+  const t=q.target,n=t.filter((m,i)=>!i||q.repeats||(q.octaveFree?mod(m-t[i-1],12)!==0:m!==t[i-1])).length,voice=S.gid==='sing';
   const got=res=>{if(res.silent){S.micMsg='Nothing heard. Check that the level bar moves when you play, then press Listen (Space) again.';render();return;}answer(res);};
-  const o={octaveFree:q.octaveFree,hold:voice?600:400,limit:S.untimed?0:S.limit};
+  const o={octaveFree:q.octaveFree,repeats:!!q.repeats,hold:voice?600:400,limit:S.untimed?0:S.limit};
   if(q.metro){const beat=60/q.metro,t0=0.1,last=q.grid?q.grid.at(-1):t.length-1;for(let i=0;i<4+Math.ceil(last)+2;i++)Piano.tick(t0+i*beat,i%4===0);const beatStart=(4*beat+t0)*1000;
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
-  else startListening(got,n,{...o,gap:n>1?7000:2500,cap:n>1?60000:25000});});}
+  else startListening(got,n,{...o,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
 function micGrade(q,res){if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
-  const d=res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
+  const d=q.repeats?res.notes:res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
   /* a repeated target pitch (a held guide tone) is one heard note: one slot, shared by the repeats */
-  const sl=[];t.forEach((m,i)=>{if(!(i&&cmp(m,t[i-1])))sl.push(i);});
+  const sl=[];t.forEach((m,i)=>{if(q.repeats||!(i&&cmp(m,t[i-1])))sl.push(i);});
   const A=sl.length,B=d.length,D=Array.from({length:A+1},(_,a)=>Array.from({length:B+1},(_,b)=>a+b));
   for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+(cmp(t[sl[a-1]],d[b-1].midi)?0:1),D[a-1][b]+1,D[a][b-1]+1);
   const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=cmp(t[sl[a-1]],d[b-1].midi)?0:1;if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
   const per=[];let k=-1;
-  t.forEach((m,i)=>{if(i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
+  t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
     if(q.metro&&x){const off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&cmp(m,got),onTime});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
   const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip));
@@ -1275,7 +1275,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
 function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
 function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.extra):(S.live||[]);if(!notes.length)return `<div class="slots"><div class="slot empty"><span class="n">·</span><span class="s">nothing yet</span></div></div>`;
   return `<div class="slots">${notes.map((m,i)=>{const x=r?r.per[i]:null,late=x&&x.onTime===false;return `<div class="slot ${x?(x.ok?'ok':'no'):r?'no':''}${late?' late':''}"><span class="n">${m===null?'–':NOTE_PC[mod(m,12)]}</span><span class="s">${m===null?'missing':late?nameOf(m)+' · off beat':nameOf(m)}${x&&x.gotF!=null&&S.gid==='sing'?` <i class="cents">${(x.gotF-Math.round(x.gotF))*100>=0?'+':''}${Math.round((x.gotF-Math.round(x.gotF))*100)}¢</i>`:''}</span></div>`;}).join('')}</div>`;}
-function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?'Listen…':S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?', low to high':'')}${q.metro?' with the click':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
+function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?'Listen…':S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
    ${done?'':`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
@@ -1666,14 +1666,18 @@ function dyadStaff(n1,m1,n2,m2){return noteStaff(n1,m1)+noteStaff(n2,m2);}
 const spotMidi=sp=>OPEN[sp.s]+sp.f;
 const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','chordname','shells','voicelead','walking'];
 function toPlay(q){let targets=null,how='';
-  if(q.ui==='multi'){const alts=(q.alts&&q.alts.length?q.alts:[q.answer]);if(!alts[0]||!alts[0].length||new Set(alts[0].map(spotMidi)).size>8)return null;
+  /* every spot, string by string: the same pitch on another string is its own note, so re-attacks count (q.repeats) */
+  if(q.ui==='multi'&&q.playAll){const sp=q.answer.slice().sort((a,b)=>b.s-a.s||a.f-b.f);
+    targets=[{t:sp.map(spotMidi),names:sp.map(x=>midiName(spotMidi(x))),degs:sp.map(x=>`S${x.s}`),answer:q.answer}];
+    how=`Play all ${sp.length} spots one at a time: string 6 first, then 5, 4… up to string 1, lower fret first on each string. Let each note sound, then mute it before the next.`;}
+  else if(q.ui==='multi'){const alts=(q.alts&&q.alts.length?q.alts:[q.answer]);if(!alts[0]||!alts[0].length||new Set(alts[0].map(spotMidi)).size>8)return null;
     targets=alts.map(a=>{const sorted=a.slice().sort((x,y)=>spotMidi(x)-spotMidi(y));const t=[],sp=[];sorted.forEach(x=>{const m=spotMidi(x);if(t.at(-1)!==m){t.push(m);sp.push(x);}});return {t,names:t.map(midiName),degs:sp.map(x=>x.t||PCN[mod(spotMidi(x),12)].split('/')[0]),answer:a};});
     const n=targets[0].t.length;how=n===1?'Play the note.':`Play the ${n} notes <b>low to high</b>, one string at a time, muting as you go.`;}
   else if(q.ui==='fret'){const ok=((q.reveal&&q.reveal.dots)||[]).filter(d=>d.cls==='fb-ok');if(!ok.length)return null;const ms=[...new Set(ok.map(spotMidi))];
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
-  const prompt=q.prompt.replace(/\s*[—–-]?\s*\d+ spots?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} Exact pitch counts: the octave must match.</div>`;
-  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:false,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
+  const prompt=q.prompt.replace(/\s*[—–-]?\s*\d+ spots?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} Exact pitch counts: the octave must match.</div>`;
+  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:false,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
   return (q.staff?`<div class="staffwrap">${done&&q.staffOk?q.staffOk:q.staff}</div>`:'')+fretSVG({dots,win:q.win});}

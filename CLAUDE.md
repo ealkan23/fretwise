@@ -2,8 +2,9 @@
 
 Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring jazz guitarist (Berklee-style curriculum). Single-page app, no build step for development, no dependencies, no framework.
 
-- **Live artifact (synced progress):** https://claude.ai/artifact/756Z4Kc3AywDU1mgsGazsQ — published through claude.ai Artifacts with capabilities `{db:{}, user:{}}`; per-user progress lives at `data/users/<id>/<gameId>`. The artifact view cannot use the microphone.
-- **Offline / mic file:** `dist/fretwise.html` (built by `build.py`, piano embedded as data URIs). Open in Chrome/Edge from disk; progress goes to `localStorage` key `fretwise-v1`. Progress moves between the two with Overview → "Move your progress" (export/import JSON; per game the copy with more answers wins).
+- **Live site (the one page the user uses):** https://ealkan23.github.io/fretwise/ — GitHub Pages from the public repo `ealkan23/fretwise`. `.github/workflows/pages.yml` publishes `src/fretwise.html` as `index.html` with `piano/` beside it on every push to `main`, so **deploying = commit + `git push`** (watch with `gh run watch`). Mic works there; progress is in that browser's `localStorage` key `fretwise-v1`. The user works only from Claude Code: never send them to a claude.ai chat to publish.
+- **Old claude.ai artifact (retired):** https://claude.ai/artifact/756Z4Kc3AywDU1mgsGazsQ — no longer updated. `initCloud` only runs when framed with `window.claude`; elsewhere it shows "Saved in this browser". Progress moves between copies with Overview → "Move your progress" (export/import JSON; per game the copy with more answers wins).
+- **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
 ## Layout
@@ -25,7 +26,10 @@ Serve for development: `python3 -m http.server 8765` from `src/`'s parent with `
 node tests/extract.js && node --check tests/fw.js && node tests/sweep.js   # must print bad 0
 python3 tests/screens.py                                                   # look at tests/out/*.png
 python3 build.py                                                           # refresh dist/
+git commit -am '…' && git push                                             # deploys the live site
 ```
+
+Node may not be installed: run the same scripts with macOS's `jsc` (`/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc`) by shimming `require('fs'/'path')`, `console.log` → `print`.
 
 The sweep instantiates ~38,000 questions and checks: choice lists contain the answer with no duplicates; multi/fret/tap/mic questions pass their own grader with a perfect answer and fail a wrong one; `snd` descriptors only emit sane midis; every question has key/label/prompt/explain; play-mode conversion yields ascending exact-pitch targets.
 

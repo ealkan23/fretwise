@@ -1147,7 +1147,9 @@ async function ensureMic(){if(AN)return true;
 /* ============ BASIC PITCH (Spotify, Apache-2.0): neural note detection for the guitar games ============ */
 /* vendor/bp.js bundles Basic Pitch + TensorFlow.js (tools/build-vendor.js); the offline file embeds both. Thresholds and the guitar filter were
    tuned on real takes (tests/replay.js, tests/tune_bp.js). Without WebGL it cannot follow live playing, so the built-in detector stays as fallback. */
-const BPO={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400};
+const BPO={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400,
+  /* Note Hunt: the hunted note is read at a low bar (faint low strings), other pitches at the normal bar; tuned on the user's fix-list takes */
+  huntOnset:0.3,huntFrame:0.2,huntMinLen:5,huntAmp:0.35,huntGap:450,junkDur:400};
 const BP={state:'idle',p:null,inst:null,q:Promise.resolve(),worklet:false};
 /* mic capture on the audio thread: a busy page (the detector itself) must not drop audio, or the gaps read as new picks */
 const BP_CAP=`class FwCap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(4096);this.n=0;this.f=0;}
@@ -1180,10 +1182,22 @@ function bpMono(ev,keepRepeats){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=B
     if(same&&!keepRepeats&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
     out.push({...pick});}
   return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
-/* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time */
-function bpAnalyse(x,sr,offMs,keepRepeats){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
-    const {outputToNotesPoly,noteFramesToTime}=window.FWBP;
-    return bpMono(noteFramesToTime(outputToNotesPoly(fr,on,BPO.onset,BPO.frame,BPO.minLen,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude})),keepRepeats);});
+/* Note Hunt: pcs = the hunted pitch classes. Their events come from a sensitive second read (evL), everything else from the normal one (evS).
+   One note per pick (the same note again within huntGap is the same pick); a short low noise that is not a hunted note is handling noise. */
+function bpHunt(evS,evL,pcs){const inR=n=>n.midi>=BPO.lo&&n.midi<=BPO.hi,ns=evL.filter(n=>inR(n)&&pcs.has(n.midi%12)&&n.amp>=BPO.huntAmp)
+    .concat(evS.filter(n=>inR(n)&&!pcs.has(n.midi%12)&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp))).sort((a,b)=>a.t-b.t),out=[];
+  for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
+    const top=Math.max(...g.map(n=>n.amp));let pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0];
+    const fund=evL.find(n=>n.midi===pick.midi-12&&n.midi>=BPO.lo&&Math.abs(n.t-pick.t)<=BPO.group&&n.amp>=top*BPO.rescue);if(fund)pick=fund;
+    const prev=out.at(-1);if(prev&&pick.midi%12===prev.midi%12&&pick.t-prev.t<BPO.huntGap)continue;
+    if(!pcs.has(pick.midi%12)&&pick.midi<BPO.lowBelow&&pick.dur<BPO.junkDur)continue;
+    out.push(pick);}
+  return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
+/* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time. o: {keepRepeats, pcs (Note Hunt)} */
+function bpAnalyse(x,sr,offMs,o={}){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
+    const {outputToNotesPoly,noteFramesToTime}=window.FWBP,ev=(a,b,c)=>noteFramesToTime(outputToNotesPoly(fr,on,a,b,c,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude}));
+    const evS=ev(BPO.onset,BPO.frame,BPO.minLen);
+    return o.pcs?bpHunt(evS,ev(BPO.huntOnset,BPO.huntFrame,BPO.huntMinLen),o.pcs):bpMono(evS,o.keepRepeats);});
   BP.q=job.catch(()=>{});return job;}
 
 /* noise floor carried between listens, so a string still ringing at the start cannot set a deaf threshold */
@@ -1195,7 +1209,7 @@ const micLat=bp=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
    onsets (+ clicks: scheduled click times in ms, calEnd: end of count-in). Notes are {midi, mf, t, dur (ms), atk}. */
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate,bp=!!opts.bp&&!opts.onsets&&BP.state==='ready';
   LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
-    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,isDone:opts.isDone||null,
+    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,
     onsets:!!opts.onsets,ons:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat(bp),bp:null};
   if(bp){const src=c.createMediaStreamSource(MIC),C={src,sr,buf:new Float32Array(Math.ceil(sr*(LS.cap/1000+2))),n:0,off:null,busy:false,last:0,notes:[]};
     const put=d=>{const k=Math.min(d.length,C.buf.length-C.n);C.buf.set(d.subarray(0,k),C.n);C.n+=k;};
@@ -1219,7 +1233,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(C){LS.frames.push({rms:r,m:null,t:el});
       // every 0.4 s, re-read the last 6 s; the first second of a window lacks context, so earlier results stand there
       if(!C.busy&&C.n&&now-C.last>=BPO.every){C.busy=true;C.last=now;const end=C.n,st=Math.max(0,end-BPO.win*C.sr),off=C.off+st/C.sr*1000,edge=st>0?off+1000:-1e9;
-        bpAnalyse(C.buf.slice(st,end),C.sr,off,LS.repeats).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
+        bpAnalyse(C.buf.slice(st,end),C.sr,off,{keepRepeats:LS.repeats,pcs:LS.pcs}).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
           for(const n of ns)if(n.t<edge){const o=C.notes.find(x=>x.midi===n.midi&&Math.abs(x.t-n.t)<60);if(o)o.dur=Math.max(o.dur,n.dur);}
           C.notes=C.notes.filter(n=>n.t<edge).concat(ns.filter(n=>n.t>=edge));
           // a note already sounding when listening began (the last answer still ringing) is not part of this answer
@@ -1242,7 +1256,7 @@ function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
   LAST_TAKE={x:C.buf.slice(0,C.n),sr:C.sr};
-  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,L.repeats).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
+  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,{keepRepeats:L.repeats,pcs:L.pcs}).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
   if(view.name==='tuner'&&LS)tunerUpdate();}
@@ -1355,7 +1369,7 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   S.listening=true;S.live=[];S.micMsg='';render();
   const t=q.target,n=t.filter((m,i)=>!i||q.repeats||(q.octaveFree?mod(m-t[i-1],12)!==0:m!==t[i-1])).length,voice=S.gid==='sing';
   const got=res=>{if(res.silent){S.micMsg='Nothing heard. Check that the level bar moves when you play, then press Listen (Space) again.';render();return;}answer(res);};
-  const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,hold:voice?600:400,limit:S.untimed?0:S.limit};
+  const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,pcs:q.playAll?new Set(t.map(m=>mod(m,12))):null,hold:voice?600:400,limit:S.untimed?0:S.limit};
   if(q.metro){const beat=60/q.metro,t0=0.1,last=q.grid?q.grid.at(-1):t.length-1;for(let i=0;i<4+Math.ceil(last)+2;i++)Piano.tick(t0+i*beat,i%4===0);const beatStart=(4*beat+t0)*1000;
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
   else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}

@@ -3,3 +3,5 @@ tests/out/
 tests/site/
 .DS_Store
 dist/
+.venv/
+recordings/

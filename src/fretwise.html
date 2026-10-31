@@ -1181,11 +1181,40 @@ function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
   if(view.name==='tuner'&&LS)tunerUpdate();}
-function vTuner(){return `<div class="head"><div><div class="eyebrow">Mic check</div><h1>Play or sing any note</h1><p class="lead">If the name below matches what you play, the mic games will hear you fine. Tune here too.</p></div><div class="sp"><button class="btn small ghost" data-act="home">Back</button></div></div>${micErr?`<div class="warn">${micErr}</div>`:''}
+function vTuner(){return `<div class="head"><div><div class="eyebrow">Mic check</div><h1>Play or sing any note</h1><p class="lead">If the name below matches what you play, the mic games will hear you fine. Tune here too.</p></div><div class="sp"><button class="btn small ghost" data-act="rec">Record test takes</button><button class="btn small ghost" data-act="home">Back</button></div></div>${micErr?`<div class="warn">${micErr}</div>`:''}
   <div class="panel tuner"><div class="bigt" id="tn">–</div><div style="display:grid;gap:10px"><div class="cents"><u></u><i id="tc"></i></div><div class="level" id="lvl"><i></i></div><div class="muted" id="tt">Waiting for sound…</div></div></div>`;}
 function tunerUpdate(){const f=LS.frames.at(-1);if(!f)return;const tn=document.getElementById('tn'),tc=document.getElementById('tc'),tt=document.getElementById('tt');if(!tn)return;
   if(f.m!==null){const n=Math.round(f.m),c=(f.m-n)*100;tn.textContent=NOTE_PC[mod(n,12)];tc.style.left=`calc(50% + ${Math.max(-50,Math.min(50,c))}% - 2px)`;tt.textContent=`${nameOf(n)} · ${c>=0?'+':''}${c.toFixed(0)} cents · ${(440*2**((f.m-69)/12)).toFixed(1)} Hz`;}}
 async function tuner(){if(LS)stopListening(true);view={name:'tuner'};render();window.scrollTo(0,0);if(!(await ensureMic())){render();return;}const run=()=>{if(view.name!=='tuner')return;startListening(()=>{if(view.name==='tuner')run();},999);};run();}
+
+/* ============ TEST TAKES: raw guitar recordings with known notes, for tuning the note detector offline ============ */
+const TAKES=[
+ {id:'open',n:'Open strings',d:'Pick each open string from 6 to 1 (E A D G B E). Let each ring about 3 seconds, mute it, then the next.',exp:[40,45,50,55,59,64]},
+ {id:'held',n:'Held notes',d:'A on string 6, fret 5. Pick it once and let it ring until it fades (about 6 s), then mute. Three times.',exp:[45,45,45]},
+ {id:'ringing',n:'Let it ring',d:'C (string 5 fret 3), E (string 4 fret 2), G (open string 3), C (string 2 fret 1): one per second, letting them all ring together.',exp:[48,52,55,60]},
+ {id:'hunt',n:'Note Hunt round',d:'Every D, as the game asks: string 6 fret 10, string 5 fret 5, open string 4, string 4 fret 12, string 3 fret 7, string 2 fret 3, string 1 fret 10. Mute between, take your time.',exp:[50,50,50,62,62,62,74]},
+ {id:'run',n:'Fast scale',d:'C major one octave up and back down (C D E F G A B C B A G F E D C), starting on string 5 fret 3, picking every note at a quick comfortable tempo.',exp:[48,50,52,53,55,57,59,60,59,57,55,53,52,50,48]},
+ {id:'high',n:'High notes',d:'String 1, frets 12, 15 and 17, each held about 2 seconds.',exp:[76,79,81]},
+ {id:'legato',n:'Hammer-on and slide',d:'String 3: pick fret 5, hammer on fret 7, slide to fret 9. Three times with a pause between.',exp:[60,62,64,60,62,64,60,62,64]},
+ {id:'repeat',n:'Same note, re-picked',d:'G on string 6 fret 3, picked 8 times in steady quarter notes without muting in between.',exp:[43,43,43,43,43,43,43,43]},
+ {id:'chords',n:'Strummed chords',d:'Cmaj7 (x3545x), Dm7 (x5756x), G7 (3x343x): strum each 4 times, about one strum per second.',exp:[],chords:[[48,55,59,64],[50,57,60,65],[43,53,59,62]]},
+ {id:'noise',n:'Noises, no notes',d:'About 10 seconds: mute all strings and scratch them, tap the guitar body, shift your fretting hand. None of this should count as a note.',exp:[]}];
+let REC=null;const REC_DONE={};
+function vRec(){return `<div class="head"><div><div class="eyebrow">Mic check · test takes</div><h1>Record your guitar</h1><p class="lead">Ten short takes with known notes, so the note detector can be tuned on your guitar and mic. Each one saves a WAV file to your Downloads folder.</p></div><div class="sp"><button class="btn small ghost" data-act="tuner">Back</button></div></div>${micErr?`<div class="warn">${micErr}</div>`:''}
+  <div class="panel"><p class="note">Sit where you usually practise, same guitar and same mic. Press <b>Record</b>, wait a second, play the take, wait a second, press <b>Stop</b>. Redo any take you fumble: the newest file wins.</p><div class="level" id="lvl"><i></i></div><p class="muted" id="rectime">${REC?'Recording…':'Ready'}</p></div>
+  <div class="section">${TAKES.map((t,i)=>{const on=REC&&REC.id===t.id;return `<div class="panel" style="margin-top:10px;display:flex;gap:16px;align-items:center;justify-content:space-between"><div><b>${i+1}. ${t.n}</b>${REC_DONE[t.id]?` <span class="muted">· saved (${REC_DONE[t.id].toFixed(0)} s)</span>`:''}<p class="note" style="margin:4px 0 0">${t.d}</p></div>
+    ${on?`<button class="btn rec" data-act="recstop">■ Stop</button>`:`<button class="btn ${REC_DONE[t.id]?'ghost':'primary'}" data-act="recgo" data-id="${t.id}" ${REC?'disabled':''}>${REC_DONE[t.id]?'Redo':'● Record'}</button>`}</div>`;}).join('')}</div>`;}
+async function openRec(){if(LS)stopListening(true);view={name:'rec'};render();window.scrollTo(0,0);if(!(await ensureMic()))render();}
+async function recStart(id){if(REC||!(await ensureMic()))return render();const c=Piano.ac(),src=c.createMediaStreamSource(MIC),sp=c.createScriptProcessor(4096,1,1),R={id,src,sp,chunks:[],sr:c.sampleRate,t0:performance.now()};
+  sp.onaudioprocess=e=>{if(REC!==R)return;if(view.name!=='rec'){recStop(true);return;}R.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+  src.connect(sp);sp.connect(c.destination);REC=R;startListening(()=>{},999,{gap:1e9,wait:1e9,cap:1e9});render();
+  R.tick=setInterval(()=>{const el=document.getElementById('rectime');if(el)el.textContent=`Recording ${TAKES.find(t=>t.id===id).n} · ${((performance.now()-R.t0)/1000).toFixed(0)} s`;},250);}
+function recStop(discard){const R=REC;if(!R)return;REC=null;clearInterval(R.tick);R.sp.disconnect();R.src.disconnect();if(LS)stopListening(true);
+  if(!discard){const n=R.chunks.reduce((a,b)=>a+b.length,0),buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,str)=>{for(let i=0;i<str.length;i++)v.setUint8(o+i,str.charCodeAt(i));};
+    w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,R.sr,true);v.setUint32(28,R.sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+    let o=44;for(const ch of R.chunks)for(let i=0;i<ch.length;i++){const x=Math.max(-1,Math.min(1,ch[i]));v.setInt16(o,x<0?x*0x8000:x*0x7fff,true);o+=2;}
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));a.download=`fretwise-take-${R.id}.wav`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);REC_DONE[R.id]=n/R.sr;}
+  if(view.name==='rec')render();}
 
 /* ============ MIC GAMES: Sing It · Call & Response · Arpeggio Runner ============ */
 const NOTE_PC=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];const nameOf=m=>NOTE_PC[mod(m,12)]+(Math.floor(m/12)-1);
@@ -2019,7 +2048,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();}
+function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 6–7 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
@@ -2165,7 +2194,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(hit&&view.name==='lobby'&&hit.closest('#refneck')){const w=OPEN[+hit.dataset.s]+(+hit.dataset.f)+12;if(NAT.indexOf(w%12)>=0){const st=(Math.floor(w/12)-5)*7+NAT.indexOf(w%12)-2;view.ref=view.ref===st?null:st;render();}return;}if(hit&&S&&!S.locked&&view.name==='play'&&S.q.ui==='multi'){const k=hit.dataset.s+'-'+hit.dataset.f;if(S.sel.has(k))S.sel.delete(k);else S.sel.add(k);render();return;}
   if(hit&&S&&!S.locked&&view.name==='play'){answer({s:+hit.dataset.s,f:+hit.dataset.f});return;}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
-  if(a==='home'){if(view.name==='play')return quit();view={name:'home'};render();window.scrollTo(0,0);}
+  if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='sel'){view.sel=+b.dataset.l;render();}
@@ -2186,7 +2215,10 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='tap'){}
   else if(a==='resetlat'){const g=G(view.gid);g.opts=g.opts||{};g.opts.lat=0;saveGame(view.gid);render();}
   else if(a==='stop')stopListening();
-  else if(a==='tuner')tuner();
+  else if(a==='tuner'){if(REC)recStop(true);tuner();}
+  else if(a==='rec')openRec();
+  else if(a==='recgo')recStart(b.dataset.id);
+  else if(a==='recstop')recStop();
   else if(a==='micopt'){const g=G(view.gid);g.opts=g.opts||{};const k=b.dataset.k;if(b.type==='checkbox')g.opts[k]=b.checked;else g.opts[k]=isNaN(+b.value)?b.value:+b.value;saveGame(view.gid);render();}
   else if(a==='export'){view.export=!view.export;render();}
   else if(a==='importbox'){view.importbox=!view.importbox;render();}

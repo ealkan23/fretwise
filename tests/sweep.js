@@ -24,7 +24,7 @@ for(const g of GAMES){S.gid=g.id;g.levels.forEach((lv,li)=>lv.g.forEach(gen=>{fo
 let conv=0;for(const id of PLAY_GAMES){G(id).mode='play';S.gid=id;GBY[id].levels.forEach((lv,li)=>lv.g.forEach(gen=>{for(let i=0;i<60;i++){let q;try{q=pickQ(id,li+1);}catch(e){bad++;break;}if(q.ui!=='mic')continue;conv++;
  try{if(!q.repeats)for(let k=1;k<q.target.length;k++)if(q.target[k]<=q.target[k-1])throw new Error('not ascending');
   if(q.repeats&&q.target.length!==q.answer.length)throw new Error('play all spots');
-  const r=micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,t:i*500}))});if(!r.ok)throw new Error('play self');
+  const r=micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,atk:true,t:i*1000}))});if(!r.ok)throw new Error('play self');
   if(/press <b>Done/.test(q.prompt))throw new Error('prompt');}catch(e){bad++;if(bad<25)console.log('BADPLAY',id,q.key,e.message);}}}));}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);

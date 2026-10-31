@@ -1166,12 +1166,13 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
       // a note already sounding when listening began (the last answer still ringing) is not part of this answer
       LS.notes=segment(LS.frames,LS.thr).filter(n=>n.start>2);
       // notes that count toward "all in": longer than a blip, a held or re-struck pitch once
-      let k=0,pv=null;LS.notes.forEach(n=>{if(LS.frames[n.end].t-LS.frames[n.start].t<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv||(LS.repeats&&n.atk))k++;pv=p;});LS.real=k;
+      let k=0,pv=null,pt=-1e9;LS.notes.forEach(n=>{const t0=LS.frames[n.start].t;if(LS.frames[n.end].t-t0<90)return;const p=LS.octaveFree?mod(n.midi,12):n.midi;if(p!==pv||(LS.repeats&&n.atk&&t0-pt>=600)){k++;pt=t0;}pv=p;});LS.real=k;
       if(LS.notes.length&&LS.firstAt===null)LS.firstAt=el;}
     drawLive(r);
     const quietMs=(()=>{let i=LS.frames.length-1;while(i>=0&&LS.frames[i].rms<=LS.thr)i--;return i<0?el:el-LS.frames[i].t;})();
     const lastN=LS.notes.at(-1),lastLen=lastN?el-LS.frames[lastN.start].t:0,any=LS.notes.length>0;
-    const done=(LS.real>=LS.max&&(quietMs>=330||lastLen>=LS.hold)&&(!LS.isDone||LS.isDone(LS.notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:LS.frames[n.start].t,dur:LS.frames[n.end].t-LS.frames[n.start].t})))))||(any&&quietMs>=LS.gap)||(!any&&el>LS.wait)||el>LS.cap||(LS.endAt&&el>LS.endAt)||(LS.limit&&el>LS.limit+LS.beatStart);
+    const settled=LS.repeats?lastLen>=2000:(quietMs>=330||lastLen>=LS.hold);
+    const done=(LS.real>=LS.max&&settled&&(!LS.isDone||LS.isDone(LS.notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:LS.frames[n.start].t,dur:LS.frames[n.end].t-LS.frames[n.start].t})))))||(any&&quietMs>=LS.gap)||(!any&&el>LS.wait)||el>LS.cap||(LS.endAt&&el>LS.endAt)||(LS.limit&&el>LS.limit+LS.beatStart);
     if(done)return stopListening(false,!any);requestAnimationFrame(step);};requestAnimationFrame(step);}
 /* silent: stopped on its own without hearing anything; the question is not graded */
 function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const F=LS.frames;
@@ -1269,7 +1270,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
   t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
     if(q.metro&&x){const off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&cmp(m,got),onTime});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
-  const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip));
+  const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!(q.repeats&&[d[i-1],d[i+1]].some(y=>y&&cmp(x.midi,y.midi))));
   const graded=per.filter(x=>x.onTime!==null),notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);
   return {ok:notesOk&&timeOk,notesOk,timeOk,per,extra:extra.map(x=>x.midi),firstAt:res.firstAt,octOff:notesOk&&q.octaveFree&&per.some(x=>x.got!==x.m)};}
 function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
@@ -1676,7 +1677,7 @@ function toPlay(q){let targets=null,how='';
   else if(q.ui==='fret'){const ok=((q.reveal&&q.reveal.dots)||[]).filter(d=>d.cls==='fb-ok');if(!ok.length)return null;const ms=[...new Set(ok.map(spotMidi))];
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
-  const prompt=q.prompt.replace(/\s*[—–-]?\s*\d+ spots?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks the note and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
+  const prompt=q.prompt.replace(/\s*\(?[—–-]?\s*\d+ spots?\)?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks the note and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
   return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}

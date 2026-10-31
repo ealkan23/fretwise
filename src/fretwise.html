@@ -225,6 +225,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .playhint{margin-top:8px;font-size:14px;color:var(--brass-ink);font-weight:500}
 .lesson{max-width:78ch;margin:0 0 14px;font-size:14px;color:var(--fg)}.lesson summary{cursor:pointer;font-weight:600;color:var(--brass-ink);padding:6px 0}.lesson p{margin:8px 0}
 .diag{background:var(--brass-soft);border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
 .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
@@ -1368,8 +1369,8 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
   for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+(heardAs(t[sl[a-1]],d[b-1].midi)?0:1),D[a-1][b]+1,D[a][b-1]+1);
   const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=heardAs(t[sl[a-1]],d[b-1].midi)?0:1;if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
   const per=[];let k=-1;
-  t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
-    if(q.metro&&x){const off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&heardAs(m,got),onTime});});
+  t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null,t:p.t,held:true});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
+    let off=null;if(q.metro&&x){off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&heardAs(m,got),onTime,t:x?x.t:null,off});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
   const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!(q.repeats&&[d[i-1],d[i+1]].some(y=>y&&cmp(x.midi,y.midi))));
   const graded=per.filter(x=>x.onTime!==null),notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);
@@ -2101,6 +2102,7 @@ function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame
   const it=g.items[K(q.key)]||(g.items[K(q.key)]={l:q.label,lv:q.lv,c:0,w:0,h:0,n:0,ms:0});it.l=q.label;it.lv=q.lv;it.n++;it.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
   if(q.ui==='tap'&&S.tapResult)tapLearnLatency(q,S.tapResult,g);
+  perfLog(g,q,it,ok&&!S.hinted);
   if(!ok&&q.ui!=='multi'&&q.ui!=='mic'&&q.ui!=='tap'){const k=`${q.answerText||q.answer} → ${givenText(q,given)}`;if(given!==null){let e=g.cf.find(x=>x.k===k);if(e)e.n++;else g.cf.push(e={k,n:1});if(e.n>=3)S.diag=`This is the ${e.n===3?'third':e.n+'th'} time <b>${q.answerText||q.answer}</b> has come out as <b>${givenText(q,given)}</b>. Slow down on this pair: it will come back more often until it is clean.`;if(g.cf.length>60){g.cf.sort((a,b)=>b.n-a.n);g.cf.length=50;}}}
   if(q.rootKey){const rk=g.rk[q.rootKey]||(g.rk[q.rootKey]={n:0,c:0});rk.n++;if(ok&&!S.hinted)rk.c++;}
   const h=g.hist[q.lv]||(g.hist[q.lv]=[]);h.push(ok&&!S.hinted?1:0);if(h.length>20)h.shift();
@@ -2110,6 +2112,21 @@ function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame
   if(g.lvl<GBY[S.gid].levels.length){const hh=g.hist[g.lvl]||[];if(hh.length>=NEED&&hh.reduce((a,b)=>a+b,0)/hh.length>=PASS){g.lvl++;S.unlocked=g.lvl;}}
   S.answers.push({q,given,ok,ms,hinted:S.hinted,timeout:given===null,mode:q.play?'play':'mark'});S.i++;
   render();const dur=playSnd(q,g);if(ok&&!S.hinted)autoT=setTimeout(nextQ,Math.max(900,dur*1000+300));}
+/* practice data for the stats page (fields added Oct 2026; older answers have none):
+   it.r last 8 results ('1' clean), it.rt/rn time to first played note, it.gp/gn time to find each next note,
+   g.pl log of played/tapped answers {t,lv,k,ok,rt,gp,n,dr (mean signed offset to the click, ms; + = late),ab (mean |offset|)},
+   g.sp find time per slot label (string for Note Hunt, chord tone for arpeggios) {label:{n,ms}},
+   it.qn/qc mic answers since this log began (graded by the Basic Pitch detector; earlier guitar mic answers had many false fails) */
+function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.ui==='mic'){it.qn=(it.qn||0)+1;if(clean)it.qc=(it.qc||0)+1;}
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length,med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];};let e=null;
+  if(q.ui==='mic'&&S.micResult&&S.micResult.per){const per=S.micResult.per,first=per.find(x=>x.got!==null&&x.t!=null),gaps=[];
+    for(let i=1;i<per.length;i++){const a=per[i-1],b=per[i];if(b.held||!a.ok||!b.ok||a.t==null||b.t==null||b.t<=a.t)continue;const gp=b.t-a.t;gaps.push(gp);
+      const lab=q.degs&&q.degs[i];if(lab&&gp<20000){g.sp=g.sp||{};const s2=g.sp[lab]||(g.sp[lab]={n:0,ms:0});s2.n++;s2.ms+=Math.round(gp);}}
+    const offs=per.filter(x=>x.off!=null&&x.ok).map(x=>x.off);
+    e={rt:first?Math.round(first.t):null,gp:gaps.length?Math.round(med(gaps)):null,n:per.length};if(offs.length){e.dr=Math.round(mean(offs));e.ab=Math.round(mean(offs.map(Math.abs)));}}
+  else if(q.ui==='tap'&&S.tapResult){const offs=S.tapResult.per.filter(x=>x.ok).map(x=>x.off);if(offs.length)e={n:offs.length,dr:Math.round(mean(offs)),ab:Math.round(mean(offs.map(Math.abs)))};}
+  if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
+  if(e.rt!=null&&e.rt<30000){it.rt=(it.rt||0)+e.rt;it.rn=(it.rn||0)+1;}if(e.gp!=null){it.gp=(it.gp||0)+e.gp;it.gn=(it.gn||0)+1;}}
 function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.filter(a=>a.ok).length,ms=Math.round(S.answers.reduce((a,b)=>a+b.ms,0)/n),dur=Date.now()-S.t0;
   g.sessions.push({t:Date.now(),L:S.L,n,c,ms,dur,sc:S.score,mode:G(S.gid).mode||'mark'});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;saveGame(S.gid);}
   view={name:'results'};render();}
@@ -2234,9 +2251,74 @@ function lineChart(vals,{min=0,max=100,fmt=v=>v,label=''}={}){const W=460,H=150,
   h+=`<circle class="ch-dot" cx="${x(n-1)}" cy="${y(vals[n-1])}" r="4"/><text class="ch-lab" x="${L}" y="${H-6}">round ${1}</text><text class="ch-lab" x="${W-Rr}" y="${H-6}" text-anchor="end">round ${n}</text>`;
   return h+'</svg>';}
 const heatColor=(p)=>`color-mix(in oklab, var(--good) ${Math.round(p*100)}%, var(--bad))`;
+/* ============ STATS: a teacher's reading of the practice log ============ */
+const sMed=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
+const sec=ms=>ms==null?'—':(ms/1000).toFixed(ms<10000?1:0)+' s',slotName=k=>/^S[1-6]$/.test(k)?'string '+k[1]:k;
+/* practice advice by area, in the voice of a guitar teacher */
+const ADV={neck:'Say each note name out loud as you play it, one string at a time, before mixing strings.',
+  theory:'Spell it out loud from the root before you answer: letters first, then accidentals.',
+  voicings:'Play the grip, name the chord tone under each finger from low to high, then move it to the next string set.',
+  ear:'Sing it before you answer: if you can sing it, you can name it. Anchor every answer to the tonic.',
+  applied:'Take it to the instrument: play the line or shape in two positions before you answer.',
+  rhythm:'Count out loud and tap your foot on the beat; feel the subdivision before you play the first note.'};
+const isMarkTime=it=>!(it.pn&&it.pn===it.n);   // answer time means something only for marked/clicked answers
+/* guitar mic answers before the Basic Pitch detector (31 Oct 2026) were often graded wrong: the analysis leaves them out (they stay stored) */
+const OLDMIC=id=>id==='cr'||id==='arp';
+function trusted(v,id){const n=(OLDMIC(id)?0:v.n-(v.pn||0))+(v.qn||0),c=(OLDMIC(id)?0:v.c-(v.pc||0))+(v.qc||0);return {n,c:Math.max(0,Math.min(c,n))};}
+/* a round left open in a background tab should not count as hours of practice */
+const roundCap=ss=>Math.max(10*60000,ss.n*120000),practiceMs=g=>Math.max(0,g.time-g.sessions.reduce((a,v)=>a+Math.max(0,(v.dur||0)-roundCap(v)),0));
+/* items worth practising next: low (smoothed) accuracy, a recent miss, or correct but slow */
+function focusItems(g,id,minN=2){const items=Object.entries(g.items).map(([k,v])=>{const t=trusted(v,id);return {k,...v,n:t.n,c:t.c};}).filter(v=>v.n>=minN);if(!items.length)return [];
+  const times=items.filter(isMarkTime).map(v=>v.ms/v.n),medT=sMed(times)||0,finds=items.filter(v=>v.gn).map(v=>v.gp/v.gn),medF=sMed(finds)||0;
+  return items.map(v=>{const acc=(v.c+1)/(v.n+2),rec=v.r||'',recentMiss=rec.slice(-3).includes('0'),t=isMarkTime(v)?v.ms/v.n:null,f=v.gn?v.gp/v.gn:null,
+      slow=(t&&medT&&t/medT>=1.5)||(f&&medF&&f/medF>=1.5),why=[];
+    if(v.c/v.n<0.75)why.push(`${v.n-v.c} of ${v.n} missed`);if(recentMiss&&!(v.c/v.n<0.75))why.push('missed recently');if(slow)why.push(f?`slow to find (${sec(f)} a note)`:`slow (${sec(t)})`);
+    const score=(1-acc)*100+(recentMiss?18:0)+(slow?14:0)-(rec.length>=3&&!rec.slice(-3).includes('0')?20:0);
+    return {...v,acc:v.c/v.n,t,f,why,score};}).filter(v=>v.why.length).sort((a,b)=>b.score-a.score);}
+/* the analysis: up to five notes, most important first, each with evidence and what to do */
+function coachNotes(x,g){const N=[],add=(pri,title,body,tone='')=>N.push({pri,title,body,tone});
+  const L=g.lvl,lv=x.levels[L-1],m=mastery(g,L),top=L>=x.levels.length;
+  // 1. where you stand on the ladder
+  if(m.n>=NEED&&m.p<0.6)add(95,`Level ${L} is not sticking yet`,`Only ${Math.round(m.p*100)}% clean over your last ${m.n} answers on “${lv.n}”. Slow down: accuracy first, speed later. Play level ${Math.max(1,L-1)} for a round to rebuild confidence, then come back.`,'bad');
+  else if(!top&&!m.n)add(65,`Level ${L} is waiting`,`You unlocked “${lv.n}” but have not played it yet. Start a round there: new material is where the progress is.`);
+  else if(!top){/* clean answers in a row that would open the next level (the window keeps the last 20) */
+    const h=(g.hist[L]||[]).slice();let k=0;while(k<40&&!(h.length>=NEED&&h.reduce((a,b)=>a+b,0)/h.length>=PASS)){h.push(1);if(h.length>20)h.shift();k++;}
+    add(m.p>=0.75&&m.n>=8?85:60,`Level ${L}: ${k<=4?'almost unlocked':'in progress'}`,`${m.c} of your last ${m.n} answers on “${lv.n}” were clean (${Math.round(m.p*100)}%). Level ${L+1} opens at ${Math.round(PASS*100)}% over your last answers: ${k} clean in a row would do it.`,m.p>=0.75?'good':'');}
+  else add(40,'Top level reached',`All ${x.levels.length} levels are open. Keep this game in rotation every few days so it stays automatic; review mode brings back what slips.`,'good');
+  // 2. what to practise
+  const F=focusItems(g,x.id,3).slice(0,3);if(F.length)add(88,'Practise these first',`${F.map(f=>`<b>${esc(f.l)}</b> (${f.why[0]})`).join(', ')}. Isolate them: five slow, correct repetitions each before you play a round. ${ADV[x.cat]||''}`);
+  // 3. the same mistake again and again
+  const cf=(g.cf||[]).slice().sort((a,b)=>b.n-a.n)[0];if(cf&&cf.n>=3){const [right,said]=cf.k.split(' → ');add(80,'A habit to break',`You have answered <b>${esc(said)}</b> for <b>${esc(right)}</b> ${cf.n} times. Put them side by side: play or say both, and name what makes them different, until you never hesitate.`,'bad');}
+  // 4. knowing it vs. playing it
+  const its=Object.values(g.items),pn=its.reduce((a,v)=>a+(v.qn||0),0),pc=its.reduce((a,v)=>a+(v.qc||0),0),mn=its.reduce((a,v)=>a+v.n-(v.pn||0),0),mc=its.reduce((a,v)=>a+v.c-(v.pc||0),0);
+  if(pn>=10&&mn>=10&&mc/mn-pc/pn>=0.15)add(78,'You know it on paper more than under the fingers',`Marked on the neck: ${pct(mc,mn)}% clean. Played on the guitar: ${pct(pc,pn)}%. The knowledge is there; the hand has not caught up. Do more rounds in play mode, slowly, and say each note as you play it.`);
+  // 5. speed on the guitar
+  const pl=(g.pl||[]).filter(e=>e.gp!=null||e.rt!=null);
+  if(pl.length>=6){const rec=pl.slice(-20),gp=sMed(rec.map(e=>e.gp).filter(v=>v!=null)),rt=sMed(rec.map(e=>e.rt).filter(v=>v!=null));
+    const half=Math.floor(pl.length/2),early=sMed(pl.slice(0,half).map(e=>e.gp??e.rt).filter(v=>v!=null)),late=sMed(pl.slice(half).map(e=>e.gp??e.rt).filter(v=>v!=null));
+    const trend=early&&late?(late-early)/early:0,slowLab=Object.entries(g.sp||{}).filter(([,v])=>v.n>=3).map(([k,v])=>({k,a:v.ms/v.n})).sort((a,b)=>b.a-a.a);
+    const goal=gp!=null?(gp>2000?'Next target: one note every 2 s, then one per click at 60 bpm.':gp>1000?'Next target: one note per click at 60 bpm (1 s).':'You are finding notes faster than one per second: start doing it in time, one note per click at 80 bpm.'):'';
+    add(76,'How fast you find it on the guitar',`${gp!=null?`About <b>${sec(gp)}</b> to find each next note`:''}${gp!=null&&rt!=null?', ':''}${rt!=null?`<b>${sec(rt)}</b> to the first note`:''} (median of your last ${rec.length} played answers).${Math.abs(trend)>=0.1?` That is ${Math.round(Math.abs(trend)*100)}% ${trend<0?'faster':'slower'} than when you started tracking.`:''}${slowLab.length>=2?` Slowest: <b>${esc(slotName(slowLab[0].k))}</b> (${sec(slowLab[0].a)}) against <b>${esc(slotName(slowLab.at(-1).k))}</b> (${sec(slowLab.at(-1).a)}).`:''} ${goal}`,trend<-0.1?'good':'');}
+  // 6. time feel against the click
+  const tm=(g.pl||[]).filter(e=>e.dr!=null).slice(-20);
+  if(tm.length>=4){const dr=Math.round(sMed(tm.map(e=>e.dr))),ab=Math.round(sMed(tm.map(e=>e.ab)));
+    add(Math.abs(dr)>=25?82:50,Math.abs(dr)>=25?(dr>0?'You are dragging behind the click':'You are rushing ahead of the click'):'Your time feel is centred',`Your notes land ${Math.abs(dr)} ms ${dr>=0?'after':'before'} the click on average, ${ab} ms off in either direction (last ${tm.length} takes).${Math.abs(dr)>=25?(dr>0?' Hear the click as the end of your note, not the start: play into it. Set the metronome on 2 and 4 and lean forward.':' Let the click come to you: relax the picking hand and land exactly with it, not before.'):' Keep it there at faster tempos.'}`,Math.abs(dr)>=25?'bad':'good');}
+  // 7. keys
+  const rk=Object.entries(g.rk||{}).filter(([,v])=>v.n>=3).map(([k,v])=>({k,p:v.c/v.n,n:v.n}));
+  if(rk.length>=4){const all=rk.reduce((a,v)=>a+v.p,0)/rk.length,weak=rk.filter(v=>v.p<all-0.15).sort((a,b)=>a.p-b.p).slice(0,3);
+    if(weak.length)add(62,'Weak keys',`${weak.map(w=>`<b>${w.k}</b> ${Math.round(w.p*100)}%`).join(', ')} against ${Math.round(all*100)}% in your other keys. ${weak.some(w=>/♭/.test(w.k))?' Jazz lives in the flat keys, so these matter.':''} Spend a round only in these.`);}
+  // 8. trend over rounds
+  const ss=g.sessions;if(ss.length>=6){const a=ss.slice(-3),b=ss.slice(-6,-3),acc=v=>v.reduce((x,y)=>x+y.c,0)/v.reduce((x,y)=>x+y.n,0),d=acc(a)-acc(b);
+    if(Math.abs(d)>=0.1)add(d<0?72:45,d<0?'Accuracy dipped in your last rounds':'Accuracy is climbing',`Last three rounds ${Math.round(acc(a)*100)}%, the three before ${Math.round(acc(b)*100)}%.${d<0?' Usually that means rushing or a harder level: take the next round slower.':' Keep the same pace.'}`,d<0?'bad':'good');}
+  // 9. hints
+  const h=its.reduce((a,v)=>a+(v.h||0),0),n=its.reduce((a,v)=>a+v.n,0);if(n>=20&&h/n>=0.12)add(55,'Leaning on hints',`${Math.round(h/n*100)}% of answers used a hint. Try first for a few seconds without one: the struggle is where it sticks.`);
+  // 10. spacing
+  const days=new Set(ss.filter(v=>v.t>=Date.now()-14*864e5).map(v=>new Date(v.t).toDateString())).size,last=ss.length?(Date.now()-ss.at(-1).t)/864e5:0;
+  if(ss.length&&last>=4)add(70,`${Math.floor(last)} days since you last played this`,`Short daily rounds beat one long session: ten minutes a day keeps it in the hands.`);
+  else if(ss.length>=3)add(30,`${days} practice day${days===1?'':'s'} in the last two weeks`,days>=8?'Good consistency.':'Aim for most days, even one round.');
+  return N.sort((a,b)=>b.pri-a.pri).slice(0,5);}
 function vStats(){const x=GBY[view.gid],g=G(x.id),ss=g.sessions.slice(-30);
   const items=Object.entries(g.items).map(([k,v])=>({k,...v,acc:v.n?v.c/v.n:0}));
-  const weak=items.filter(i=>i.n>=2).sort((a,b)=>a.acc-b.acc||b.n-a.n).slice(0,10);
   const conf=(g.cf||[]).slice().sort((a,b)=>b.n-a.n).slice(0,8).map(x=>[x.k,x.n]);
   let special='';
   if(x.id==='fretboard'||x.id==='sight'){const pre=x.id==='fretboard'?'id':'sf';let h='<div class="heat"><div class="r"><span></span>'+Array.from({length:13},(_,f)=>`<span class="h">${f}</span>`).join('')+'</div>';
@@ -2250,15 +2332,39 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),ss=g.sessions.slice(-30);
     special+=`<div class="section"><h3>By key</h3><div class="panel tablewrap"><table><thead><tr>${cells.map(c=>`<th class="n">${c.k}</th>`).join('')}</tr></thead><tbody><tr>${cells.map(c=>`<td class="n" style="${c.n?`background:${heatColor(c.c/c.n)};color:#fff`:''}">${c.n?Math.round(c.c/c.n*100)+'%':'·'}</td>`).join('')}</tr><tr>${cells.map(c=>`<td class="n muted">${c.n||'—'}</td>`).join('')}</tr></tbody></table><p class="note">Clean answers by the root or key the question was built on; second row = times seen. Roots you have seen least are drawn first.</p></div></div>`;}
   const lvRows=x.levels.map((lv,i)=>{const L=i+1,its=items.filter(t=>t.lv===L),n=its.reduce((a,b)=>a+b.n,0),c=its.reduce((a,b)=>a+b.c,0),m=mastery(g,L);
     return `<div class="lvbar"><span><b>L${L}</b>${L>g.lvl?' <span class="muted">locked</span>':''}</span><div class="track" title="Mastery: last ${m.n} answers"><i style="width:${Math.round(m.p*Math.min(1,m.n/NEED)*100)}%"></i><u></u></div><span class="mono">${n?pct(c,n)+'% · '+n:'—'}</span></div>`;}).join('');
+  const notes=coachNotes(x,g),focus=focusItems(g,x.id).slice(0,10),m=mastery(g,g.lvl),pl=g.pl||[],plays=pl.filter(e=>e.gp!=null||e.rt!=null),taps=pl.filter(e=>e.dr!=null);
+  const r5=g.sessions.slice(-5),r5n=r5.reduce((a,b)=>a+b.n,0),r5c=r5.reduce((a,b)=>a+b.c,0),days=new Set(g.sessions.filter(v=>v.t>=Date.now()-14*864e5).map(v=>new Date(v.t).toDateString())).size;
+  const rec=plays.slice(-20),gpM=sMed(rec.map(e=>e.gp).filter(v=>v!=null)),rtM=sMed(rec.map(e=>e.rt).filter(v=>v!=null)),markT=items.filter(isMarkTime),markMs=sMed(markT.map(v=>v.ms/v.n));
+  const guitar=x.mic||PLAY_GAMES.includes(x.id);
+  /* speed and time-feel section, for the games you play */
+  let speed='';
+  if(plays.length||taps.length){const sp=Object.entries(g.sp||{}).filter(([,v])=>v.n>=2).map(([k,v])=>({k,a:v.ms/v.n,n:v.n})).sort((a,b)=>b.a-a.a),spMax=Math.max(...sp.map(v=>v.a),1);
+    const series=plays.slice(-40).map(e=>(e.gp??e.rt)/1000);
+    speed=`<div class="section"><h3>${plays.length?'Speed on the guitar':'Time feel'}</h3><div class="two">
+      ${plays.length?`<div class="panel"><div class="eyebrow">${plays.some(e=>e.gp!=null)?'Time to find each next note':'Time to the first note'}, last ${series.length} played answers</div>${lineChart(series,{min:0,max:Math.max(3,Math.ceil(Math.max(...series,0))),fmt:v=>v.toFixed(1)+'s',label:'Find time'})}<p class="note">Lower is better. Median of each answer’s note-to-note times; only notes that were right count.</p></div>`:''}
+      ${sp.length?`<div class="panel"><div class="eyebrow">Where you hesitate</div><div class="lvbars">${sp.slice(0,10).map(v=>`<div class="lvbar"><span><b>${esc(slotName(v.k))}</b></span><div class="track" title="${v.n} times"><i style="width:${Math.round(v.a/spMax*100)}%;background:${v===sp[0]?'var(--bad)':'var(--brass)'}"></i></div><span class="mono">${sec(v.a)} · ${v.n}</span></div>`).join('')}</div><p class="note">Average time to find the note in that slot${x.id==='hunt'?' (by string)':''}, slowest first.</p></div>`:''}
+      ${taps.length>=2?`<div class="panel"><div class="eyebrow">Ahead of or behind the click (ms), last ${Math.min(40,taps.length)} takes</div>${lineChart(taps.slice(-40).map(e=>e.dr),{min:-120,max:120,fmt:v=>(v>0?'+':'')+Math.round(v),label:'Offset'})}<p class="note">Above 0 = behind the click (dragging), below = ahead (rushing). Within ±25 ms feels locked in.</p></div>`:''}
+    </div></div>`;}
+  else if(guitar)speed=`<div class="section"><h3>Speed on the guitar</h3><div class="panel empty">${x.mic?'Play a round':'Play a round in play mode (Answer by → Playing it)'} and this shows how fast you find each note, where you hesitate${x.mic?' and how you sit against the click':''}.</div></div>`;
   return `<div class="head"><div><div class="eyebrow">Statistics</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn primary small" data-act="lobby" data-g="${x.id}">Play</button></div></div>
-  ${g.n?`<div class="big"><div class="tile"><span>Level</span><b>${g.lvl}/${x.levels.length}</b></div><div class="tile"><span>Answered</span><b>${g.n}</b></div><div class="tile"><span>Accuracy</span><b>${pct(g.c,g.n)}%</b></div><div class="tile"><span>Avg answer</span><b>${(g.ms/g.n/1000).toFixed(1)}s</b></div><div class="tile"><span>Best streak</span><b>${g.best||0}</b></div><div class="tile"><span>Rounds · time</span><b>${g.sessions.length} · ${Math.round(g.time/60000)}m</b></div></div>
+  ${g.n?`
+  <div class="section"><h3>Teacher’s notes</h3><div class="tnotes">${notes.map(n=>`<div class="tnote ${n.tone}"><b>${n.title}</b><p>${n.body}</p></div>`).join('')}</div></div>
+  <div class="big">
+    <div class="tile"><span>Level</span><b>${g.lvl}/${x.levels.length}</b><small class="muted">${m.n?Math.round(m.p*100)+'% clean, last '+m.n:'not started'}</small></div>
+    <div class="tile"><span>Recent accuracy</span><b>${r5n?pct(r5c,r5n)+'%':'—'}</b><small class="muted">last ${r5.length} rounds · lifetime ${pct(g.c,g.n)}%</small></div>
+    ${plays.length?`<div class="tile"><span>${gpM!=null?'Per note':'First note'}</span><b>${sec(gpM??rtM)}</b><small class="muted">${gpM!=null&&rtM!=null?'first note '+sec(rtM)+' · ':''}median, played</small></div>`:guitar&&(x.mic||g.mode==='play')?`<div class="tile"><span>Playing speed</span><b>—</b><small class="muted">measured from your next played round</small></div>`:`<div class="tile"><span>Answer time</span><b>${sec(markMs)}</b><small class="muted">median per item</small></div>`}
+    ${taps.length?`<div class="tile"><span>Against the click</span><b>${(()=>{const d=sMed(taps.slice(-20).map(e=>e.dr));return (d>0?'+':'')+Math.round(d)+' ms';})()}</b><small class="muted">+ = behind, − = ahead</small></div>`:''}
+    <div class="tile"><span>Best streak</span><b>${g.best||0}</b><small class="muted">clean answers in a row</small></div>
+    <div class="tile"><span>Practice</span><b>${Math.round(practiceMs(g)/60000)} min</b><small class="muted">${g.sessions.length} rounds · ${days} day${days===1?'':'s'} in 2 weeks</small></div>
+  </div>
+  <div class="section"><h3>Practise these next</h3><div class="panel tablewrap">${focus.length?`<table><thead><tr><th>Item</th><th>Why</th><th class="n">Clean</th><th class="n">Recent</th>${g.pn?'<th class="n">Played</th>':''}</tr></thead><tbody>${focus.map(w=>`<tr><td>${esc(w.l)}</td><td class="muted">${w.why.join(' · ')}</td><td class="n">${Math.round(w.acc*100)}% <span class="muted">of ${w.n}</span></td><td class="n mono">${(w.r||'').split('').map(c=>`<span style="color:${c==='1'?'var(--good)':'var(--bad)'}">${c==='1'?'●':'○'}</span>`).join('')||'·'}</td>${g.pn?`<td class="n">${w.qn?Math.round((w.qc||0)/w.qn*100)+'% ('+w.qn+')':'·'}</td>`:''}</tr>`).join('')}</tbody></table><p class="note">Ranked by misses (weighted toward recent ones) and slowness. Recent: last answers, newest on the right. Items you have answered cleanly three times running drop off.${guitar?' Played answers from before the new note detector (31 Oct) are left out: many of them were graded wrong.':''}</p>`:'<div class="empty">Nothing stands out: every item you have seen twice is clean and on pace.</div>'}</div></div>
+  ${speed}
   <div class="section"><div class="two"><div class="panel"><div class="eyebrow">Accuracy per round</div>${lineChart(ss.map(s=>s.c/s.n*100),{fmt:v=>Math.round(v)+'%',label:'Accuracy per round'})}</div>
-   <div class="panel"><div class="eyebrow">Average answer time per round</div>${(()=>{const v=ss.map(s=>s.ms/1000),mx=Math.max(5,Math.ceil(Math.max(...v,0)));return lineChart(v,{min:0,max:mx,fmt:t=>t.toFixed(0)+'s',label:'Average answer time'});})()}</div></div></div>
+   <div class="panel"><div class="eyebrow">Average answer time per round</div>${(()=>{const v=ss.map(s=>s.ms/1000),mx=Math.max(5,Math.ceil(Math.max(...v,0)));return lineChart(v,{min:0,max:mx,fmt:t=>t.toFixed(0)+'s',label:'Average answer time'});})()}${guitar?'<p class="note">For played answers this includes the wait for listening to end; the speed section above measures the playing itself.</p>':''}</div></div></div>
   <div class="section"><h3>Levels</h3><div class="panel lvbars">${lvRows}<div class="legend"><span><i style="background:var(--brass)"></i>mastery (last ${20} clean answers)</span><span>Dashed line = ${PASS*100}% unlock mark</span><span>Right: lifetime accuracy · answers</span></div></div></div>
   ${special}
-  <div class="section"><div class="two"><div><h3 style="margin-bottom:10px">Weakest items</h3><div class="panel tablewrap">${weak.length?`<table><thead><tr><th>Item</th><th class="n">Seen</th><th class="n">Clean</th>${g.pn?'<th class="n">Played</th>':''}<th class="n">Avg</th></tr></thead><tbody>${weak.map(w=>`<tr><td>${esc(w.l)}</td><td class="n">${w.n}</td><td class="n">${Math.round(w.acc*100)}%</td>${g.pn?`<td class="n">${w.pn?Math.round((w.pc||0)/w.pn*100)+'% ('+w.pn+')':'·'}</td>`:''}<td class="n">${(w.ms/w.n/1000).toFixed(1)}s</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Items show here once you have seen them twice.</div>'}</div></div>
-   <div><h3 style="margin-bottom:10px">Recurring mix-ups</h3><div class="panel tablewrap">${conf.length?`<table><thead><tr><th>Correct → you said</th><th class="n">Times</th></tr></thead><tbody>${conf.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No repeated mistakes yet.</div>'}</div></div></div></div>
-  <div class="section"><h3>Recent rounds</h3><div class="panel tablewrap"><table><thead><tr><th>When</th><th class="n">Level</th><th class="n">Score</th><th class="n">Correct</th><th class="n">Avg</th><th class="n">Time</th></tr></thead><tbody>${g.sessions.slice(-10).reverse().map(s=>`<tr><td>${new Date(s.t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="n">${s.L}</td><td class="n">${s.sc||0}</td><td class="n">${s.c}/${s.n}</td><td class="n">${(s.ms/1000).toFixed(1)}s</td><td class="n">${fmtClock(s.dur)}</td></tr>`).join('')}</tbody></table></div></div>`
+  ${conf.length?`<div class="section"><h3>Recurring mix-ups</h3><div class="panel tablewrap"><table><thead><tr><th>Correct → you said</th><th class="n">Times</th></tr></thead><tbody>${conf.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+  <div class="section"><h3>Recent rounds</h3><div class="panel tablewrap"><table><thead><tr><th>When</th><th class="n">Level</th><th>Mode</th><th class="n">Score</th><th class="n">Correct</th><th class="n">Avg</th><th class="n">Time</th></tr></thead><tbody>${g.sessions.slice(-10).reverse().map(s=>`<tr><td>${new Date(s.t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="n">${s.L}</td><td class="muted">${s.mode==='play'?'played':'marked'}</td><td class="n">${s.sc||0}</td><td class="n">${s.c}/${s.n}</td><td class="n">${(s.ms/1000).toFixed(1)}s</td><td class="n">${s.dur>roundCap(s)?'<span class="muted" title="left open">—</span>':fmtClock(s.dur)}</td></tr>`).join('')}</tbody></table></div></div>`
   :`<div class="panel empty">No rounds played yet. <button class="btn primary small" data-act="lobby" data-g="${x.id}">Play level 1</button></div>`}
   <div class="section"><div class="confirm" id="resetbox">${view.confirm?`<b>Erase all ${x.name} progress?</b> <button class="btn small" data-act="reset-yes">Erase</button><button class="btn small ghost" data-act="reset-no">Keep it</button>`:`<button class="btn small ghost" data-act="reset">Reset ${x.name} progress</button>`}</div></div>`;}
 

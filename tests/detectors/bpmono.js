@@ -1,10 +1,11 @@
 // Basic Pitch tuned for single-note guitar: one note per pick, overtones and room noise dropped.
 const bpRun=require('./basicpitch.js');
-const DEF={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,group:0.08,harm:0.5,merge:0.9,mergeGap:0.05,lo:40,hi:88};   // = BPO in the app
+const DEF={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,group:0.08,harm:0.5,rescue:0.25,merge:0.9,mergeGap:0.05,lo:40,hi:88};   // = BPO in the app
 /* notes: Basic Pitch events; keeps, for each cluster of starts within `group` s, the lowest note at least `harm` × the loudest */
-function mono(ev,o){const ns=ev.filter(n=>n.midi>=o.lo&&n.midi<=o.hi&&n.amp>=(n.midi<o.lowBelow?(o.ampLow??o.amp):o.amp)).sort((a,b)=>a.t-b.t);const out=[];
+function mono(ev,o){const all=ev.filter(n=>n.midi>=o.lo&&n.midi<=o.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(n.midi<o.lowBelow?(o.ampLow??o.amp):o.amp));const out=[];
   for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=o.group)g.push(ns[j++]);i=j;
-    const top=Math.max(...g.map(n=>n.amp)),pick=g.filter(n=>n.amp>=top*o.harm).sort((a,b)=>a.midi-b.midi)[0];
+    const top=Math.max(...g.map(n=>n.amp));let pick=g.filter(n=>n.amp>=top*o.harm).sort((a,b)=>a.midi-b.midi)[0];
+    const fund=o.rescue&&all.find(n=>n.midi===pick.midi-12&&Math.abs(n.t-pick.t)<=o.group&&n.amp>=top*o.rescue);if(fund)pick=fund;
     /* a later onset that is an overtone (octave, 12th, 2 octaves) of a note still ringing louder is not a new note */
     const prev=out.at(-1);if(prev&&pick.t<prev.t+prev.dur&&[12,19,24].includes(pick.midi-prev.midi)&&pick.amp<prev.amp)continue;
     const same=o.merge&&out.slice(-3).reverse().find(p=>p.midi===pick.midi&&pick.t<=p.t+p.dur+o.mergeGap);

@@ -1145,7 +1145,7 @@ async function ensureMic(){if(AN)return true;
 /* ============ BASIC PITCH (Spotify, Apache-2.0): neural note detection for the guitar games ============ */
 /* vendor/bp.js bundles Basic Pitch + TensorFlow.js (tools/build-vendor.js); the offline file embeds both. Thresholds and the guitar filter were
    tuned on real takes (tests/replay.js, tests/tune_bp.js). Without WebGL it cannot follow live playing, so the built-in detector stays as fallback. */
-const BPO={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400};
+const BPO={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400};
 const BP={state:'idle',p:null,inst:null,q:Promise.resolve(),worklet:false};
 /* mic capture on the audio thread: a busy page (the detector itself) must not drop audio, or the gaps read as new picks */
 const BP_CAP=`class FwCap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(4096);this.n=0;this.f=0;}
@@ -1167,9 +1167,11 @@ function bpResample(x,sr){if(sr===22050)return x;const r=22050/sr,n=Math.floor(x
 /* one guitar note per pick: in guitar range, loud enough (a lower bar below C3: a laptop mic hears low strings weakly), the lowest strong
    pitch of notes starting together (the rest are overtones), no overtone of a note still ringing louder, no quieter re-reading of a held note
    (keepRepeats: Note Hunt, where the same pitch on the next string must survive and a double reading is harmless) */
-function bpMono(ev,keepRepeats){const ns=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)).sort((a,b)=>a.t-b.t),out=[];
+function bpMono(ev,keepRepeats){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)),out=[];
   for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
-    const top=Math.max(...g.map(n=>n.amp)),pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0],prev=out.at(-1);
+    const top=Math.max(...g.map(n=>n.amp));let pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0];
+    // a weak fundamental an octave below, starting with it (a laptop mic hears low strings mostly as their octave): that is the note
+    const fund=all.find(n=>n.midi===pick.midi-12&&Math.abs(n.t-pick.t)<=BPO.group&&n.amp>=top*BPO.rescue);if(fund)pick=fund;const prev=out.at(-1);
     if(prev&&pick.t<prev.t+prev.dur&&[12,19,24].includes(pick.midi-prev.midi)&&pick.amp<prev.amp)continue;
     // the same pitch again while it still rings, clearly quieter: the model re-reading a held note, not a new pick
     const same=out.slice(-3).reverse().find(p=>p.midi===pick.midi&&pick.t<=p.t+p.dur+BPO.mergeGap);
@@ -1356,16 +1358,18 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
   else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
 function micGrade(q,res){if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
-function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
+function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
+    /* target m heard as g; Note Hunt: below C3 the octave above also counts (a laptop mic barely hears a low string's fundamental) */
+    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<48&&g===m+12);if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
   const d=q.repeats?res.notes.filter((n,i)=>!(i&&n.atk===false&&cmp(n.midi,res.notes[i-1].midi))):res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
   /* a repeated target pitch (a held guide tone) is one heard note: one slot, shared by the repeats */
   const sl=[];t.forEach((m,i)=>{if(q.repeats||!(i&&cmp(m,t[i-1])))sl.push(i);});
   const A=sl.length,B=d.length,D=Array.from({length:A+1},(_,a)=>Array.from({length:B+1},(_,b)=>a+b));
-  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+(cmp(t[sl[a-1]],d[b-1].midi)?0:1),D[a-1][b]+1,D[a][b-1]+1);
-  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=cmp(t[sl[a-1]],d[b-1].midi)?0:1;if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
+  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+(heardAs(t[sl[a-1]],d[b-1].midi)?0:1),D[a-1][b]+1,D[a][b-1]+1);
+  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=heardAs(t[sl[a-1]],d[b-1].midi)?0:1;if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
   const per=[];let k=-1;
   t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
-    if(q.metro&&x){const off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&cmp(m,got),onTime});});
+    if(q.metro&&x){const off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&heardAs(m,got),onTime});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
   const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!(q.repeats&&[d[i-1],d[i+1]].some(y=>y&&cmp(x.midi,y.midi))));
   const graded=per.filter(x=>x.onTime!==null),notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);
@@ -1376,7 +1380,7 @@ function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.e
 function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?(S.micMsg||'Listen…'):S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}${q.target.length>1&&!q.metro?' · Space when done':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
-   ${done?(LAST_TAKE&&S.gid!=='sing'?`<div class="tools"><button class="btn small ghost" data-act="savetake">Save this take</button><span class="muted" style="font-size:13px">a WAV of what the mic heard, if the grading looks wrong</span></div>`:''):`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
+   ${done?(LAST_TAKE&&S.gid!=='sing'?`<div class="tools"><button class="btn small ${S.answers.at(-1)&&!S.answers.at(-1).ok?'primary':'ghost'}" data-act="savetake">${S.answers.at(-1)&&!S.answers.at(-1).ok?'Played it right? Save this take':'Save this take'}</button><span class="muted" style="font-size:13px">a WAV of what the mic heard, so the detector can be fixed</span></div>`:''):`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
 function micFeedbackExtra(q,r){if(!r)return '';const missing=r.per.filter(v=>v.got===null).length;const octWrong=!q.octaveFree&&r.per.filter(v=>v.got!==null&&!v.ok&&mod(v.got-v.m,12)===0).length;return `${octWrong?` ${octWrong} note${octWrong>1?'s were':' was'} the right pitch class in the wrong octave.`:''}${r.ok&&r.octOff?' Some notes were in another octave; that counts here.':''}${!r.notesOk&&missing?` ${missing} note${missing>1?'s were':' was'} not heard.`:''}${r.extra.length?` ${r.extra.length} extra note${r.extra.length>1?'s':''} heard.`:''}${q.metro?` On the beat: ${r.per.filter(v=>v.onTime).length}/${q.target.length}.`:''}${r.firstAt?` First note after ${(r.firstAt/1000).toFixed(1)} s.`:''}`;}
 
 /* ---- mic games, part 2: blues cadence, swing grid, bass & guide-tone singing, modes / bebop / guide lines in position ---- */
@@ -1775,7 +1779,7 @@ function toPlay(q){let targets=null,how='';
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
   const prompt=q.prompt.replace(/\s*\(?[—–-]?\s*\d+ spots?\)?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks each spot’s pitch and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
-  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
+  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,lowOct:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
   return (q.staff?`<div class="staffwrap">${done&&q.staffOk?q.staffOk:q.staff}</div>`:'')+fretSVG({dots,win:q.win});}

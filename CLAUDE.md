@@ -1,6 +1,6 @@
 # Fretwise
 
-Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring jazz guitarist (Berklee-style curriculum). Single-page app, no build step for development, no dependencies, no framework.
+Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring jazz guitarist (Berklee-style curriculum). Single-page app, no build step for development, no framework. One vendored dependency (user-approved): Spotify Basic Pitch + TensorFlow.js in `vendor/` for guitar note detection.
 
 - **Live site (the one page the user uses):** https://ealkan23.github.io/fretwise/ — GitHub Pages from the public repo `ealkan23/fretwise`. `.github/workflows/pages.yml` publishes `src/fretwise.html` as `index.html` with `piano/` beside it on every push to `main`, so **deploying = commit + `git push`** (watch with `gh run watch`). Mic works there; progress is in that browser's `localStorage` key `fretwise-v1`. The user works only from Claude Code: never send them to a claude.ai chat to publish.
 - **Old claude.ai artifact (retired):** https://claude.ai/artifact/756Z4Kc3AywDU1mgsGazsQ — no longer updated. `initCloud` only runs when framed with `window.claude`; elsewhere it shows "Saved in this browser". Progress moves between copies with Overview → "Move your progress" (export/import JSON; per game the copy with more answers wins).
@@ -16,7 +16,15 @@ build.py            src + piano → dist/fretwise.html (single offline file)
 tests/extract.js    pulls the <script> out of src into tests/fw.js
 tests/sweep.js      generator sweep + self-grading checks for every game/level (node)
 tests/screens.py    Playwright smoke run with fake mic, screenshots to tests/out/
+vendor/             bp.js (Basic Pitch + tfjs bundle), model/, LICENSE — built by tools/build-vendor.js, committed, deployed with the site
+tools/              npm project for the vendor bundle (npm install; node tools/build-vendor.js); node_modules git-ignored
+recordings/         the user's guitar test takes (git-ignored): Mic check → Record test takes → ~/Downloads/fretwise-take-<id>.wav
+tests/replay.js     offline: node tests/replay.js [live|basicpitch|bpmono] scores a detector on recordings/ against TAKES
+tests/tune_bp.js    grid search of Basic Pitch thresholds + guitar filter on the recordings
+tests/live_takes.py real Chrome window (GPU), feeds each recording into the app's live listening; compares old vs Basic Pitch
 ```
+
+Python tools run from `.venv/` (git-ignored; `python3 -m venv .venv && .venv/bin/pip install playwright numpy`; Playwright uses the installed Chrome via `channel='chrome'`).
 
 Serve for development: `python3 -m http.server 8765` from `src/`'s parent with `piano/` reachable (tests/screens.py does this for you), or just open `dist/fretwise.html`.
 
@@ -25,7 +33,8 @@ Serve for development: `python3 -m http.server 8765` from `src/`'s parent with `
 ```
 node tests/extract.js && node --check tests/fw.js && node tests/sweep.js   # must print bad 0
 python3 tests/screens.py                                                   # look at tests/out/*.png
-python3 build.py                                                           # refresh dist/
+python3 build.py                                                           # refresh dist/ (embeds vendor/ too)
+.venv/bin/python tests/live_takes.py bp                                    # mic changes: live detection on the user's recordings
 git commit -am '…' && git push                                             # deploys the live site
 ```
 
@@ -39,7 +48,7 @@ The sweep instantiates ~38,000 questions and checks: choice lists contain the an
 2. **Drawing** — `fretSVG({dots,click,win})` (string 1 on top, dots `{s,f,cls,t}`), `staffSVG` (accidentals drawn as paths, not glyphs), `boxSVG` chord diagram, `rhySVG` rhythm notation, `tapTimeline`, `circleSVG`.
 3. **Piano** — `Piano` sampler: `load/note(midi,t,dur,vel)/chord/tick/ready/now`; source is `window.PIANO_DATA[name]` when present (dist) else `piano/<name>.mp3`.
 4. **Sound engine** — `playSnd(q,g)` plays a question's `snd` descriptor after answering (`note | seq | scale | chord | grip | prog | chordseq`); every generator attaches one. Ear games use `q.audio()` instead (returns duration in seconds; timer starts after it).
-5. **Mic** — YIN pitch (`yinPitch`), `segment()` (attack + pitch-change segmentation, octave-shadow filter, `mf` float midi for cents), `startListening(onDone,maxNotes,{beat,beatStart,limit,onsets})` (onsets mode records attacks only, for strummed comping), `micGrade` (strict/octave-free, held-note merging, swing `grid`, alternative `targets`), `micPanel/slotsTarget/slotsHeard`, tuner view.
+5. **Mic** — guitar games (everything but Sing It and Comping) use **Basic Pitch** (`BP`, `bpLoad`, `bpAnalyse`, `bpMono`, settings `BPO` tuned on the recordings): audio captured on the audio thread (`BP_CAP` AudioWorklet, loaded from a data: URL because blob: fails on file://; capturing on the main thread drops chunks while the model runs and the gaps read as new picks), the last 6 s re-analysed every 0.4 s, the whole take once more on stop. Falls back to the built-in detector without WebGL. Built-in detector: YIN pitch (`yinPitch`), `segment()` (attack + pitch-change segmentation, octave-shadow filter, `mf` float midi for cents), `startListening(onDone,maxNotes,{beat,beatStart,limit,onsets})` (onsets mode records attacks only, for strummed comping), `micGrade` (strict/octave-free, held-note merging, swing `grid`, alternative `targets`), `micPanel/slotsTarget/slotsHeard`, tuner view.
 6. **Tap engine** — `tapBegin/tapHit/tapGrade` against an audio-clock-scheduled click; latency learned per game from clean rounds (`g.opts.lat`).
 7. **Generators** — one closure per question type, returning a question object (schema below). Grouped by game; the drop-2 sheet `D2C`/`D2PROG`/`COMBO` is the user's own voicing sheet, keep its grips as they are. `genDrop2`, `drop3Grips`, `shellGrip`, `triadGrips`, `spreadGrips` generate grips and verify them against chord tones.
 8. **Play mode** — `toPlay(q)` converts a `multi`/`fret` question into a strict `mic` question (exact pitches, ascending, alternatives preserved) when `g.mode==='play'`; `PLAY_GAMES` lists the games that offer it.

@@ -5,3 +5,4 @@ tests/site/
 dist/
 .venv/
 recordings/
+tools/node_modules/

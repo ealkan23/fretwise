@@ -18,9 +18,11 @@ with sync_playwright() as pw:
         pg.click(f"[data-act=lobby][data-g={c['game']}]")
         if c.get('mode') == 'play': pg.click('[data-act=mode][data-k=play]')
         pg.evaluate("""t=>{const o=pickQ;pickQ=(id,L)=>{for(let i=0;i<3000;i++){const q=o(id,1+i%GBY[id].levels.length);if(q.ui==='mic'&&q.target.join()===t)return q;}return o(id,L);};}""", ','.join(map(str, c['mic']['target'])))
-        pg.evaluate('micOpt().auto'); pg.click('[data-act=start]'); pg.wait_for_timeout(400)
+        # the take starts at the instant listening starts, as it did when it was recorded (so 'already sounding' notes are treated alike)
+        pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
+        pg.click('[data-act=start]'); pg.wait_for_timeout(400)
         same = pg.evaluate('S.q.target.join()') == ','.join(map(str, c['mic']['target']))
-        pg.evaluate('_sn.start()'); pg.wait_for_function('S&&S.locked', timeout=120000)
+        pg.wait_for_function('S&&S.locked', timeout=120000)
         ok = pg.evaluate('S.answers.at(-1).ok'); passed += ok
         heard = pg.evaluate('S.micResult.per.map(x=>x.got)'); extra = pg.evaluate('S.micResult.extra')
         print(f"#{r['id']} {c['label']:14s} was {'right' if c['ok'] else 'WRONG'} → now {'RIGHT' if ok else 'WRONG'}  heard {' '.join(map(nm, heard))}{'  extra '+' '.join(map(nm, extra)) if extra else ''}{'' if same else '  (question not matched)'}{'  errors '+str(errs) if errs else ''}  — “{r['text']}”")

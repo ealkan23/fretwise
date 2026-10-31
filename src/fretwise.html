@@ -1165,20 +1165,21 @@ function bpResample(x,sr){if(sr===22050)return x;const r=22050/sr,n=Math.floor(x
   for(let i=0;i<n;i++){const c=i/r,c0=Math.floor(c);let s=0,ws=0;for(let k=c0-W;k<=c0+W;k++){if(k<0||k>=x.length)continue;const d=k-c,a=Math.PI*d*fc,si=d===0?1:Math.sin(a)/a,w=si*(0.5+0.5*Math.cos(Math.PI*d/(W+1)));s+=x[k]*w;ws+=w;}y[i]=ws?s/ws:0;}
   return y;}
 /* one guitar note per pick: in guitar range, loud enough (a lower bar below C3: a laptop mic hears low strings weakly), the lowest strong
-   pitch of notes starting together (the rest are overtones), no overtone of a note still ringing louder, no quieter re-reading of a held note */
-function bpMono(ev){const ns=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)).sort((a,b)=>a.t-b.t),out=[];
+   pitch of notes starting together (the rest are overtones), no overtone of a note still ringing louder, no quieter re-reading of a held note
+   (keepRepeats: Note Hunt, where the same pitch on the next string must survive and a double reading is harmless) */
+function bpMono(ev,keepRepeats){const ns=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)).sort((a,b)=>a.t-b.t),out=[];
   for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
     const top=Math.max(...g.map(n=>n.amp)),pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0],prev=out.at(-1);
     if(prev&&pick.t<prev.t+prev.dur&&[12,19,24].includes(pick.midi-prev.midi)&&pick.amp<prev.amp)continue;
     // the same pitch again while it still rings, clearly quieter: the model re-reading a held note, not a new pick
     const same=out.slice(-3).reverse().find(p=>p.midi===pick.midi&&pick.t<=p.t+p.dur+BPO.mergeGap);
-    if(same&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
+    if(same&&!keepRepeats&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
     out.push({...pick});}
   return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
 /* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time */
-function bpAnalyse(x,sr,offMs){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
+function bpAnalyse(x,sr,offMs,keepRepeats){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
     const {outputToNotesPoly,noteFramesToTime}=window.FWBP;
-    return bpMono(noteFramesToTime(outputToNotesPoly(fr,on,BPO.onset,BPO.frame,BPO.minLen,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude})));});
+    return bpMono(noteFramesToTime(outputToNotesPoly(fr,on,BPO.onset,BPO.frame,BPO.minLen,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude})),keepRepeats);});
   BP.q=job.catch(()=>{});return job;}
 
 /* noise floor carried between listens, so a string still ringing at the start cannot set a deaf threshold */
@@ -1214,7 +1215,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(C){LS.frames.push({rms:r,m:null,t:el});
       // every 0.4 s, re-read the last 6 s; the first second of a window lacks context, so earlier results stand there
       if(!C.busy&&C.n&&now-C.last>=BPO.every){C.busy=true;C.last=now;const end=C.n,st=Math.max(0,end-BPO.win*C.sr),off=C.off+st/C.sr*1000,edge=st>0?off+1000:-1e9;
-        bpAnalyse(C.buf.slice(st,end),C.sr,off).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
+        bpAnalyse(C.buf.slice(st,end),C.sr,off,LS.repeats).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
           for(const n of ns)if(n.t<edge){const o=C.notes.find(x=>x.midi===n.midi&&Math.abs(x.t-n.t)<60);if(o)o.dur=Math.max(o.dur,n.dur);}
           C.notes=C.notes.filter(n=>n.t<edge).concat(ns.filter(n=>n.t>=edge));
           // a note already sounding when listening began (the last answer still ringing) is not part of this answer
@@ -1237,7 +1238,7 @@ function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
   LAST_TAKE={x:C.buf.slice(0,C.n),sr:C.sr};
-  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
+  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,L.repeats).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
   if(view.name==='tuner'&&LS)tunerUpdate();}

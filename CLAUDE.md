@@ -7,6 +7,10 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Fix list (how the user reports problems)
+
+The user writes problems in the app: a box under every answer ("Tell Claude…") and the **Fix list** page on home. Reports are stored in the browser's IndexedDB (`fretwise-fix`/`reports`) with the question context (`fixContext`: game, level, prompt, answer, what was given, mic target/heard/per-slot/detector) and the take's audio for mic questions. When the user says "check the fix list", run `.venv/bin/python tests/read_fixlist.py`: it copies Chrome's storage to a temp profile (read-only) and writes `fixlist/reports.json` + WAVs (git-ignored). Work through the reports; the user deletes fixed ones on the Fix list page.
+
 ## Layout
 
 ```

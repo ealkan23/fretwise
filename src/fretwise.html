@@ -225,6 +225,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .playhint{margin-top:8px;font-size:14px;color:var(--brass-ink);font-weight:500}
 .lesson{max-width:78ch;margin:0 0 14px;font-size:14px;color:var(--fg)}.lesson summary{cursor:pointer;font-weight:600;color:var(--brass-ink);padding:6px 0}.lesson p{margin:8px 0}
 .diag{background:var(--brass-soft);border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.fixrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.fixin{flex:1;min-width:260px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
 .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
@@ -1381,7 +1382,7 @@ function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.e
 function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?(S.micMsg||'Listen…'):S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}${q.target.length>1&&!q.metro?' · Space when done':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
-   ${done?(LAST_TAKE&&S.gid!=='sing'?`<div class="tools"><button class="btn small ${S.answers.at(-1)&&!S.answers.at(-1).ok?'primary':'ghost'}" data-act="savetake">${S.answers.at(-1)&&!S.answers.at(-1).ok?'Played it right? Save this take':'Save this take'}</button><span class="muted" style="font-size:13px">a WAV of what the mic heard, so the detector can be fixed</span></div>`:''):`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
+   ${done?'':`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
 function micFeedbackExtra(q,r){if(!r)return '';const missing=r.per.filter(v=>v.got===null).length;const octWrong=!q.octaveFree&&r.per.filter(v=>v.got!==null&&!v.ok&&mod(v.got-v.m,12)===0).length;return `${octWrong?` ${octWrong} note${octWrong>1?'s were':' was'} the right pitch class in the wrong octave.`:''}${r.ok&&r.octOff?' Some notes were in another octave; that counts here.':''}${!r.notesOk&&missing?` ${missing} note${missing>1?'s were':' was'} not heard.`:''}${r.extra.length?` ${r.extra.length} extra note${r.extra.length>1?'s':''} heard.`:''}${q.metro?` On the beat: ${r.per.filter(v=>v.onTime).length}/${q.target.length}.`:''}${r.firstAt?` First note after ${(r.firstAt/1000).toFixed(1)} s.`:''}`;}
 
 /* ---- mic games, part 2: blues cadence, swing grid, bass & guide-tone singing, modes / bebop / guide lines in position ---- */
@@ -2138,12 +2139,12 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();}
+function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 6–7 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>
-  <div class="overall"><div><span class="eyebrow">Answered</span><b>${N}</b></div><div><span class="eyebrow">Accuracy</span><b>${N?pct(Cc,N)+'%':'—'}</b></div><div><span class="eyebrow">Rounds</span><b>${sess}</b></div><div><span class="eyebrow">Practice time</span><b>${Math.round(T/60000)} min</b></div><div style="display:flex;gap:8px"><button class="btn small" data-act="overview">Overview stats</button><button class="btn small" data-act="reference">Reference</button><button class="btn small" data-act="tuner">Mic check</button></div></div>
+  <div class="overall"><div><span class="eyebrow">Answered</span><b>${N}</b></div><div><span class="eyebrow">Accuracy</span><b>${N?pct(Cc,N)+'%':'—'}</b></div><div><span class="eyebrow">Rounds</span><b>${sess}</b></div><div><span class="eyebrow">Practice time</span><b>${Math.round(T/60000)} min</b></div><div style="display:flex;gap:8px"><button class="btn small" data-act="overview">Overview stats</button><button class="btn small" data-act="reference">Reference</button><button class="btn small" data-act="tuner">Mic check</button><button class="btn small" data-act="fixlist">Fix list</button></div></div>
   ${micErr?`<div class="warn">${micErr}</div>`:''}${CLOUD_MSG?`<div class="warn">${CLOUD_MSG} Your cloud progress is untouched; click the sync label at the top to retry, or reload the page.</div>`:''}
   <nav class="catnav"><button class="${only?'':'on'}" data-act="cat" data-c="">All areas</button>${CATS.map(c=>`<button class="${only===c.id?'on':''}" data-act="cat" data-c="${c.id}">${c.name}</button>`).join('')}</nav></section>
   ${CATS.filter(c=>!only||c.id===only).map(c=>{const cs=catStats(c.id);return `<section class="catsec"><div class="cathead"><div><h2>${c.name}</h2><p>${c.desc}</p></div><div class="kv"><span>Accuracy <b>${cs.n?pct(cs.c,cs.n)+'%':'—'}</b></span><span>Answered <b>${cs.n}</b></span><span>Avg level <b>${cs.n?cs.lv.toFixed(1):'—'}</b></span></div></div>
@@ -2226,7 +2227,8 @@ function vPlay(){const q=S.q,g=G(S.gid),x=GBY[S.gid],done=S.locked,last=done?S.a
   else if(done&&q.reveal){vis=typeof q.reveal==='string'?q.reveal:fretSVG(q.reveal);}
   const fb=done?`<div class="fb-panel ${last.ok?'ok':'no'}"><div class="v">${last.ok?(last.hinted?'Correct, with hint':'Correct'):last.timeout?'Time’s up':'Not quite'}</div>
     ${S.diag?`<p class="diag">${S.diag}</p>`:''}<p>${last.ok?'':`Answer: <b>${q.answerText||q.answer}</b>${q.ui==='multi'?' (dashed = missed, red = wrong)':''}${last.timeout?'':(q.ui==='multi'?` · you found ${esc(givenText(q,last.given))}`:q.ui==='mic'?` · heard: ${esc(givenText(q,last.given))}`:q.ui==='tap'?` · ${esc(givenText(q,last.given))}`:` · you chose ${esc(givenText(q,last.given))}`)}<br>`}${q.explain}${q.ui==='mic'?micFeedbackExtra(q,S.micResult):q.ui==='tap'?tapFeedback(q,S.tapResult):''}</p>
-    ${last.ok&&!last.hinted?'':`<div class="row"><button class="btn primary small" data-act="next">${S.i>=S.round?'See results':'Next question'} ↵</button></div>`}</div>`:'';
+    ${last.ok&&!last.hinted?'':`<div class="row"><button class="btn primary small" data-act="next">${S.i>=S.round?'See results':'Next question'} ↵</button></div>`}
+    ${fixBox('fixq',last.ok?'Something wrong with this question? Tell Claude… (Enter to send)':`${q.ui==='mic'?'Played it right? ':''}What went wrong? Tell Claude… (Enter to send)`)}</div>`:'';
   return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${S.L}</span>
    <div class="sp"><div class="stat">Question<b>${Math.min(S.i+(done?0:1),S.round)}/${S.round}</b></div><div class="stat">Clock<b id="clock">${fmtClock(Date.now()-S.t0)}</b></div><div class="stat">Score<b>${S.score}</b></div><div class="stat">Streak<b>${S.streak}</b></div></div></div>
   <div class="clockbar" id="cbar" ${S.untimed?'hidden':''}><i style="transform:scaleX(${done?0:1})"></i></div>
@@ -2251,6 +2253,30 @@ function lineChart(vals,{min=0,max=100,fmt=v=>v,label=''}={}){const W=460,H=150,
   h+=`<circle class="ch-dot" cx="${x(n-1)}" cy="${y(vals[n-1])}" r="4"/><text class="ch-lab" x="${L}" y="${H-6}">round ${1}</text><text class="ch-lab" x="${W-Rr}" y="${H-6}" text-anchor="end">round ${n}</text>`;
   return h+'</svg>';}
 const heatColor=(p)=>`color-mix(in oklab, var(--good) ${Math.round(p*100)}%, var(--bad))`;
+/* ============ FIX LIST: problems written down in the app, with what happened; Claude reads them from the browser profile (tests/read_fixlist.py) ============ */
+const FIXDB=(()=>{let dbp=null;const open=()=>dbp||(dbp=new Promise((ok,no)=>{const r=indexedDB.open('fretwise-fix',1);r.onupgradeneeded=()=>r.result.createObjectStore('reports',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);}));
+  const tx=async(mode,f)=>{const db=await open();return new Promise((ok,no)=>{const t=db.transaction('reports',mode),r=f(t.objectStore('reports'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>no(t.error);});};
+  return {add:x=>tx('readwrite',st=>st.add(x)),all:()=>tx('readonly',st=>st.getAll()),del:id=>tx('readwrite',st=>st.delete(id))};})();
+const plain=h=>String(h||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+/* everything about the question on screen that helps reproduce the problem */
+function fixContext(){if(view.name!=='play'||!S||!S.q)return {view:view.name,game:view.gid||null};const q=S.q,last=S.locked?S.answers.at(-1):null,r=S.micResult;
+  return {view:'play',game:S.gid,level:S.L,qlv:q.lv,mode:G(S.gid).mode||'mark',ui:q.ui,key:q.key,label:q.label,prompt:plain(q.prompt),answer:plain(q.answerText||String(q.answer)),
+    ok:last?last.ok:null,given:last?plain(givenText(q,last.given)):null,
+    mic:q.ui==='mic'?{target:q.target,octaveFree:!!q.octaveFree,repeats:!!q.repeats,detector:BP.state==='ready'&&S.gid!=='sing'?'basicpitch':'builtin',
+      heard:((last&&last.given&&last.given.notes)||[]).map(n=>({m:n.midi,t:Math.round(n.t),d:Math.round(n.dur||0)})),per:r?r.per.map(x=>({m:x.m,got:x.got,ok:x.ok})):null,extra:r?r.extra:null}:null};}
+async function fixSend(id){const el=document.getElementById(id),msg=document.getElementById(id+'msg');if(!el)return;const text=el.value.trim();if(!text)return;
+  const rep={t:Date.now(),text,ctx:fixContext(),where:location.protocol==='file:'?'offline file':'site'};
+  if(view.name==='play'&&S&&S.locked&&LAST_TAKE){const x=LAST_TAKE.x,pcm=new Int16Array(x.length);for(let i=0;i<x.length;i++)pcm[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767)));rep.audio={sr:LAST_TAKE.sr,pcm};}
+  try{await FIXDB.add(rep);el.value='';if(msg)msg.textContent=`Saved to your fix list${rep.audio?' with the audio':''} ✓`;if(view.name==='fix')openFix();else{el.blur();fixResume();}}
+  catch(e){if(msg)msg.textContent='Could not save: '+(e&&e.message||e);}}
+const fixBox=(id,ph)=>`<div class="fixrow"><input id="${id}" class="fixin" placeholder="${ph}" autocomplete="off"><button class="btn small ghost" data-act="fixsend" data-id="${id}">Send</button><span class="muted" id="${id}msg"></span></div>`;
+function openFix(){if(view.name!=='fix'){view={name:'fix',list:null};render();window.scrollTo(0,0);}FIXDB.all().then(rs=>{if(view.name==='fix'){view.list=rs.reverse();render();}},e=>{if(view.name==='fix'){view.list=[];view.err=String(e);render();}});}
+function vFix(){const L=view.list;return `<div class="head"><div><div class="eyebrow">Fix list</div><h1>What needs fixing</h1><p class="lead">Everything you write here is saved in this browser, with the question, what the mic heard and the audio when there is any. Tell Claude “check the fix list” and it reads it from here.</p></div><div class="sp"><button class="btn small ghost" data-act="home">Back</button></div></div>
+  <div class="panel">${fixBox('fixgen','Anything that needs fixing or could be better… (Enter to send)')}</div>
+  <div class="section">${L===null?'<div class="empty">Loading…</div>':view.err?`<div class="warn">${esc(view.err)}</div>`:!L.length?'<div class="empty">Nothing on the list yet. After any answer, write in the box under it.</div>':L.map(r=>{const c=r.ctx||{},gm=c.game&&GBY[c.game];
+    return `<div class="panel" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span class="muted" style="font-size:13px">${new Date(r.t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}${gm?` · ${esc(gm.name)}${c.level?' L'+c.level:''}${c.label?' · '+esc(c.label):''}`:''}${c.ok===false?' · <span style="color:var(--bad)">marked wrong</span>':c.ok?' · marked right':''}${r.audio?' · 🎙 audio':''}</span><button class="btn small ghost" data-act="fixdel" data-id="${r.id}">Delete</button></div>
+      <p style="margin:6px 0 0">${esc(r.text)}</p>${c.mic&&c.mic.heard?`<p class="note">Target ${c.mic.target.map(nameOf).join(' ')} · heard ${c.mic.heard.map(n=>nameOf(n.m)).join(' ')||'nothing'}</p>`:''}</div>`;}).join('')}</div>`;}
+
 /* ============ STATS: a teacher's reading of the practice log ============ */
 const sMed=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
 const sec=ms=>ms==null?'—':(ms/1000).toFixed(ms<10000?1:0)+' s',slotName=k=>/^S[1-6]$/.test(k)?'string '+k[1]:k;
@@ -2398,6 +2424,9 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='rec')openRec();
   else if(a==='recgo')recStart(b.dataset.id);
   else if(a==='recstop')recStop();
+  else if(a==='fixsend')fixSend(b.dataset.id);
+  else if(a==='fixlist')openFix();
+  else if(a==='fixdel')FIXDB.del(+b.dataset.id).then(openFix);
   else if(a==='savetake'&&LAST_TAKE&&S)wavSave(LAST_TAKE.x,LAST_TAKE.sr,`fretwise-${S.q.key}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.wav`);
   else if(a==='micopt'){const g=G(view.gid);g.opts=g.opts||{};const k=b.dataset.k;if(b.type==='checkbox')g.opts[k]=b.checked;else g.opts[k]=isNaN(+b.value)?b.value:+b.value;saveGame(view.gid);render();}
   else if(a==='export'){view.export=!view.export;render();}
@@ -2420,7 +2449,13 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
 });
 document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="tap"]');if(b){e.preventDefault();tapHit();}});
 document.addEventListener('change',e=>{const b=e.target;if(b.dataset&&b.dataset.act==='micopt'&&b.tagName==='SELECT'){const g=G(view.gid);g.opts=g.opts||{};g.opts[b.dataset.k]=isNaN(+b.value)?b.value:+b.value;saveGame(view.gid);render();}});
-document.addEventListener('keydown',e=>{if(view.name!=='play'||!S||e.metaKey||e.ctrlKey||e.altKey)return;const q=S.q,k=e.key;
+document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('fixin'))clearTimeout(autoT);});   // writing a report pauses the auto-advance
+/* a correct answer has no Next button: once the box is left empty (or the report is sent) it moves on by itself again */
+const fixResume=()=>{if(view.name==='play'&&S&&S.locked){const l=S.answers.at(-1);if(l&&l.ok&&!l.hinted){clearTimeout(autoT);autoT=setTimeout(()=>{const el=document.activeElement;if(!(el&&el.classList&&el.classList.contains('fixin')&&el.value.trim()))nextQ();},1400);}}};
+document.addEventListener('focusout',e=>{if(e.target.classList&&e.target.classList.contains('fixin')&&!e.target.value.trim())fixResume();});
+document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('fixin')){if(e.key==='Enter'){e.preventDefault();fixSend(e.target.id);}return;}
+  if(e.target.closest&&e.target.closest('input,textarea,select'))return;
+  if(view.name!=='play'||!S||e.metaKey||e.ctrlKey||e.altKey)return;const q=S.q,k=e.key;
   if(S.locked){if(k==='Enter'||k===' '){e.preventDefault();nextQ();}return;}
   if(q.ui==='multi'){if(k==='Enter'){e.preventDefault();answer(selArr());}else if(k==='Backspace'){S.sel.clear();render();}else if(k==='h'||k==='H'){if(!S.hinted)document.querySelector('[data-act="hint"]')?.click();}return;}
   if(k==='h'||k==='H'){if(!S.hinted)document.querySelector('[data-act="hint"]')?.click();return;}

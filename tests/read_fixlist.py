@@ -31,4 +31,4 @@ for r in reports:
 print(f'{len(reports)} report(s) → fixlist/reports.json')
 for r in reports:
     c = r.get('ctx') or {}
-    print(f"- #{r['id']} [{r['source']}] {c.get('game') or c.get('view')} {c.get('label') or ''}: {r['text']}" + (f"  (audio: {r['audioFile']})" if r.get('audioFile') else ''))
+    print(f"- #{r['id']} [{r['source']}{' '+r['build'] if r.get('build') else ''}] {c.get('game') or c.get('view')} {c.get('label') or ''}: {r['text']}" + (f"  (audio: {r['audioFile']})" if r.get('audioFile') else ''))

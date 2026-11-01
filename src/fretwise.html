@@ -225,6 +225,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .playhint{margin-top:8px;font-size:14px;color:var(--brass-ink);font-weight:500}
 .lesson{max-width:78ch;margin:0 0 14px;font-size:14px;color:var(--fg)}.lesson summary{cursor:pointer;font-weight:600;color:var(--brass-ink);padding:6px 0}.lesson p{margin:8px 0}
 .diag{background:var(--brass-soft);border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.updbar{position:sticky;top:0;z-index:50;background:var(--brass-soft);color:var(--fg);padding:8px 16px;display:flex;gap:12px;align-items:center;justify-content:center;font-size:14px}
 .fixrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.fixin{flex:1;min-width:260px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
@@ -1148,8 +1149,9 @@ async function ensureMic(){if(AN)return true;
 /* vendor/bp.js bundles Basic Pitch + TensorFlow.js (tools/build-vendor.js); the offline file embeds both. Thresholds and the guitar filter were
    tuned on real takes (tests/replay.js, tests/tune_bp.js). Without WebGL it cannot follow live playing, so the built-in detector stays as fallback. */
 const BPO={onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400,
-  /* Note Hunt: the hunted note is read at a low bar (faint low strings), other pitches at the normal bar; tuned on the user's fix-list takes */
-  huntOnset:0.3,huntFrame:0.2,huntMinLen:5,huntAmp:0.35,huntGap:450,junkDur:400};
+  junkDur:400,   // Note Hunt: a low non-hunted note shorter than this is handling noise
+  /* Note Hunt picks are counted from the onset head (strongest onset over every octave of the hunted note) gated by a jump in loudness */
+  pkThr:0.5,pkDist:300,pkWin:120,pkHarm:0.3,pkJump:4,pkSure:0.8,pkJump2:1.2};
 const BP={state:'idle',p:null,inst:null,q:Promise.resolve(),worklet:false};
 /* mic capture on the audio thread: a busy page (the detector itself) must not drop audio, or the gaps read as new picks */
 const BP_CAP=`class FwCap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(4096);this.n=0;this.f=0;}
@@ -1182,26 +1184,31 @@ function bpMono(ev,keepRepeats){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=B
     if(same&&!keepRepeats&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
     out.push({...pick});}
   return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
-/* Note Hunt: pcs = the hunted pitch classes. Their events come from a sensitive second read (evL), everything else from the normal one (evS).
-   One note per pick (the same note again within huntGap is the same pick); a short low noise that is not a hunted note is handling noise. */
-function bpHunt(evS,evL,pcs){const inR=n=>n.midi>=BPO.lo&&n.midi<=BPO.hi,ns=evL.filter(n=>inR(n)&&pcs.has(n.midi%12)&&n.amp>=BPO.huntAmp)
-    .concat(evS.filter(n=>inR(n)&&!pcs.has(n.midi%12)&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp))).sort((a,b)=>a.t-b.t),out=[];
-  for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
-    const top=Math.max(...g.map(n=>n.amp));let pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0];
-    const fund=evL.find(n=>n.midi===pick.midi-12&&n.midi>=BPO.lo&&Math.abs(n.t-pick.t)<=BPO.group&&n.amp>=top*BPO.rescue);if(fund)pick=fund;
-    const prev=out.at(-1);if(prev&&pick.midi%12===prev.midi%12&&pick.t-prev.t<BPO.huntGap)continue;
-    if(!pcs.has(pick.midi%12)&&pick.midi<BPO.lowBelow&&pick.dur<BPO.junkDur)continue;
-    out.push(pick);}
-  return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
+/* Note Hunt: one entry per pick of a hunted note. fr/on are the model's frame and onset matrices (88 bins from A0, 22050/256 frames a second),
+   x the audio. A pick is a peak of the onset strength summed over the hunted pitch classes that lines up with a jump in loudness (a pluck),
+   so a held note read twice or a string ringing in sympathy does not count, and a skipped spot shows up as missing. Its octave is the lowest
+   hunted bin sounding at least pkHarm of the strongest just after the onset. Other pitches come from the normal read (wrong notes). */
+function bpHuntPicks(fr,on,x,sr,offMs,pcs,evS){const FPS=22050/256,N=on.length,bins=[];for(let b=0;b<88;b++){const m=b+21;if(m>=BPO.lo&&m<=BPO.hi&&pcs.has(m%12))bins.push(b);}
+  const st=on.map(r=>Math.max(...bins.map(b=>r[b]))),hop=sr/FPS,E=new Float32Array(N);
+  for(let i=0;i<N;i++){let q=0;const a=Math.floor(i*hop),b=Math.min(x.length,Math.floor((i+1)*hop));for(let j=a;j<b;j++)q+=x[j]*x[j];E[i]=Math.sqrt(q/Math.max(1,b-a))+1e-5;}
+  const jump=f=>{let aft=0,bef=Infinity;for(let k=f-1;k<=f+4;k++)if(k>=0&&k<N)aft=Math.max(aft,E[k]);for(let k=f-10;k<=f-3;k++)if(k>=0)bef=Math.min(bef,E[k]);return aft/(bef===Infinity?1e-5:bef);};
+  const K=Math.round(BPO.pkWin/1000*FPS),D=Math.round(BPO.pkDist/1000*FPS),out=[];let last=-1e9;
+  for(let f=0;f<N;f++){if(st[f]<BPO.pkThr)continue;let pk=true;for(let k=Math.max(0,f-K);k<=Math.min(N-1,f+K);k++)if(st[k]>st[f]||(st[k]===st[f]&&k<f)){pk=false;break;}
+    if(!pk||f-last<D)continue;const j=jump(f);if(!(j>=BPO.pkJump||(st[f]>=BPO.pkSure&&j>=BPO.pkJump2)))continue;last=f;
+    const act=bins.map(b=>{let a=0;for(let k=f;k<Math.min(N,f+8);k++)a+=fr[k][b];return {m:b+21,a};}),top=Math.max(...act.map(v=>v.a)),m=act.filter(v=>v.a>=top*BPO.pkHarm).sort((a,b)=>a.m-b.m)[0].m;
+    let e=f;while(e+1<N&&fr[e+1][m-21]>=0.3)e++;out.push({midi:m,mf:m,t:offMs+f/FPS*1000,dur:Math.max(1,e-f)/FPS*1000,atk:true});}
+  const wrong=evS.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi&&!pcs.has(n.midi%12)&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)&&!(n.midi<BPO.lowBelow&&n.dur<BPO.junkDur)).map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));
+  return out.concat(wrong).sort((a,b)=>a.t-b.t);}
 /* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time. o: {keepRepeats, pcs (Note Hunt)} */
 function bpAnalyse(x,sr,offMs,o={}){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
     const {outputToNotesPoly,noteFramesToTime}=window.FWBP,ev=(a,b,c)=>noteFramesToTime(outputToNotesPoly(fr,on,a,b,c,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude}));
     const evS=ev(BPO.onset,BPO.frame,BPO.minLen);
-    return o.pcs?bpHunt(evS,ev(BPO.huntOnset,BPO.huntFrame,BPO.huntMinLen),o.pcs):bpMono(evS,o.keepRepeats);});
+    return o.pcs?bpHuntPicks(fr,on,x,sr,offMs,o.pcs,evS):bpMono(evS,o.keepRepeats);});
   BP.q=job.catch(()=>{});return job;}
 
 /* noise floor carried between listens, so a string still ringing at the start cannot set a deaf threshold */
 let MIC_FLOOR=0,LAST_TAKE=null;
+const BUILD='dev';   // replaced with the commit by the Pages workflow
 /* ms from a scheduled click to the frame where the mic shows the reply: output latency + input + analysis window */
 const micLat=bp=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(c.baseLatency||0))*1000+(bp?20:40));};
 /* opts: beat, beatStart, limit, endAt (ms, metro), gap (ms of silence between notes), hold (ms the last note sounds before stopping),
@@ -1375,19 +1382,23 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
 function micGrade(q,res){if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
-    /* target m heard as g; Note Hunt: below C3 the octave above also counts (a laptop mic barely hears a low string's fundamental) */
-    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<48&&g===m+12);if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
+    /* target m heard as g; Note Hunt: below F3 (low frets of strings 6 and 5) the octave above also counts: a laptop mic barely hears a low string's fundamental */
+    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12),mc=(m,g)=>cmp(m,g)?0:heardAs(m,g)?0.01:1;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
   const d=q.repeats?res.notes.filter((n,i)=>!(i&&n.atk===false&&cmp(n.midi,res.notes[i-1].midi))):res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
   /* a repeated target pitch (a held guide tone) is one heard note: one slot, shared by the repeats */
   const sl=[];t.forEach((m,i)=>{if(q.repeats||!(i&&cmp(m,t[i-1])))sl.push(i);});
   const A=sl.length,B=d.length,D=Array.from({length:A+1},(_,a)=>Array.from({length:B+1},(_,b)=>a+b));
-  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+(heardAs(t[sl[a-1]],d[b-1].midi)?0:1),D[a-1][b]+1,D[a][b-1]+1);
-  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=heardAs(t[sl[a-1]],d[b-1].midi)?0:1;if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
+  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+mc(t[sl[a-1]],d[b-1].midi),D[a-1][b]+1,D[a][b-1]+1);
+  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=mc(t[sl[a-1]],d[b-1].midi);if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
   const per=[];let k=-1;
   t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null,t:p.t,held:true});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
     let off=null;if(q.metro&&x){off=x.t-(res.lat||0)-(res.beatStart+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&heardAs(m,got),onTime,t:x?x.t:null,off});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
-  const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!(q.repeats&&[d[i-1],d[i+1]].some(y=>y&&cmp(x.midi,y.midi))));
+  const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,allIn=per.every(x=>x.ok),u=[...used].sort((a,b)=>a-b),hunted=new Set(t.map(m=>mod(m,12))),
+    /* Note Hunt: a second reading of the hunted note (a sympathetic open string, a re-pick) is not a wrong note, and once every spot is in,
+       sounds before the first spot or after the last one are the guitar settling, not part of the answer */
+    noise=(x,i)=>q.repeats&&([d[i-1],d[i+1]].some(y=>y&&cmp(x.midi,y.midi))||hunted.has(mod(x.midi,12))||(allIn&&(i<u[0]||i>u.at(-1)))),
+    extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!noise(x,i));
   const graded=per.filter(x=>x.onTime!==null),notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);
   return {ok:notesOk&&timeOk,notesOk,timeOk,per,extra:extra.map(x=>x.midi),firstAt:res.firstAt,octOff:notesOk&&q.octaveFree&&per.some(x=>x.got!==x.m)};}
 function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
@@ -2279,7 +2290,7 @@ function fixContext(){if(view.name!=='play'||!S||!S.q)return {view:view.name,gam
     mic:q.ui==='mic'?{target:q.target,octaveFree:!!q.octaveFree,repeats:!!q.repeats,detector:BP.state==='ready'&&S.gid!=='sing'?'basicpitch':'builtin',
       heard:((last&&last.given&&last.given.notes)||[]).map(n=>({m:n.midi,t:Math.round(n.t),d:Math.round(n.dur||0)})),per:r?r.per.map(x=>({m:x.m,got:x.got,ok:x.ok})):null,extra:r?r.extra:null}:null};}
 async function fixSend(id){const el=document.getElementById(id),msg=document.getElementById(id+'msg');if(!el)return;const text=el.value.trim();if(!text)return;
-  const rep={t:Date.now(),text,ctx:fixContext(),where:location.protocol==='file:'?'offline file':'site'};
+  const rep={t:Date.now(),text,ctx:fixContext(),where:location.protocol==='file:'?'offline file':'site',build:BUILD};
   if(view.name==='play'&&S&&S.locked&&LAST_TAKE){const x=LAST_TAKE.x,pcm=new Int16Array(x.length);for(let i=0;i<x.length;i++)pcm[i]=Math.max(-32768,Math.min(32767,Math.round(x[i]*32767)));rep.audio={sr:LAST_TAKE.sr,pcm};}
   try{await FIXDB.add(rep);el.value='';if(msg)msg.textContent=`Saved to your fix list${rep.audio?' with the audio':''} ✓`;if(view.name==='fix')openFix();else{el.blur();fixResume();}}
   catch(e){if(msg)msg.textContent='Could not save: '+(e&&e.message||e);}}
@@ -2480,5 +2491,9 @@ document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classLis
   if(q.ui==='letters'||q.ui==='pc'){if(k==='['||k==='-'){S.acc=-1;render();return;}if(k===']'||k==='='||k==='#'){S.acc=1;render();return;}if(k==='0'){S.acc=0;render();return;}
     const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1){if(q.ui==='letters')answer(L+ACC[S.acc]);else answer(mod(NAT[LET.indexOf(L)]+S.acc,12));}}
 });
+/* a tab left open keeps running the old app: check now and then for a newer deploy and say so */
+function checkUpdate(){if(location.protocol==='file:'||BUILD==='dev')return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);
+  if(m&&m[1]!==BUILD&&!document.getElementById('upd')){const d=document.createElement('div');d.id='upd';d.className='updbar';d.innerHTML='A newer version of Fretwise is available. <button class="btn small primary" onclick="location.reload()">Reload</button>';document.body.prepend(d);}}).catch(()=>{});}
+setInterval(checkUpdate,4*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate();});
 render();initCloud();document.getElementById('sync').addEventListener('click',()=>{if(!DB)initCloud();});
 </script>

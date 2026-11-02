@@ -1838,8 +1838,8 @@ const GAMES=[
   {n:'Naturals, no count',d:'Find them all without knowing how many',g:[huntQ(NAT_PC,0)]},
   {n:'Sharps & flats',d:'C♯/D♭, E♭, F♯, A♭, B♭ — count shown',g:[huntQ(ACC_PC,1)]},
   {n:'Any note, no count',d:'All twelve notes',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0)]},
-  {n:'Two at once',d:'Every root and its 5th, 3rd or 4th',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,1)]},
-  {n:'Fret by fret',d:'All twelve notes, played from fret 0 up to fret 12 instead of string by string',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,0,1)]}]},
+  {n:'Fret by fret',d:'All twelve notes, played from fret 0 up to fret 12 instead of string by string',open:true,g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,0,1)]},
+  {n:'Two at once',d:'Every root and its 5th, 3rd or 4th',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,1)]}]},
  {id:'treble',cat:'neck',name:'Treble Clef',area:'Reading notation',desc:'Read notes on the treble staff, from the lines and spaces out to ledger lines and key signatures.',levels:[
   {n:'Lines',d:'E G B D F',g:[trebleQ([0,2,4,6,8])]},
   {n:'Spaces',d:'F A C E, mixed with lines',g:[trebleQ([1,3,5,7]),trebleQ([0,2,4,6,8])]},
@@ -2073,7 +2073,9 @@ const ROUND=12, NEED=16, PASS=.85;
 let STORE={games:{}};
 const blank=()=>({lvl:1,last:1,limit:'std',review:true,preview:true,round:12,sound:true,rk:{},sessions:[],items:{},cf:[],hist:{},best:0,n:0,c:0,ms:0,time:0});
 const K=s=>{let h=5381;for(const ch of s)h=((h*33)^ch.codePointAt(0))>>>0;return 'k'+h.toString(36);};
-const G=id=>{const g=STORE.games[id]||(STORE.games[id]=blank());if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};return g;};
+const G=id=>{const g=STORE.games[id]||(STORE.games[id]=blank());if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
+    if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
+  if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}
 let DB=null,UID=null;
@@ -2099,7 +2101,8 @@ let LAST_ROOT=null;
 /* choose a root from a list, preferring the roots this game has seen least (twelve-key coverage) */
 function rootPick(list){const g=S?G(S.gid):null,seen=(g&&g.rk)||{};let best=list[0],bw=Infinity;for(const r of list){const n=(seen[PCFLAT[pc(P(r))]]||{n:0}).n,w=n+Math.random()*1.5;if(w<bw){bw=w;best=r;}}LAST_ROOT=PCFLAT[pc(P(best))];return best;}
 function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag='';
-  if(g.review&&r<.25&&L>1){lv=ri(1,L-1);tag='review';}else if(g.preview&&r>=.85&&L<game.levels.length){lv=L+1;tag='stretch';}
+  // review only from levels already unlocked; stretch only from your own level (an always-open level ahead of it gets neither past g.lvl)
+  const rv=Math.min(L-1,g.lvl);if(g.review&&r<.25&&rv>=1){lv=ri(1,rv);tag='review';}else if(g.preview&&r>=.85&&L<game.levels.length&&L<=g.lvl){lv=L+1;tag='stretch';}
   let best=null,bw=-1;for(let t=0;t<4;t++){let q;LAST_ROOT=null;try{q=R(game.levels[lv-1].g)();}catch(e){continue;}if(!q)continue;q.rootKey=LAST_ROOT;if(g.mode==='play'){const pq=toPlay(q);if(pq)q=pq;}
     if(q.rare){if(t===0){best=q;break;}continue;}
     let w=weight(g,q.key);if(S&&S.used.has(q.key))w-=5;if(w>bw){bw=w;best=q;}}
@@ -2230,7 +2233,7 @@ const LOBBY_NOTES={
 function vLobby(){const x=GBY[view.gid],g=G(x.id);const sel=view.sel||Math.min(g.last||g.lvl,g.lvl);view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
   ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}
-  <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=L>g.lvl,m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
+  <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=L>g.lvl&&!lv.open,m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${locked?' · <i>locked</i>':''}</div>
     <div class="meter"><span>${locked?'Reach '+PASS*100+'% on level '+(L-1):m.n?`Last ${m.n}: ${Math.round(m.p*100)}%${L===g.lvl&&L<x.levels.length?(m.n<NEED?` · ${NEED-m.n} more to unlock`:m.p<PASS?` · need ${PASS*100}%`:''):''}`:'Not played'}</span><div class="bar"><i style="width:${locked?0:Math.round(Math.min(1,m.n/NEED)*m.p*100)}%"></i></div></div></button>`;}).join('')}</div>
   <div class="setup"><div><div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
@@ -2271,7 +2274,7 @@ function vResults(){const g=G(S.gid),x=GBY[S.gid],n=S.answers.length,c=S.answers
   return `<div class="head"><div><div class="eyebrow">${x.name} · Level ${S.L}</div><h1>Round complete</h1></div><div class="sp"><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button><button class="btn small ghost" data-act="home">All games</button></div></div>
   ${S.unlocked?`<div class="banner"><h2>Level ${S.unlocked} unlocked</h2><span>${x.levels[S.unlocked-1].n}: ${x.levels[S.unlocked-1].d}</span></div>`:''}
   <div class="big" style="margin-top:14px"><div class="tile"><span>Correct</span><b>${c}/${n}</b></div><div class="tile"><span>Accuracy</span><b>${pct(c,n)}%</b></div><div class="tile"><span>Avg answer</span><b>${(ms/1000).toFixed(1)}s</b></div><div class="tile"><span>Score</span><b>${S.score}</b></div><div class="tile"><span>Best streak</span><b>${S.bestStreak}</b></div><div class="tile"><span>Round time</span><b>${fmtClock(g.sessions.at(-1)?.dur||0)}</b></div></div>
-  <div class="section"><h3>Progress to the next level</h3><div class="panel">${g.lvl>=x.levels.length&&!S.unlocked?'<b>All levels unlocked.</b> Keep playing level 6 to hold your accuracy; review questions keep the earlier levels fresh.':
+  <div class="section"><h3>Progress to the next level</h3><div class="panel">${g.lvl>=x.levels.length&&!S.unlocked?'<b>All levels unlocked.</b> Keep playing level ${x.levels.length} to hold your accuracy; review questions keep the earlier levels fresh.':
    `Level ${g.lvl} mastery: <b>${m.c}/${m.n}</b> clean answers in your last ${m.n} at this level (${Math.round(m.p*100)}%). Unlocks level ${Math.min(g.lvl+1,x.levels.length)} at ${PASS*100}% over at least ${NEED} answers.${m.n<NEED?` ${NEED-m.n} more needed.`:''}`}</div></div>
   ${miss.length?`<div class="section"><h3>Go over these</h3><div class="panel tablewrap"><table><thead><tr><th>Question</th><th>Answer</th><th>You</th></tr></thead><tbody>${miss.map(a=>`<tr><td>${esc(a.q.label)}</td><td>${a.q.answerText||a.q.answer}</td><td>${a.ok?'correct with hint':esc(givenText(a.q,a.given))}</td></tr>`).join('')}</tbody></table></div></div>`:''}
   <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap"><button class="btn primary" data-act="again">Play again (level ${S.unlocked||S.L})</button><button class="btn" data-act="lobby" data-g="${x.id}">Choose level</button></div>`;}
@@ -2386,7 +2389,7 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),ss=g.sessions.slice(-30);
   if(Object.keys(g.rk||{}).length){const cells=PCFLAT.map(k=>({k,...(g.rk[k]||{n:0,c:0})}));
     special+=`<div class="section"><h3>By key</h3><div class="panel tablewrap"><table><thead><tr>${cells.map(c=>`<th class="n">${c.k}</th>`).join('')}</tr></thead><tbody><tr>${cells.map(c=>`<td class="n" style="${c.n?`background:${heatColor(c.c/c.n)};color:#fff`:''}">${c.n?Math.round(c.c/c.n*100)+'%':'·'}</td>`).join('')}</tr><tr>${cells.map(c=>`<td class="n muted">${c.n||'—'}</td>`).join('')}</tr></tbody></table><p class="note">Clean answers by the root or key the question was built on; second row = times seen. Roots you have seen least are drawn first.</p></div></div>`;}
   const lvRows=x.levels.map((lv,i)=>{const L=i+1,its=items.filter(t=>t.lv===L),n=its.reduce((a,b)=>a+b.n,0),c=its.reduce((a,b)=>a+b.c,0),m=mastery(g,L);
-    return `<div class="lvbar"><span><b>L${L}</b>${L>g.lvl?' <span class="muted">locked</span>':''}</span><div class="track" title="Mastery: last ${m.n} answers"><i style="width:${Math.round(m.p*Math.min(1,m.n/NEED)*100)}%"></i><u></u></div><span class="mono">${n?pct(c,n)+'% · '+n:'—'}</span></div>`;}).join('');
+    return `<div class="lvbar"><span><b>L${L}</b>${L>g.lvl&&!x.levels[L-1].open?' <span class="muted">locked</span>':''}</span><div class="track" title="Mastery: last ${m.n} answers"><i style="width:${Math.round(m.p*Math.min(1,m.n/NEED)*100)}%"></i><u></u></div><span class="mono">${n?pct(c,n)+'% · '+n:'—'}</span></div>`;}).join('');
   const notes=coachNotes(x,g),focus=focusItems(g,x.id).slice(0,10),m=mastery(g,g.lvl),pl=g.pl||[],plays=pl.filter(e=>e.gp!=null||e.rt!=null),taps=pl.filter(e=>e.dr!=null);
   const r5=g.sessions.slice(-5),r5n=r5.reduce((a,b)=>a+b.n,0),r5c=r5.reduce((a,b)=>a+b.c,0),days=new Set(g.sessions.filter(v=>v.t>=Date.now()-14*864e5).map(v=>new Date(v.t).toDateString())).size;
   const rec=plays.slice(-20),gpM=sMed(rec.map(e=>e.gp).filter(v=>v!=null)),rtM=sMed(rec.map(e=>e.rt).filter(v=>v!=null)),markT=items.filter(isMarkTime),markMs=sMed(markT.map(v=>v.ms/v.n));

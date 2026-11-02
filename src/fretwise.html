@@ -840,13 +840,14 @@ function triadQ(qs,ks,sets,roots,mode){return ()=>{for(let t=0;t<120;t++){const 
 /* ============ NOTE HUNT ============ */
 const huntPos=p=>{const out=[];for(let s=1;s<=6;s++)for(let f=0;f<=12;f++)if((OPEN[s]+f)%12===p)out.push({s,f});return out;};
 const NAT_PC=[0,2,4,5,7,9,11],OPEN_PC=[4,9,2,7,11],ACC_PC=[1,3,6,8,10];
-function huntQ(pool,showCount,two){return ()=>{let ps;if(two){const a=R(pool);ps=[a,(a+R([7,7,4,3,5]))%12];}else ps=[R(pool)];
+/* byFret: the spots are played from the nut up (fret 0 → 12) instead of string 6 → 1 */
+function huntQ(pool,showCount,two,byFret){return ()=>{let ps;if(two){const a=R(pool);ps=[a,(a+R([7,7,4,3,5]))%12];}else ps=[R(pool)];
   const ans=ps.flatMap(huntPos),names=ps.map(p=>PCN[p]),nm2=names.map(n=>`<b>${n}</b>`).join(' and every ');
   const byStr=ps.map(p=>`${PCN[p]}: `+[6,5,4,3,2,1].map(s=>`S${s} ${huntPos(p).filter(x=>x.s===s).map(x=>x.f).join(' & ')}`).join(', ')).join(' · ');
-  const first=huntPos(ps[0]).filter(x=>x.s===6)[0];
-  return {snd:{seq:ps.map(p=>48+p)},key:`hunt-${ps.join('-')}`,label:`Every ${names.join(' + ')}`,ui:'multi',factor:two?4.5:3,answer:ans,need:ans.length,showCount,playAll:true,
+  const first=huntPos(ps[0]).filter(x=>x.s===6)[0],byF=ans.slice().sort((a,b)=>a.f-b.f||b.s-a.s).map(x=>`${x.f} (S${x.s})`).join(', ');
+  return {snd:{seq:ps.map(p=>48+p)},key:`hunt-${ps.join('-')}${byFret?'-f':''}`,label:`Every ${names.join(' + ')}${byFret?', fret by fret':''}`,ui:'multi',factor:two?4.5:3,answer:ans,need:ans.length,showCount,playAll:true,order:byFret?'fret':'string',
    answerText:`${ans.length} spots`,prompt:`Mark every ${nm2} on all six strings, frets 0–12${showCount?` (${ans.length} spots)`:''}. Click to mark or unmark, then press <b>Done</b>.`,
-   explain:`${byStr}. Each note sits once on every string between frets 1–11; a string's own open note also sits at fret 0 and 12. Octave shape: two strings over and two frets up (three when you cross onto the B string).`,
+   explain:`${byStr}.${byFret?` Up the neck: fret ${byF}.`:''} Each note sits once on every string between frets 1–11; a string's own open note also sits at fret 0 and 12. Octave shape: two strings over and two frets up (three when you cross onto the B string).`,
    hint:`On string 6 the ${names[0]} is at fret ${first.f}. Work across with octave shapes.`};};}
 
 /* ============ PIANO (sampled grand, every minor third C2–C7, pitch-shifted ≤1 semitone) ============ */
@@ -1404,7 +1405,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
 function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
 function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.extra):(S.live||[]);if(!notes.length)return `<div class="slots"><div class="slot empty"><span class="n">·</span><span class="s">nothing yet</span></div></div>`;
   return `<div class="slots">${notes.map((m,i)=>{const x=r?r.per[i]:null,late=x&&x.onTime===false;return `<div class="slot ${x?(x.ok?'ok':'no'):r?'no':''}${late?' late':''}"><span class="n">${m===null?'–':NOTE_PC[mod(m,12)]}</span><span class="s">${m===null?'missing':late?nameOf(m)+' · off beat':nameOf(m)}${x&&x.gotF!=null&&S.gid==='sing'?` <i class="cents">${(x.gotF-Math.round(x.gotF))*100>=0?'+':''}${Math.round((x.gotF-Math.round(x.gotF))*100)}¢</i>`:''}</span></div>`;}).join('')}</div>`;}
-function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?(S.micMsg||'Listen…'):S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?', string 6 to string 1':', low to high'):'')}${q.metro?' with the click':''}${q.target.length>1&&!q.metro?' · Space when done':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
+function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?(S.micMsg||'Listen…'):S.listening?`● Listening — ${S.gid==='sing'?'sing':'play'} ${q.target.length===1?'the note':'the '+q.target.length+' notes'+(q.play?(q.repeats?(q.order==='fret'?', fret 0 up to fret 12':', string 6 to string 1'):', low to high'):'')}${q.metro?' with the click':''}${q.target.length>1&&!q.metro?' · Space when done':''}`:done?'':S.micMsg||'Press Listen (Space) and go.';
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
    ${done?'':`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
@@ -1796,9 +1797,10 @@ const spotMidi=sp=>OPEN[sp.s]+sp.f;
 const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','chordname','shells','voicelead','walking'];
 function toPlay(q){let targets=null,how='';
   /* every spot, string by string: the same pitch on another string is its own note, so re-attacks count (q.repeats) */
-  if(q.ui==='multi'&&q.playAll){const sp=q.answer.slice().sort((a,b)=>b.s-a.s||a.f-b.f);
+  if(q.ui==='multi'&&q.playAll){const fret=q.order==='fret',sp=q.answer.slice().sort(fret?(a,b)=>a.f-b.f||b.s-a.s:(a,b)=>b.s-a.s||a.f-b.f);
     targets=[{t:sp.map(spotMidi),names:sp.map(x=>midiName(spotMidi(x))),degs:sp.map(x=>`S${x.s}`),answer:q.answer}];
-    how=`Play all ${sp.length} spots one at a time: string 6 first, then 5, 4… up to string 1, lower fret first on each string. Let each note sound, then mute it before the next.`;}
+    how=fret?`Play all ${sp.length} spots one at a time from the nut up the neck: the lowest fret first, then the next fret that has the note, up to fret 12; where two strings share a fret, string 6 side first. Let each note sound, then mute it before the next.`
+      :`Play all ${sp.length} spots one at a time: string 6 first, then 5, 4… up to string 1, lower fret first on each string. Let each note sound, then mute it before the next.`;}
   else if(q.ui==='multi'){const alts=(q.alts&&q.alts.length?q.alts:[q.answer]);if(!alts[0]||!alts[0].length||new Set(alts[0].map(spotMidi)).size>8)return null;
     targets=alts.map(a=>{const sorted=a.slice().sort((x,y)=>spotMidi(x)-spotMidi(y));const t=[],sp=[];sorted.forEach(x=>{const m=spotMidi(x);if(t.at(-1)!==m){t.push(m);sp.push(x);}});return {t,names:t.map(midiName),degs:sp.map(x=>x.t||PCN[mod(spotMidi(x),12)].split('/')[0]),answer:a};});
     const n=targets[0].t.length;how=n===1?'Play the note.':`Play the ${n} notes <b>low to high</b>, one string at a time, muting as you go.`;}
@@ -1806,7 +1808,8 @@ function toPlay(q){let targets=null,how='';
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
   const prompt=q.prompt.replace(/\s*\(?[—–-]?\s*\d+ spots?\)?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks each spot’s pitch and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
-  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,lowOct:!!q.playAll,sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
+  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,lowOct:!!q.playAll&&q.order!=='fret',   /* fret by fret: the order is checked through the octaves, so they must be exact */
+    sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
   return (q.staff?`<div class="staffwrap">${done&&q.staffOk?q.staffOk:q.staff}</div>`:'')+fretSVG({dots,win:q.win});}
@@ -1835,7 +1838,8 @@ const GAMES=[
   {n:'Naturals, no count',d:'Find them all without knowing how many',g:[huntQ(NAT_PC,0)]},
   {n:'Sharps & flats',d:'C♯/D♭, E♭, F♯, A♭, B♭ — count shown',g:[huntQ(ACC_PC,1)]},
   {n:'Any note, no count',d:'All twelve notes',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0)]},
-  {n:'Two at once',d:'Every root and its 5th, 3rd or 4th',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,1)]}]},
+  {n:'Two at once',d:'Every root and its 5th, 3rd or 4th',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,1)]},
+  {n:'Fret by fret',d:'All twelve notes, played from fret 0 up to fret 12 instead of string by string',g:[huntQ([0,1,2,3,4,5,6,7,8,9,10,11],0,0,1)]}]},
  {id:'treble',cat:'neck',name:'Treble Clef',area:'Reading notation',desc:'Read notes on the treble staff, from the lines and spaces out to ledger lines and key signatures.',levels:[
   {n:'Lines',d:'E G B D F',g:[trebleQ([0,2,4,6,8])]},
   {n:'Spaces',d:'F A C E, mixed with lines',g:[trebleQ([1,3,5,7]),trebleQ([0,2,4,6,8])]},

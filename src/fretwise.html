@@ -227,6 +227,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .diag{background:var(--brass-soft);border-radius:6px;padding:8px 10px;margin:0 0 6px}
 .updbar{position:sticky;top:0;z-index:50;background:var(--brass-soft);color:var(--fg);padding:8px 16px;display:flex;gap:12px;align-items:center;justify-content:center;font-size:14px}
 .spellslots .slot{min-width:64px}
+.spkeys{display:grid;gap:8px;margin-top:6px}.sprow{display:grid;grid-template-columns:72px repeat(7,minmax(0,1fr));gap:8px;align-items:center}.sprow .key{margin:0}.splab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .fixrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.fixin{flex:1;min-width:260px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
@@ -2158,7 +2159,7 @@ function gripMulti(o){const spots=a=>a.map((f,i)=>f===null?null:{s:6-i,f}).filte
 function check(q,given){if(q.ui==='tap'){const r=tapGrade(q,given||[]);S.tapResult=r;return r.ok;}if(q.ui==='mic'){const r=micGrade(q,given);S.micResult=r;return r.ok;}if(given===null)return false;if(q.ui==='multi'){const r=huntGrade(q,given);return r.wrong===0&&r.miss===0;}if(q.ui==='pc')return given===q.answer;if(q.ui==='fret')return q.valid(given.s,given.f);if(q.ui==='spell')return Array.isArray(given)&&given.join(' ')===q.answer.join(' ');return given===q.answer;}
 function givenText(q,given){if(q.ui==='tap'){const r=S.tapResult||tapGrade(q,given||[]);return `${r.hits}/${r.n} on time${r.extra.length?', '+r.extra.length+' extra':''}`;}if(q.ui==='mic'){const r=S.micResult||micGrade(q,given);const got=r.per.map(x=>x.got).concat(r.extra).filter(x=>x!==null);return got.length?got.map(nameOf).join(' '):'nothing heard';}if(given===null)return 'no answer (time)';if(q.ui==='multi'){const r=huntGrade(q,given);return `${r.hit} of ${q.answer.length}${r.wrong?`, plus ${r.wrong} wrong`:''}`;}if(q.ui==='pc')return PCN[given];if(q.ui==='fret')return `string ${given.s}, fret ${given.f}`;if(q.ui==='spell')return given.join(' ');return given;}
 /* one more note of a spelled chord; the answer goes in when all are there */
-function spellKey(L){if(!S||S.locked||S.q.ui!=='spell')return;S.spell.push(L+ACC[S.acc]);S.acc=0;if(S.spell.length>=S.q.need)answer(S.spell.slice());else render();}
+function spellKey(v){if(!S||S.locked||S.q.ui!=='spell')return;S.spell.push(v.length>1?v:v+ACC[S.acc]);S.acc=0;if(S.spell.length>=S.q.need)answer(S.spell.slice());else render();}
 function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame(raf);const q=S.q,ms=Math.max(0,Math.round(performance.now()-S.qt)),ok=check(q,given),g=G(S.gid);
   const it=g.items[K(q.key)]||(g.items[K(q.key)]={l:q.label,lv:q.lv,c:0,w:0,h:0,n:0,ms:0});it.l=q.label;it.lv=q.lv;it.n++;it.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
@@ -2380,8 +2381,9 @@ function answerUI(q,done){const dis=done?'disabled':'';
     return acc+`<div class="keys">${'CDEFGAB'.split('').map(L=>{let cls='';if(done){const g=S.answers.at(-1).given;if(q.answer[0]===L)cls='right';else if(g&&g[0]===L)cls='wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${L}" ${dis}>${L}</button>`;}).join('')}</div>`;}
   if(q.ui==='spell'){const got=done?(S.answers.at(-1).given||[]):S.spell;
     const slots=Array.from({length:q.need},(_,i)=>{const v=got[i],cls=done?(v===q.answer[i]?'ok':'no'):v?'':'empty';return `<div class="slot ${cls}"><span class="n">${v||'·'}</span>${done&&v!==q.answer[i]?`<span class="s">${q.answer[i]}</span>`:''}</div>`;}).join('');
-    return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="accrow">Accidental <div class="seg">${[[-1,'♭'],[0,'♮'],[1,'♯']].map(([a,s2])=>`<button class="${S.acc===a?'on':''}" data-act="acc" data-a="${a}" aria-label="${['flat','natural','sharp'][a+1]}">${s2}</button>`).join('')}</div><span>then the letter · keys: letters, - flat, = or # sharp, Backspace</span></div>
-      <div class="keys">${'CDEFGAB'.split('').map(L=>`<button class="key" data-act="sp" data-v="${L}">${L}</button>`).join('')}<button class="key" data-act="spdel" aria-label="undo">⌫</button></div>`}`;}
+    const row=(acc,lab)=>`<div class="sprow"><span class="splab">${lab}</span>${'CDEFGAB'.split('').map(L=>`<button class="key" data-act="sp" data-v="${L+acc}">${L+acc}</button>`).join('')}</div>`;
+    return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="spkeys">${row('','Natural')}${row('♭','Flat')}${row('♯','Sharp')}</div>
+      <div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Keyboard: the letter for a natural; - or [ then the letter for a flat; = or # then the letter for a sharp; Backspace to undo</span></div>`}`;}
   if(q.ui==='fret')return '';
   if(q.ui==='mic')return micPanel(q,done);
   if(q.ui==='tap')return tapPanel(q,done);

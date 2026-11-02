@@ -16,6 +16,9 @@ for(const g of GAMES){S.gid=g.id;g.levels.forEach((lv,li)=>lv.g.forEach(gen=>{fo
  if(q.ui==='mic'){const res={notes:q.target.map((m,i)=>({midi:m,mf:m,t:(q.grid?q.grid[i]:i)*750+3000})),firstAt:3000,beat:750,beatStart:3000};if(!micGrade(q,res).ok)throw new Error('mic self');}
  if(q.snd){played.length=0;playSnd(q,{sound:true});if(played.some(m=>isNaN(m)||m<20||m>108))throw new Error('snd '+JSON.stringify(q.snd).slice(0,80)+' '+played.slice(0,6));}
  if(q.audio){played.length=0;const d=q.audio();if(!(d>0))throw new Error('audio dur');}
+ if(q.ui==='spell'){if(!Array.isArray(q.answer)||q.answer.length!==q.need||!check(q,q.answer.slice()))throw new Error('spell self '+q.answer);
+   const w=q.answer.slice();w[w.length-1]=w[w.length-1][0]==='C'?'D':'C';if(check(q,w))throw new Error('spell wrong passes');
+   if(q.answer.some(n=>/[𝄪𝄫]/.test(n)))throw new Error('double accidental '+q.answer);}
  if(!q.explain||!q.prompt||!q.key||!q.label)throw new Error('missing fields');
  if(q.after)q.after();
  }catch(e){bad++;if(bad<25)console.log('BAD',g.id,li+1,q.key,e.message);}

@@ -226,6 +226,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .lesson{max-width:78ch;margin:0 0 14px;font-size:14px;color:var(--fg)}.lesson summary{cursor:pointer;font-weight:600;color:var(--brass-ink);padding:6px 0}.lesson p{margin:8px 0}
 .diag{background:var(--brass-soft);border-radius:6px;padding:8px 10px;margin:0 0 6px}
 .updbar{position:sticky;top:0;z-index:50;background:var(--brass-soft);color:var(--fg);padding:8px 16px;display:flex;gap:12px;align-items:center;justify-content:center;font-size:14px}
+.spellslots .slot{min-width:64px}
 .fixrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.fixin{flex:1;min-width:260px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
@@ -553,6 +554,28 @@ function nameQ(qs,roots){return ()=>{const {root,q,ns}=pickChord(roots,qs,1),ans
 function formulaQ(qs){return ()=>{const q=R(qs),ans=formula(q);
   return C({snd:{chord:chordMidis(P('C'),q,48)},key:`fm-${q}`,label:`Formula of ${QNAME[q]}`,prompt:`What is the interval formula of a <b>${QNAME[q]}</b> chord (e.g. C${q})?`,answer:ans,choices:mc(ans,shuffle(Object.keys(CH).filter(x=>x!==q).map(formula))),
    explain:`${QNAME[q]}: ${ans}.`,hint:'Start from 1 3 5 and adjust.'});};}
+/* ---- Chord Spelling by recall: learn the twelve major triads by heart, everything else is an alteration of them ---- */
+const CYCLE4=['C','F','Bb','Eb','Ab','Db','Gb','B','E','A','D','G'];                       // the order jazz harmony moves in
+const MINOR_ROOTS=['C','F','Bb','Eb','G#','C#','F#','B','E','A','D','G'];                  // the usual spellings of minor chords
+const TRI_OF={'':'',m:'m',dim:'dim',aug:'aug',maj7:'',7:'',m7:'m','m7♭5':'dim',dim7:'dim','m(maj7)':'m',6:'',m6:'m',sus2:'',sus4:'',add9:''};
+const ADDED={maj7:'major 7th (a half step below the root)',7:'♭7 (a whole step below the root)',m7:'♭7 (a whole step below the root)','m7♭5':'♭7 (a whole step below the root)',
+  dim7:'𝄫7 (a minor 3rd above the ♭5)','m(maj7)':'major 7th (a half step below the root)',6:'6th (a whole step above the 5th)',m6:'6th (a whole step above the 5th)'};
+/* how the chord comes from the major triad: the explanation for every spelling question */
+function altExplain(root,q,ns){const M=chord(root,''),R=nm(root),sp=a=>a.map(nm).join(' ');
+  const maj=`${R} major is <b>${sp(M)}</b>`,lt=`${nm(M[1])}→${nm(ns[1])}`;
+  if(q==='')return `${maj}: root, major 3rd (4 half steps), perfect 5th, on every other letter (${M.map(n=>LET[n.l]).join(' ')}). Learn the twelve by heart; every other chord is an alteration of them.`;
+  if(q==='m')return `${maj} → lower the 3rd (${lt}) → <b>${sp(ns)}</b>.`;
+  if(q==='dim')return `${maj} → lower the 3rd and the 5th (${lt}, ${nm(M[2])}→${nm(ns[2])}) → <b>${sp(ns)}</b>.`;
+  if(q==='aug')return `${maj} → raise the 5th (${nm(M[2])}→${nm(ns[2])}) → <b>${sp(ns)}</b>.`;
+  if(q==='sus2'||q==='sus4')return `${maj} → replace the 3rd with the ${q==='sus2'?'2nd':'4th'} (${nm(ns[1])}) → <b>${sp(ns)}</b>. No 3rd, so neither major nor minor.`;
+  if(q==='add9')return `${maj} + the 9th (${nm(ns[3])}), no 7th → <b>${sp(ns)}</b>.`;
+  const t=TRI_OF[q],T=chord(root,t);return `${R}${t} triad ${t===''?'':`(${maj}, ${t==='m'?'lower the 3rd':'lower the 3rd and 5th'}) `}= <b>${sp(T)}</b>, + the ${ADDED[q]}: ${nm(ns[3])} → <b>${sp(ns)}</b>.`;}
+/* spell a chord note by note (ui 'spell'). cycle: roots come around the cycle of fourths, one per question */
+function recallQ(qs,roots,max,o={}){return ()=>{let root,q,ns;
+  if(o.cycle){const i=typeof S!=='undefined'&&S?(S.i||0)+Math.floor((S.t0||0)/1000):0;root=P(CYCLE4[mod(i,12)]);q=qs[0];ns=chord(root,q);}else({root,q,ns}=pickChord(roots,qs,max));
+  const s=sym(root,q);
+  return {ui:'spell',snd:{chord:ascMidis(ns,48)},key:`sp-${s}`,label:s,prompt:`Spell <b>${s}</b> (${QNAME[q]}), root first: ${ns.length} notes.`,answer:ns.map(nm),need:ns.length,answerText:spell(ns),factor:o.factor||1.2,
+    explain:altExplain(root,q,ns),hint:q===''?'Every other letter from the root; then check each 3rd: major 3rd = 4 half steps, minor 3rd = 3.':`Start from ${nm(root)} major (${spell(chord(root,''))}) and alter it.`};};}
 const G_cs={
  maj:spellQ(['','m'],ROOTS_ALL,1,['','m','dim','aug']),
  dimaug:spellQ(['dim','aug'],ROOTS_EASY,2,['','m','dim','aug']),
@@ -1872,12 +1895,15 @@ const GAMES=[
   {n:'Minor keys',d:'Natural-minor triads and sevenths',g:[G_ck.triadMin,G_ck.sevMin]},
   {n:'Find the key',d:'Which key holds this chord?',g:[G_ck.findKey,G_ck.sharedKey]},
   {n:'Harmonic minor & function',d:'Raised 7th in minor, 2–5–1, function',g:[G_ck.harmV,G_ck.func,G_ck.twoFive]}]},
- {id:'spelling',cat:'theory',name:'Chord Spelling',area:'Construction',desc:'Spell triads, sevenths, sixths, sus and extended chords; name chords from their notes.',levels:[
-  {n:'Major & minor triads',d:'Spell any major or minor triad',g:[G_cs.maj]},
-  {n:'Diminished & augmented',d:'Spell and name all four triads',g:[G_cs.dimaug,G_cs.nameTri]},
-  {n:'Seventh chords',d:'maj7, 7, m7 and their formulas',g:[G_cs.sev,G_cs.fm7]},
-  {n:'More sevenths & sixths',d:'m7♭5, dim7, m(maj7), 6, m6',g:[G_cs.sev2,G_cs.fm7b]},
-  {n:'Name it',d:'Name 7th chords; sus and add9',g:[G_cs.name7,G_cs.sus,G_cs.add9vs9]},
+ {id:'spelling',cat:'theory',name:'Chord Spelling',area:'Construction',desc:'Know every triad by heart: the twelve major triads first, then minor, diminished and augmented as alterations of them; then sevenths, sixths, sus and extensions. Spelled note by note, against the clock.',levels:[
+  {n:'Major triads by heart',d:'The twelve majors around the cycle of fourths, spelled note by note',g:[recallQ([''],null,1,{cycle:true})]},
+  {n:'Minor: lower the 3rd',d:'Every minor triad from its major',g:[recallQ(['m'],MINOR_ROOTS,1)]},
+  {n:'Diminished & augmented',d:'Lower the 3rd and 5th; raise the 5th',g:[recallQ(['dim','aug'],ROOTS_ALL,1)]},
+  {n:'All four, fast',d:'Major, minor, dim and aug mixed, on a short clock',g:[recallQ(['','m','dim','aug'],ROOTS_ALL,1,{factor:0.6})]},
+  {n:'Name the triad',d:'From its notes to its name',g:[G_cs.nameTri]},
+  {n:'Seventh chords',d:'maj7, 7, m7: the triad plus a 7th',g:[recallQ(['maj7','7','m7'],ROOTS_ALL,1),recallQ(['maj7','7','m7'],ROOTS_ALL,1),G_cs.fm7]},
+  {n:'More sevenths & sixths',d:'m7♭5, dim7, m(maj7), 6, m6',g:[recallQ(['m7♭5','dim7','m(maj7)','6','m6'],ROOTS_ALL,1),recallQ(['m7♭5','dim7','m(maj7)','6','m6'],ROOTS_ALL,1),G_cs.fm7b]},
+  {n:'Name it; sus and add9',d:'Name 7th chords; spell sus2, sus4, add9',g:[G_cs.name7,recallQ(['sus2','sus4','add9'],ROOTS_EASY,1),G_cs.add9vs9]},
   {n:'Extensions',d:'9, 11, 13, altered 9ths, guitar omissions',g:[G_cs.ext,G_cs.omit]},
   {n:'Chord-symbol literacy',d:'△ – ø ° alt 6/9 slash chords, and look-alikes (C6 = Am7)',g:[symReadQ(),lookAlikeQ()]}]},
  {id:'voicings',cat:'voicings',name:'Inversions & Voicings',area:'Bass notes and drop-2',desc:'Triad and seventh inversions, slash chords, and drop-2 voicings on string sets.',levels:[
@@ -2073,7 +2099,7 @@ const ROUND=12, NEED=16, PASS=.85;
 let STORE={games:{}};
 const blank=()=>({lvl:1,last:1,limit:'std',review:true,preview:true,round:12,sound:true,rk:{},sessions:[],items:{},cf:[],hist:{},best:0,n:0,c:0,ms:0,time:0});
 const K=s=>{let h=5381;for(const ch of s)h=((h*33)^ch.codePointAt(0))>>>0;return 'k'+h.toString(36);};
-const G=id=>{const g=STORE.games[id]||(STORE.games[id]=blank());if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
+const G=id=>{let g=STORE.games[id]||(STORE.games[id]=blank());if(id==='spelling'&&!g.v2){g=STORE.games[id]=blank();g.v2=1;}/* rebuilt game: the user chose a fresh start */if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
   if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2110,7 +2136,7 @@ function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag=
 function start(gid,L){const g=G(gid);g.last=L;cancelAnimationFrame(raf);clearTimeout(autoT);
   S={gid,L,i:0,score:0,streak:0,bestStreak:0,t0:Date.now(),answers:[],used:new Set(),q:null,acc:0,hinted:false,locked:false,unlocked:null,startLvl:g.lvl,round:g.round||ROUND};
   view={name:'play'};nextQ();}
-function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
+function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.spell=[];S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
   S.limit=(LIMITS[G(S.gid).limit]||LIMITS.std).s*(S.q.factor||1)*1000;S.untimed=!isFinite(S.limit);S.qt=performance.now();S.replays=0;S.loading=false;render();
   // a played question has no prompt sound: cut the last answer's sound and listen at once, or the first notes fall into the wait
   if(S.q.ui==='mic'&&!S.q.audio){const q=S.q;Piano.hush();if(micOpt().auto)setTimeout(()=>{if(S&&S.q===q&&!S.locked&&!S.listening)micListen();},150);}
@@ -2129,8 +2155,10 @@ function huntGrade(q,g){if(!q.alts)return gradeSet(q.answer,g);let best=null;for
 /* a grip to be marked on the neck; grips = every playable position of that voicing, any of them counts */
 function gripMulti(o){const spots=a=>a.map((f,i)=>f===null?null:{s:6-i,f}).filter(Boolean),alts=o.grips.map(a=>spots(a).map(x=>{const n=d2Notes(a,o.root,o.q).find(z=>z.s===x.s);return {...x,t:n?n.d:''};}));
   return {key:o.key,label:o.label,ui:'multi',factor:3,snd:{grip:o.grips[0]},answer:alts[0],alts,need:alts[0].length,showCount:1,answerText:o.grips.map(tabStr).join(' or '),prompt:o.prompt+` Mark one note per string (${alts[0].length} dots), then press <b>Done</b>.`,explain:o.explain,hint:o.hint};}
-function check(q,given){if(q.ui==='tap'){const r=tapGrade(q,given||[]);S.tapResult=r;return r.ok;}if(q.ui==='mic'){const r=micGrade(q,given);S.micResult=r;return r.ok;}if(given===null)return false;if(q.ui==='multi'){const r=huntGrade(q,given);return r.wrong===0&&r.miss===0;}if(q.ui==='pc')return given===q.answer;if(q.ui==='fret')return q.valid(given.s,given.f);return given===q.answer;}
-function givenText(q,given){if(q.ui==='tap'){const r=S.tapResult||tapGrade(q,given||[]);return `${r.hits}/${r.n} on time${r.extra.length?', '+r.extra.length+' extra':''}`;}if(q.ui==='mic'){const r=S.micResult||micGrade(q,given);const got=r.per.map(x=>x.got).concat(r.extra).filter(x=>x!==null);return got.length?got.map(nameOf).join(' '):'nothing heard';}if(given===null)return 'no answer (time)';if(q.ui==='multi'){const r=huntGrade(q,given);return `${r.hit} of ${q.answer.length}${r.wrong?`, plus ${r.wrong} wrong`:''}`;}if(q.ui==='pc')return PCN[given];if(q.ui==='fret')return `string ${given.s}, fret ${given.f}`;return given;}
+function check(q,given){if(q.ui==='tap'){const r=tapGrade(q,given||[]);S.tapResult=r;return r.ok;}if(q.ui==='mic'){const r=micGrade(q,given);S.micResult=r;return r.ok;}if(given===null)return false;if(q.ui==='multi'){const r=huntGrade(q,given);return r.wrong===0&&r.miss===0;}if(q.ui==='pc')return given===q.answer;if(q.ui==='fret')return q.valid(given.s,given.f);if(q.ui==='spell')return Array.isArray(given)&&given.join(' ')===q.answer.join(' ');return given===q.answer;}
+function givenText(q,given){if(q.ui==='tap'){const r=S.tapResult||tapGrade(q,given||[]);return `${r.hits}/${r.n} on time${r.extra.length?', '+r.extra.length+' extra':''}`;}if(q.ui==='mic'){const r=S.micResult||micGrade(q,given);const got=r.per.map(x=>x.got).concat(r.extra).filter(x=>x!==null);return got.length?got.map(nameOf).join(' '):'nothing heard';}if(given===null)return 'no answer (time)';if(q.ui==='multi'){const r=huntGrade(q,given);return `${r.hit} of ${q.answer.length}${r.wrong?`, plus ${r.wrong} wrong`:''}`;}if(q.ui==='pc')return PCN[given];if(q.ui==='fret')return `string ${given.s}, fret ${given.f}`;if(q.ui==='spell')return given.join(' ');return given;}
+/* one more note of a spelled chord; the answer goes in when all are there */
+function spellKey(L){if(!S||S.locked||S.q.ui!=='spell')return;S.spell.push(L+ACC[S.acc]);S.acc=0;if(S.spell.length>=S.q.need)answer(S.spell.slice());else render();}
 function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame(raf);const q=S.q,ms=Math.max(0,Math.round(performance.now()-S.qt)),ok=check(q,given),g=G(S.gid);
   const it=g.items[K(q.key)]||(g.items[K(q.key)]={l:q.label,lv:q.lv,c:0,w:0,h:0,n:0,ms:0});it.l=q.label;it.lv=q.lv;it.n++;it.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
@@ -2247,6 +2275,10 @@ function answerUI(q,done){const dis=done?'disabled':'';
   if(q.ui==='pc')return `<div class="keys pc">${PCN.map((n,p)=>{let cls=n.length>1?'sharp':'';if(done){if(p===q.answer)cls+=' right';else if(S.answers.at(-1).given===p)cls+=' wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${p}" ${dis}>${n}</button>`;}).join('')}</div>`;
   if(q.ui==='letters'){const acc=q.acc?`<div class="accrow">Accidental <div class="seg">${[[-1,'♭'],[0,'♮'],[1,'♯']].map(([a,s])=>`<button class="${S.acc===a?'on':''}" data-act="acc" data-a="${a}" ${dis} aria-label="${['flat','natural','sharp'][a+1]}">${s}</button>`).join('')}</div><span>then pick the letter</span></div>`:'';
     return acc+`<div class="keys">${'CDEFGAB'.split('').map(L=>{let cls='';if(done){const g=S.answers.at(-1).given;if(q.answer[0]===L)cls='right';else if(g&&g[0]===L)cls='wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${L}" ${dis}>${L}</button>`;}).join('')}</div>`;}
+  if(q.ui==='spell'){const got=done?(S.answers.at(-1).given||[]):S.spell;
+    const slots=Array.from({length:q.need},(_,i)=>{const v=got[i],cls=done?(v===q.answer[i]?'ok':'no'):v?'':'empty';return `<div class="slot ${cls}"><span class="n">${v||'·'}</span>${done&&v!==q.answer[i]?`<span class="s">${q.answer[i]}</span>`:''}</div>`;}).join('');
+    return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="accrow">Accidental <div class="seg">${[[-1,'♭'],[0,'♮'],[1,'♯']].map(([a,s2])=>`<button class="${S.acc===a?'on':''}" data-act="acc" data-a="${a}" aria-label="${['flat','natural','sharp'][a+1]}">${s2}</button>`).join('')}</div><span>then the letter · keys: letters, - flat, = or # sharp, Backspace</span></div>
+      <div class="keys">${'CDEFGAB'.split('').map(L=>`<button class="key" data-act="sp" data-v="${L}">${L}</button>`).join('')}<button class="key" data-act="spdel" aria-label="undo">⌫</button></div>`}`;}
   if(q.ui==='fret')return '';
   if(q.ui==='mic')return micPanel(q,done);
   if(q.ui==='tap')return tapPanel(q,done);
@@ -2345,6 +2377,9 @@ function coachNotes(x,g){const N=[],add=(pri,title,body,tone='')=>N.push({pri,ti
   else add(40,'Top level reached',`All ${x.levels.length} levels are open. Keep this game in rotation every few days so it stays automatic; review mode brings back what slips.`,'good');
   // 2. what to practise
   const F=focusItems(g,x.id,3).slice(0,3);if(F.length)add(88,'Practise these first',`${F.map(f=>`<b>${esc(f.l)}</b> (${f.why[0]})`).join(', ')}. Isolate them: five slow, correct repetitions each before you play a round. ${ADV[x.cat]||''}`);
+  // 2b. spelling should be instant: a chord spelled in more than ~3 s is still being calculated
+  if(x.id==='spelling'){const sp=Object.values(g.items).filter(v=>v.n>=2).map(v=>v.ms/v.n),md=sMed(sp);
+    if(sp.length>=6&&md!=null)add(md>3000?84:45,md>3000?'Still calculating, not yet by heart':'Spelling at bandstand speed',`Median ${sec(md)} per chord. ${md>3000?'The target is under 3 s: the answer should appear, not be worked out. Say the twelve major triads around the cycle of fourths every day, then the same as minor and diminished.':'Keep it there as the chords get bigger.'}`,md>3000?'':'good');}
   // 3. the same mistake again and again
   const cf=(g.cf||[]).slice().sort((a,b)=>b.n-a.n)[0];if(cf&&cf.n>=3){const [right,said]=cf.k.split(' → ');add(80,'A habit to break',`You have answered <b>${esc(said)}</b> for <b>${esc(right)}</b> ${cf.n} times. Put them side by side: play or say both, and name what makes them different, until you never hesitate.`,'bad');}
   // 4. knowing it vs. playing it
@@ -2441,6 +2476,8 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='start')start(view.gid,view.sel);
   else if(a==='again'){start(S.gid,S.unlocked||S.L);}
   else if(a==='ans'){const q=S.q;let v=b.dataset.v;if(q.ui==='pc')v=+v;else if(q.ui==='letters')v=v+ACC[S.acc];answer(v);}
+  else if(a==='sp')spellKey(b.dataset.v);
+  else if(a==='spdel'){S.spell.pop();render();}
   else if(a==='acc'){S.acc=+b.dataset.a;document.querySelectorAll('[data-act="acc"]').forEach(x=>x.classList.toggle('on',+x.dataset.a===S.acc));}
   else if(a==='hint'){S.hinted=true;render();tick();}
   else if(a==='next')nextQ();
@@ -2495,6 +2532,8 @@ document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classLis
   if(q.ui==='mic'&&k===' '){e.preventDefault();if(S.listening)stopListening();else micListen();return;}
   if(q.ui==='tap'&&k===' '){e.preventDefault();if(e.repeat)return;if(TAP)tapHit();else tapBegin();return;}
   if(q.ui==='choices'&&/^[1-9]$/.test(k)){const i=+k-1;if(i<q.choices.length)answer(q.choices[i]);return;}
+  if(q.ui==='spell'){if(k==='['||k==='-'){S.acc=-1;render();return;}if(k===']'||k==='='||k==='#'){S.acc=1;render();return;}if(k==='0'){S.acc=0;render();return;}
+    if(k==='Backspace'){e.preventDefault();S.spell.pop();render();return;}const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1)spellKey(L);return;}
   if(q.ui==='letters'||q.ui==='pc'){if(k==='['||k==='-'){S.acc=-1;render();return;}if(k===']'||k==='='||k==='#'){S.acc=1;render();return;}if(k==='0'){S.acc=0;render();return;}
     const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1){if(q.ui==='letters')answer(L+ACC[S.acc]);else answer(mod(NAT[LET.indexOf(L)]+S.acc,12));}}
 });

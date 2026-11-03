@@ -228,6 +228,8 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .updbar{position:sticky;top:0;z-index:50;background:var(--brass-soft);color:var(--fg);padding:8px 16px;display:flex;gap:12px;align-items:center;justify-content:center;font-size:14px}
 .spellslots .slot{min-width:64px}
 .spkeys{display:grid;gap:8px;margin-top:6px}.sprow{display:grid;grid-template-columns:72px repeat(7,minmax(0,1fr));gap:8px;align-items:center}.sprow .key{margin:0}.splab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.bendsvg{width:100%;max-width:600px;display:block;margin:8px 0}.bend-band{fill:var(--good-soft)}.bend-zero{stroke:var(--line);stroke-dasharray:3 3}.bend-line{fill:none;stroke:var(--brass);stroke-width:2.5}.bend-lab{font-size:11px;fill:var(--muted)}
+.ckdue{margin:12px 0;border-left:4px solid var(--brass)}.cktask{margin-top:10px}.cktop{display:flex;gap:16px;align-items:flex-start;justify-content:space-between}.cktakes{margin-top:10px}.ckcompare{display:flex;gap:8px;margin-bottom:8px}.ckpending{border-left:4px solid var(--brass)}.ckrate{margin:10px 0;display:flex;gap:12px}
 .fixrow{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}.fixin{flex:1;min-width:260px;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 .tnotes{display:grid;gap:10px}.tnote{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:12px 16px}.tnote b{font-size:15px}.tnote p{margin:4px 0 0;font-size:14px;line-height:1.5;max-width:80ch}.tnote.good{border-left-color:var(--good)}.tnote.bad{border-left-color:var(--bad)}.tile small{font-size:12px}
 /* results & stats */
@@ -849,7 +851,7 @@ function triadGrips(root,q,k,setName){const ns=chord(root,q),v=rot(ns,k),strs=TR
     if(!ok)continue;const fr=a.filter(x=>x!==null);if(Math.max(...fr)-Math.min(...fr)>4||Math.max(...fr)>12)continue;out.push(a);}
   return out;}
 const triName=(root,q)=>`${nm(root)} ${({'':'major',m:'minor',dim:'diminished',aug:'augmented'})[q]||q}`;
-function triadQ(qs,ks,sets,roots,mode){return ()=>{for(let t=0;t<120;t++){const q=R(qs),k=R(ks),set=R(sets),root=P(rootPick(roots)),gs=triadGrips(root,q,k,set);if(!gs.length)continue;const a=R(gs),notes=d2Notes(a,root,q),name=triName(root,q);
+function triadShapeQ(qs,ks,sets,roots,mode){return ()=>{for(let t=0;t<120;t++){const q=R(qs),k=R(ks),set=R(sets),root=P(rootPick(roots)),gs=triadGrips(root,q,k,set);if(!gs.length)continue;const a=R(gs),notes=d2Notes(a,root,q),name=triName(root,q);
   const lab=(r,qq,kk)=>`${triName(r,qq)} · ${TRI_INV[kk]}`,ans=lab(root,q,k);
   const dots=notes.map(n=>({s:n.s,f:n.f,cls:'fb-mark'})),rev=notes.map(n=>({s:n.s,f:n.f,cls:n.d==='R'?'fb-ok':'fb-mark',t:n.d}));
   const stack=rot(ns=chord(root,q),k).map(nm).join('-');
@@ -1224,6 +1226,27 @@ function bpHuntPicks(fr,on,x,sr,offMs,pcs,evS){const FPS=22050/256,N=on.length,b
     let e=f;while(e+1<N&&fr[e+1][m-21]>=0.3)e++;out.push({midi:m,mf:m,t:offMs+f/FPS*1000,dur:Math.max(1,e-f)/FPS*1000,atk:true});}
   const wrong=evS.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi&&!pcs.has(n.midi%12)&&n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)&&!(n.midi<BPO.lowBelow&&n.dur<BPO.junkDur)).map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));
   return out.concat(wrong).sort((a,b)=>a.t-b.t);}
+/* ---- chords (Nov 2026, beta): strums and what sounds in them. Tuned on the user's strummed Cmaj7 / Dm7 / G7 take (10 strums): the right
+   chord passed 9/10 (the 10th really lacked its C4), another chord 0/20, a chord one note off 0/74. A laptop mic barely hears notes below C3
+   (G2 read at ~0.1), so those are reported as not checked instead of being guessed. */
+const CHO={thr:2,dist:300,jump:2,w0:5,w1:25,hit:0.25,extra:0.35,low:48,pitched:0.3};
+/* the model's frame and onset matrices for audio x, queued with the other reads */
+function bpRaw(x,sr){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});return {fr,on};});BP.q=job.catch(()=>{});return job;}
+/* strums: peaks of the onset strength summed over the guitar range that line up with a jump in loudness; act = mean activation per midi
+   over 5–25 frames (60–290 ms) after the strum. Pure function (also run by tests/chord_check.js) */
+function chordStrums(fr,on,x,sr,offMs){const FPS=22050/256,N=on.length,hop=sr/FPS,E=new Float32Array(N);
+  for(let i=0;i<N;i++){let q=0;const a=Math.floor(i*hop),b=Math.min(x.length,Math.floor((i+1)*hop));for(let j=a;j<b;j++)q+=x[j]*x[j];E[i]=Math.sqrt(q/Math.max(1,b-a))+1e-5;}
+  const st=on.map(r=>{let v=0;for(let b=19;b<=67;b++)v+=r[b];return v;}),K=Math.round(0.12*FPS),D=Math.round(CHO.dist/1000*FPS),out=[];let last=-1e9;
+  for(let f=0;f<N;f++){if(st[f]<CHO.thr)continue;let pk=true;for(let k=Math.max(0,f-K);k<=Math.min(N-1,f+K);k++)if(st[k]>st[f]||(st[k]===st[f]&&k<f)){pk=false;break;}if(!pk||f-last<D)continue;
+    let aft=0,bef=Infinity;for(let k=f-1;k<=f+4;k++)if(k>=0&&k<N)aft=Math.max(aft,E[k]);for(let k=f-10;k<=f-3;k++)if(k>=0)bef=Math.min(bef,E[k]);if(aft/(bef===Infinity?1e-5:bef)<CHO.jump)continue;last=f;
+    const a0=Math.min(N,f+CHO.w0),a1=Math.min(N,f+CHO.w1),act={};for(let b=19;b<=67;b++){let v=0;for(let k=a0;k<a1;k++)v+=fr[k][b];act[b+21]=v/Math.max(1,a1-a0);}
+    if(Math.max(...Object.values(act))>=CHO.pitched)out.push({t:offMs+f/FPS*1000,act});}   // a strum with no pitch is a hand movement
+  return out;}
+/* one strum against one voicing: every target note from C3 up sounds; nothing else sounds unless it is an overtone of a target note */
+function chordCheck(act,target){const unchecked=target.filter(m=>m<CHO.low),miss=target.filter(m=>m>=CHO.low&&!(act[m]>=CHO.hit)),harm=new Set();
+  for(const m of target)for(const d of [12,19,24,28,31])harm.add(m+d);
+  const extra=Object.keys(act).map(Number).filter(m=>m>=40&&m<=88&&!target.includes(m)&&!harm.has(m)&&act[m]>=CHO.extra);
+  return {ok:!miss.length&&!extra.length,miss,extra,unchecked};}
 /* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time. o: {keepRepeats, pcs (Note Hunt)} */
 function bpAnalyse(x,sr,offMs,o={}){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
     const {outputToNotesPoly,noteFramesToTime}=window.FWBP,ev=(a,b,c)=>noteFramesToTime(outputToNotesPoly(fr,on,a,b,c,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude}));
@@ -1241,7 +1264,7 @@ const micLat=bp=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
    onsets (+ clicks: scheduled click times in ms, calEnd: end of count-in). Notes are {midi, mf, t, dur (ms), atk}. */
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate,bp=!!opts.bp&&!opts.onsets&&BP.state==='ready';
   LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
-    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,
+    beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,chord:opts.chord||0,attacks:[],curve:!!opts.curve,
     onsets:!!opts.onsets,ons:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat(bp),bp:null};
   if(bp){const src=c.createMediaStreamSource(MIC),C={src,sr,buf:new Float32Array(Math.ceil(sr*(LS.cap/1000+2))),n:0,off:null,busy:false,last:0,notes:[]};
     const put=d=>{const k=Math.min(d.length,C.buf.length-C.n);C.buf.set(d.subarray(0,k),C.n);C.n+=k;};
@@ -1260,9 +1283,11 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
       // the click as the mic hears it (speakers, no headphones): measured in the count-in, ignored later unless clearly louder
       const nearClick=LS.clicks.some(t=>el>=t+LS.lat-60&&el<=t+LS.lat+120);if(el<LS.calEnd&&nearClick)LS.clickPk=Math.max(LS.clickPk,r);
       if(el>=300&&r>LS.thr&&r>1.8*prev&&el-LS.lastOn>=90&&!(nearClick&&r<LS.clickPk*1.6)){LS.ons.push(el-LS.lat);LS.lastOn=el;}
-      LS.frames.push({rms:r,m:null,t:el});drawLive(r);if(el>LS.limit||el>40000)return stopListening();requestAnimationFrame(step);return;}
+      LS.frames.push({rms:r,m:null,t:el});drawLive(r);if(LS.limit?el>LS.limit:el>40000)return stopListening();requestAnimationFrame(step);return;}   // a given length rules (checkups run past 40 s)
     const C=LS.bp;
-    if(C){LS.frames.push({rms:r,m:null,t:el});
+    if(C&&LS.chord){LS.frames.push({rms:r,m:null,t:el});const n=LS.frames.length,pv=n>=4?Math.min(LS.frames[n-2].rms,LS.frames[n-3].rms,LS.frames[n-4].rms):1;
+      if(el>=300&&r>LS.thr*2&&r>2.5*pv&&el-(LS.attacks.at(-1)??-1e9)>=250)LS.attacks.push(el);}
+    else if(C){LS.frames.push({rms:r,m:null,t:el});
       // every 0.4 s, re-read the last 6 s; the first second of a window lacks context, so earlier results stand there
       if(!C.busy&&C.n&&now-C.last>=BPO.every){C.busy=true;C.last=now;const end=C.n,st=Math.max(0,end-BPO.win*C.sr),off=C.off+st/C.sr*1000,edge=st>0?off+1000:-1e9;
         bpAnalyse(C.buf.slice(st,end),C.sr,off,{keepRepeats:LS.repeats,pcs:LS.pcs}).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
@@ -1277,6 +1302,11 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(LS.notes.length&&LS.firstAt===null)LS.firstAt=el;
     drawLive(r);
     const quietMs=(()=>{let i=LS.frames.length-1;while(i>=0&&LS.frames[i].rms<=LS.thr)i--;return i<0?el:el-LS.frames[i].t;})();
+    if(LS.curve){let first=null;for(const f of LS.frames)if(f.m!=null&&f.t>=300){first=f.t;break;}   // bends: from the first pitched frame, hold ms or the note's decay
+      const done=(first!==null&&(el-first>=LS.hold||(el-first>700&&quietMs>=450)))||(first===null&&el>LS.wait)||el>LS.cap;if(done)return stopListening(false,first===null);requestAnimationFrame(step);return;}
+    if(LS.chord){const a=LS.attacks,last=a.at(-1);   // chords: stop 1.8 s after the expected strums, or after 3 s of quiet
+      const done=(a.length>=LS.chord&&el-last>=1800)||(a.length&&quietMs>=3000)||(!a.length&&el>LS.wait)||el>LS.cap;
+      if(done)return stopListening(false,!a.length);requestAnimationFrame(step);return;}
     const lastN=LS.notes.at(-1),lastLen=lastN?el-lastN.t:0,any=LS.notes.length>0||(C&&quietMs<el-300);
     const settled=LS.repeats?lastLen>=2000:(quietMs>=330||lastLen>=LS.hold);
     const done=(LS.real>=LS.max&&settled&&(!LS.isDone||LS.isDone(LS.notes)))||(any&&quietMs>=LS.gap)||(!any&&el>LS.wait)||el>LS.cap||(LS.endAt&&el>LS.endAt)||(LS.limit&&el>LS.limit+LS.beatStart);
@@ -1284,10 +1314,11 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
 /* silent: stopped on its own without hearing anything; the question is not graded.
    With Basic Pitch the whole take is read once more before grading (a fraction of a second). */
 function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const L=LS;LS=null;
-  const fin=notes=>{if(cancel)return;L.onDone({notes:notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:n.t,dur:n.dur})),onsets:L.ons,firstAt:L.firstAt,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!L.ons.length&&!notes.length});};
+  const fin=notes=>{if(cancel)return;L.onDone({curve:L.curve?L.frames.filter(f=>f.m!=null&&f.t>=300).map(f=>({t:f.t,m:f.m})):null,notes:notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:n.t,dur:n.dur})),onsets:L.ons,firstAt:L.firstAt,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!L.ons.length&&!notes.length});};
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
   LAST_TAKE={x:C.buf.slice(0,C.n),sr:C.sr};
+  if(L.chord){const x=LAST_TAKE.x;bpRaw(x,C.sr).then(({fr,on})=>{const strums=chordStrums(fr,on,x,C.sr,C.off||0);L.onDone({notes:[],strums,onsets:[],firstAt:strums.length?strums[0].t:null,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!strums.length});},()=>fin([]));return;}
   bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,{keepRepeats:L.repeats,pcs:L.pcs}).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
@@ -1309,9 +1340,12 @@ const TAKES=[
  {id:'legato',n:'Hammer-on and slide',d:'String 3: pick fret 5, hammer on fret 7, slide to fret 9. Three times with a pause between.',exp:[60,62,64,60,62,64,60,62,64]},
  {id:'repeat',n:'Same note, re-picked',d:'G on string 6 fret 3, picked 8 times in steady quarter notes without muting in between.',exp:[43,43,43,43,43,43,43,43]},
  {id:'chords',n:'Strummed chords',d:'Cmaj7 (x3545x), Dm7 (x5756x), G7 (3x343x): strum each 4 times, about one strum per second.',exp:[],chords:[[48,55,59,64],[50,57,60,65],[43,53,59,62]]},
+ {id:'bends',n:'Bends',d:'String 2 fret 8: three whole-step bends (to fret 10’s pitch), each held 2 s, then released. Then three half-step bends on string 3 fret 7.',exp:[]},
+ {id:'vibrato',n:'Vibrato',d:'String 2 fret 10: hold the note 3 s with your normal vibrato, three times. Then once with a whole-step bend and vibrato on top.',exp:[]},
+ {id:'doubles',n:'Double stops',d:'In C: E–G, F–A, G–B on strings 3 and 2 (3rds), then E–C, F–D, G–E on strings 3 and 1 (6ths). Pick each pair together, one per second.',exp:[],chords:[[64,67],[65,69],[67,71],[64,72],[65,74],[67,76]]},
  {id:'noise',n:'Noises, no notes',d:'About 10 seconds: mute all strings and scratch them, tap the guitar body, shift your fretting hand. None of this should count as a note.',exp:[]}];
 let REC=null;const REC_DONE={};
-function vRec(){return `<div class="head"><div><div class="eyebrow">Mic check · test takes</div><h1>Record your guitar</h1><p class="lead">Ten short takes with known notes, so the note detector can be tuned on your guitar and mic. Each one saves a WAV file to your Downloads folder.</p></div><div class="sp"><button class="btn small ghost" data-act="tuner">Back</button></div></div>${micErr?`<div class="warn">${micErr}</div>`:''}
+function vRec(){return `<div class="head"><div><div class="eyebrow">Mic check · test takes</div><h1>Record your guitar</h1><p class="lead">Short takes with known notes, so the note detector can be tuned on your guitar and mic. Each one saves a WAV file to your Downloads folder.</p></div><div class="sp"><button class="btn small ghost" data-act="tuner">Back</button></div></div>${micErr?`<div class="warn">${micErr}</div>`:''}
   <div class="panel"><p class="note">Sit where you usually practise, same guitar and same mic. Press <b>Record</b>, wait a second, play the take, wait a second, press <b>Stop</b>. Redo any take you fumble: the newest file wins.</p><div class="level" id="lvl"><i></i></div><p class="muted" id="rectime">${REC?'Recording…':'Ready'}</p></div>
   <div class="section">${TAKES.map((t,i)=>{const on=REC&&REC.id===t.id;return `<div class="panel" style="margin-top:10px;display:flex;gap:16px;align-items:center;justify-content:space-between"><div><b>${i+1}. ${t.n}</b>${REC_DONE[t.id]?` <span class="muted">· saved (${REC_DONE[t.id].toFixed(0)} s)</span>`:''}<p class="note" style="margin:4px 0 0">${t.d}</p></div>
     ${on?`<button class="btn rec" data-act="recstop">■ Stop</button>`:`<button class="btn ${REC_DONE[t.id]?'ghost':'primary'}" data-act="recgo" data-id="${t.id}" ${REC?'disabled':''}>${REC_DONE[t.id]?'Redo':'● Record'}</button>`}</div>`;}).join('')}</div>`;}
@@ -1396,16 +1430,31 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   const guitar=S.gid!=='sing';
   if(guitar&&(BP.state==='idle'||BP.state==='loading')){S.playing=true;S.micMsg='Loading the note detector…';render();
     Promise.race([bpLoad(),new Promise(r=>setTimeout(r,12000))]).then(()=>{if(BP.state==='loading')BP.state='failed';if(S&&S.q===q&&!S.locked){S.playing=false;S.micMsg='';render();micListen();}});return;}
+  if(q.strumSeq&&BP.state!=='ready'){q.strumSeq=null;S.micMsg='The chord detector could not start here: play the notes one at a time, low to high.';}   // fallback: arpeggio
   // Note Hunt: Basic Pitch hears octaves reliably, so each spot's exact pitch counts; the built-in detector slips octaves, so only the note name
   if(q.playAll)q.octaveFree=!(guitar&&BP.state==='ready');
-  S.listening=true;S.live=[];S.micMsg='';render();
+  S.listening=true;S.live=[];if(!/could not start/.test(S.micMsg||''))S.micMsg='';render();
   const t=q.target,n=t.filter((m,i)=>!i||q.repeats||(q.octaveFree?mod(m-t[i-1],12)!==0:m!==t[i-1])).length,voice=S.gid==='sing';
   const got=res=>{if(res.silent){S.micMsg='Nothing heard. Check that the level bar moves when you play, then press Listen (Space) again.';render();return;}answer(res);};
   const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,pcs:q.playAll?new Set(t.map(m=>mod(m,12))):null,hold:voice?600:400,limit:S.untimed?0:S.limit};
+  if(q.bend){startListening(got,1,{...o,bp:false,curve:true,hold:{release:4500,prebend:4500,bendvib:4000}[q.bend]||3000,wait:15000,cap:12000});return;}
+  if(q.strumSeq){startListening(got,q.strumSeq.length,{...o,chord:q.strumSeq.length,wait:15000,cap:q.strumSeq.length>1?40000:20000});return;}
   if(q.metro){const beat=60/q.metro,t0=0.1,last=q.grid?q.grid.at(-1):t.length-1;for(let i=0;i<4+Math.ceil(last)+2;i++)Piano.tick(t0+i*beat,i%4===0);const beatStart=(4*beat+t0)*1000;
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
   else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
-function micGrade(q,res){if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
+/* chord questions. One voicing (alternatives allowed): any strum that matches passes, so a second try counts.
+   A sequence (double stops): every voicing in order, and no wrong pitched strum between the first and the last match. */
+function strumGrade(q,res){const st=(res&&res.strums)||[],seq=q.strumSeq;
+  if(seq.length===1){const cands=q.strumAlts||seq;let best=null;
+    for(const x of st)for(let i=0;i<cands.length;i++){const c=chordCheck(x.act,cands[i]),sc=c.ok?1000:-(c.miss.length+c.extra.length);if(!best||sc>best.sc)best={sc,c,i};}
+    if(best&&q.targets&&q.targets[best.i]){const a=q.targets[best.i];q.target=a.t;q.names=a.names;q.degs=a.degs;if(a.answer!==undefined)q.answer=a.answer;}
+    const t=q.target,c=best?best.c:{ok:false,miss:t.slice(),extra:[],unchecked:[]};
+    return {ok:c.ok,notesOk:c.ok,timeOk:true,per:t.map(m=>({m,got:c.miss.includes(m)?null:m,ok:!c.miss.includes(m),unchecked:c.unchecked.includes(m)})),extra:c.extra,unchecked:c.unchecked,strums:st.length,firstAt:res&&res.firstAt};}
+  let i=0,wrong=0;const hit=[],uncheck=new Set();
+  for(const x of st){if(i<seq.length){const c=chordCheck(x.act,seq[i]);if(c.ok){hit.push(i);c.unchecked.forEach(m=>uncheck.add(m));i++;continue;}}if(i>0&&i<seq.length)wrong++;}
+  const ok=i===seq.length&&wrong===0;
+  return {ok,notesOk:ok,timeOk:true,per:seq.map((v,k)=>({m:q.target[k],got:hit.includes(k)?q.target[k]:null,ok:hit.includes(k)})),extra:[],wrong,unchecked:[...uncheck],strums:st.length,firstAt:res&&res.firstAt};}
+function micGrade(q,res){if(q.bend)return bendGrade(q,res);if(q.strumSeq)return strumGrade(q,res);if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
     /* target m heard as g; Note Hunt: below F3 (low frets of strings 6 and 5) the octave above also counts: a laptop mic barely hears a low string's fundamental */
     heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12),mc=(m,g)=>cmp(m,g)?0:heardAs(m,g)?0.01:1;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
@@ -1433,7 +1482,7 @@ function micPanel(q,done){const st=S.loading?'Loading piano…':S.playing?(S.mic
   return `<div class="lane"><span class="lab">Target</span>${slotsTarget()}</div><div class="lane"><span class="lab">What I heard</span><div id="heardwrap">${slotsHeard()}</div><div class="level" id="lvl"><i></i></div></div>
    <div class="status ${S.listening?'live':''}">${st}</div>${micErr?`<div class="warn">${micErr}</div>`:''}
    ${done?'':`<div class="ctrls">${S.listening?`<button class="btn rec big" data-act="stop">■ Stop (Space)</button>`:`<button class="btn rec big" data-act="listen" ${S.playing||S.loading?'disabled':''}>● Listen (Space)</button>`}</div>`}`;}
-function micFeedbackExtra(q,r){if(!r)return '';const missing=r.per.filter(v=>v.got===null).length;const octWrong=!q.octaveFree&&r.per.filter(v=>v.got!==null&&!v.ok&&mod(v.got-v.m,12)===0).length;return `${octWrong?` ${octWrong} note${octWrong>1?'s were':' was'} the right pitch class in the wrong octave.`:''}${r.ok&&r.octOff?' Some notes were in another octave; that counts here.':''}${!r.notesOk&&missing?` ${missing} note${missing>1?'s were':' was'} not heard.`:''}${r.extra.length?` ${r.extra.length} extra note${r.extra.length>1?'s':''} heard.`:''}${q.metro?` On the beat: ${r.per.filter(v=>v.onTime).length}/${q.target.length}.`:''}${r.firstAt?` First note after ${(r.firstAt/1000).toFixed(1)} s.`:''}`;}
+function micFeedbackExtra(q,r){if(!r)return '';if(q.bend){const a=r.bend||{};return ` ${a.why||''}${a.top!=null&&a.steps?` Top of the bend: ${a.top} cents (target ${a.steps}).`:''}${a.rate!=null?` Vibrato: ${a.rate.toFixed(1)} per second, ${Math.round(a.width)} cents wide.`:''} The curve below is your pitch; the green band is in tune.`;}if(q.strumSeq)return `${r.strums?'':' No strum was heard.'}${r.extra&&r.extra.length?` Also sounding: ${r.extra.map(nameOf).join(', ')} (a wrong or open string?).`:''}${r.wrong?` ${r.wrong} strum${r.wrong>1?'s':''} did not match.`:''}${r.unchecked&&r.unchecked.length?` Bass ${r.unchecked.map(nameOf).join(', ')} not checked: a laptop mic barely hears notes below C3.`:''}`;const missing=r.per.filter(v=>v.got===null).length;const octWrong=!q.octaveFree&&r.per.filter(v=>v.got!==null&&!v.ok&&mod(v.got-v.m,12)===0).length;return `${octWrong?` ${octWrong} note${octWrong>1?'s were':' was'} the right pitch class in the wrong octave.`:''}${r.ok&&r.octOff?' Some notes were in another octave; that counts here.':''}${!r.notesOk&&missing?` ${missing} note${missing>1?'s were':' was'} not heard.`:''}${r.extra.length?` ${r.extra.length} extra note${r.extra.length>1?'s':''} heard.`:''}${q.metro?` On the beat: ${r.per.filter(v=>v.onTime).length}/${q.target.length}.`:''}${r.firstAt?` First note after ${(r.firstAt/1000).toFixed(1)} s.`:''}`;}
 
 /* ---- mic games, part 2: blues cadence, swing grid, bass & guide-tone singing, modes / bebop / guide lines in position ---- */
 function playBluesCadence(root){const t=pc(root);const dom=r=>({pcs:[0,4,7,10].map(x=>mod(r+x,12)),bass:r});return playChords([dom(t),dom(mod(t+5,12)),dom(t),dom(mod(t+7,12))],0.7);}
@@ -1479,8 +1528,93 @@ function crTask(L){if(L!==7)return crTaskMajor(L);return ()=>{const ph=crChordPh
     prompt:`${ph.mids.length} notes over <b>${sym(ph.root,ph.q)}</b>, swing eighths. Hear it, then play it back with the click, starting on beat 1 after the count-in.`,visual:listenCard(`Chord, then ${ph.mids.length} notes`,`${ph.bpm} bpm · swing`),
     audio:()=>{Piano.chord(CH[ph.q].map(k=>52+IV[k][1]+mod(pc(ph.root)-4,12)),0.05,1.4,0.6,0.02);ph.mids.forEach((m,i)=>Piano.note(m,1.2+g[i]*beat,beat*0.5,0.85));return 1.2+(g.at(-1)+0.7)*beat;},
     degs:ph.labs,names,answerText:names.join(' '),explain:`Over ${sym(ph.root,ph.q)} (${{7:'Mixolydian',m7:'Dorian',maj7:'Ionian'}[ph.q]}): <b>${ph.labs.join(' – ')}</b> = ${names.join(' ')}. Notes count when they land within a quarter of a beat of their swing slot.`,after:()=>fretPhrase(ph.mids,MKEYS[ph.k]+12),hint:'Chord tones on the downbeats; the off-beats are the steps between them.'});};}
+
+/* ============ PHRASING (Nov 2026): bends, vibrato, blues phrases, double stops ============ */
+/* Bends & vibrato are graded from the pitch curve (YIN, ~60 frames a second, cents from the fretted note). Checked against synthetic
+   curves (tests/bend_check.js); not yet against recordings of the user's bends: the Mic check recorder has takes for that. */
+const BEND={tol:20,holdMs:250,relTol:30,relMs:150,preTol:35,vibRate:[4,8],vibWidth:[25,120],bvWidth:[15,100]};
+const BEND_KIND={half:{n:'half-step bend',c:100},whole:{n:'whole-step bend',c:200},release:{n:'bend and release',c:200},prebend:{n:'pre-bend and release',c:200},vibrato:{n:'vibrato',c:0},bendvib:{n:'bend with vibrato',c:200},curl:{n:'quarter-tone curl',c:50}};
+/* curve: [{t ms, m float midi}] of the voiced frames; start: the fretted midi. Pure (also run by the tests). */
+function bendAnalyse(curve,start,kind){const K=BEND_KIND[kind],steps=K.c,med=a=>{const b=a.slice().sort((x,y)=>x-y);return b.length?b[b.length>>1]:null;};
+  let pts=curve.filter(p=>p.m!=null).map(p=>({t:p.t,c:(p.m-start)*100}));if(pts.length<8)return {ok:false,why:'No steady note was heard.',pts};
+  const m0=med(pts.map(p=>p.c));pts=pts.filter(p=>Math.abs(p.c-m0)<700&&p.c>-200&&p.c<steps+300);            // octave slips out
+  const sm=pts.map((p,i)=>({t:p.t,c:med(pts.slice(Math.max(0,i-2),i+3).map(q=>q.c))})),t0=sm.length?sm[0].t:0;sm.forEach(p=>p.t-=t0);
+  if(sm.length<8)return {ok:false,why:'No steady note was heard.',pts:sm};
+  const base=kind==='prebend'?0:med(sm.slice(0,6).map(p=>p.c)),rel=sm.map(p=>({t:p.t,c:p.c-base})),dur=rel.at(-1).t,
+    raw=pts.map((p,i)=>({t:sm[i].t,c:p.c-base}));   // unsmoothed: vibrato width is measured on this (smoothing flattens the peaks)
+  /* the longest stretch within tol of a target, in ms */
+  const run=(tgt,tol,from=0)=>{let best=0,bs=-1,be=-1,st=null;for(let i=from;i<rel.length;i++){if(Math.abs(rel[i].c-tgt)<=tol){if(st===null)st=i;const d=rel[i].t-rel[st].t;if(d>best){best=d;bs=st;be=i;}}else st=null;}return {ms:best,i0:bs,i1:be};};
+  /* vibrato on rel[a..b]: subtract a ±400 ms moving average (longer than one cycle down to 2 per second), count crossings */
+  const vib=(a,b)=>{const seg=raw.slice(a,b+1);if(seg.length<20)return null;const T=(seg.at(-1).t-seg[0].t)/1000,w=Math.max(3,Math.round(seg.length/T*0.4));
+    const d=seg.map((p,i)=>p.c-seg.slice(Math.max(0,i-w),i+w+1).reduce((x,y)=>x+y.c,0)/(Math.min(seg.length,i+w+1)-Math.max(0,i-w)));let z=0;for(let i=1;i<d.length;i++)if((d[i-1]<0)!==(d[i]<0))z++;
+    const rms=Math.sqrt(d.reduce((x,y)=>x+y*y,0)/d.length);return {rate:z/2/T,width:2*Math.SQRT2*rms,dur:T*1000};};
+  const out={kind,steps,base:Math.round(base),dur:Math.round(dur),pts:rel};
+  if(kind==='vibrato'){const i=rel.findIndex(p=>p.t>=200),v=vib(i<0?0:i,rel.length-1);if(!v||v.dur<1200)return {...out,ok:false,why:'Hold the note longer: at least 1.5 s with vibrato.'};
+    Object.assign(out,{rate:v.rate,width:v.width});out.ok=v.rate>=BEND.vibRate[0]&&v.rate<=BEND.vibRate[1]&&v.width>=BEND.vibWidth[0]&&v.width<=BEND.vibWidth[1];
+    out.why=out.ok?'Even vibrato.':v.width<10?'No vibrato heard: move the string, rocking from the wrist.':v.width<BEND.vibWidth[0]?'Too narrow: push the string further (aim for about a quarter tone).':v.width>BEND.vibWidth[1]?'Too wide: smaller, controlled movements.':v.rate<BEND.vibRate[0]?'Too slow: speed it up a little.':'Too fast: relax it, about 5–6 cycles a second.';return out;}
+  if(kind==='prebend'){const first=med(rel.slice(0,6).map(p=>p.c));out.first=Math.round(first);
+    const top=Math.abs(first-steps)<=BEND.preTol,downAt=rel.findIndex((p,i)=>i>6&&Math.abs(p.c-0)<=BEND.preTol),down=downAt>0&&run(0,BEND.preTol,downAt).ms>=BEND.relMs;
+    out.ok=top&&down;out.why=!top?`Start already bent to the target before you pick: the first pitch was ${Math.round(first)} cents above the fret, the target is ${steps}.`:!down?'Then let it down to the fretted pitch, cleanly.':'Pre-bend in tune and released.';return out;}
+  const r=run(steps,BEND.tol),peak=Math.max(...rel.map(p=>p.c));out.peak=Math.round(peak);out.holdMs=Math.round(r.ms);
+  out.plateau=r.ms>0?Math.round(med(rel.slice(r.i0,r.i1+1).map(p=>p.c))):null;
+  const reached=r.ms>=BEND.holdMs,top=reached?out.plateau:Math.round(med(rel.filter(p=>p.c>=peak-25).map(p=>p.c)));out.top=top;
+  const miss=reached?'':top<steps?`The bend stopped short: ${top} cents (target ${steps}). Push a little further.`:`The bend went sharp: ${top} cents (target ${steps}). Ease off.`;
+  if(kind==='release'){const back=reached?rel.findIndex((p,i)=>i>r.i1&&Math.abs(p.c)<=BEND.relTol):-1,rok=back>0&&run(0,BEND.relTol,back).ms>=BEND.relMs;
+    out.ok=reached&&rok;out.why=!reached?miss:!rok?'Now release it all the way back to the fretted pitch.':'In tune up, back down clean.';return out;}
+  if(kind==='bendvib'){if(!reached){out.ok=false;out.why=miss;return out;}const v=vib(r.i0,rel.length-1);
+    if(!v||v.dur<700){out.ok=false;out.why='Hold the bent note longer and add vibrato at the top.';return out;}Object.assign(out,{rate:v.rate,width:v.width});
+    out.ok=v.rate>=BEND.vibRate[0]&&v.rate<=BEND.vibRate[1]&&v.width>=BEND.bvWidth[0]&&v.width<=BEND.bvWidth[1];out.why=out.ok?'Bent in tune with vibrato on top.':v.width<10?'Bent in tune, but no vibrato on top: keep the bend and rock it.':`Vibrato on the bend: ${v.rate.toFixed(1)} per second, ${Math.round(v.width)} cents wide; aim for 4–8 per second, 15–100 cents.`;return out;}
+  out.ok=reached;out.why=reached?`In tune: held ${(r.ms/1000).toFixed(1)} s within ${BEND.tol} cents.`:miss;return out;}
+/* the pitch curve against the target band */
+function bendSVG(a){if(!a||!a.pts||!a.pts.length)return '';const W=560,H=170,P=34,T=Math.max(1000,a.pts.at(-1).t),lo=Math.min(-60,...a.pts.map(p=>p.c)),hi=Math.max(a.steps+80,...a.pts.map(p=>p.c)),
+  X=t=>P+(t/T)*(W-P-10),Y=c=>H-20-(c-lo)/(hi-lo)*(H-34),band=a.kind==='vibrato'?'':`<rect x="${P}" y="${Y(a.steps+BEND.tol)}" width="${W-P-10}" height="${Y(a.steps-BEND.tol)-Y(a.steps+BEND.tol)}" class="bend-band"/>`;
+  return `<svg class="bendsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pitch curve">${band}<line x1="${P}" x2="${W-10}" y1="${Y(0)}" y2="${Y(0)}" class="bend-zero"/>
+   <text x="4" y="${Y(0)+4}" class="bend-lab">fret</text>${a.steps?`<text x="4" y="${Y(a.steps)+4}" class="bend-lab">+${a.steps}¢</text>`:''}
+   <polyline class="bend-line" points="${a.pts.map(p=>`${X(p.t).toFixed(1)},${Y(p.c).toFixed(1)}`).join(' ')}"/><text x="${W-10}" y="${H-4}" text-anchor="end" class="bend-lab">${(T/1000).toFixed(1)} s</text></svg>`;}
+/* bends on strings 1–3, frets 5–12, the region where bends live */
+function bendQ(kind){return ()=>{const K=BEND_KIND[kind],s=R(kind==='vibrato'?[1,2,3]:[2,3,2,1]),f=ri(5,12),start=OPEN[s]+f,steps=K.c,tgt=start+steps/100,tf=f+Math.round(steps/100);
+  const how={half:`bend it up a <b>half step</b>, to the pitch of fret ${tf}`,whole:`bend it up a <b>whole step</b>, to the pitch of fret ${tf}`,release:`bend it up a <b>whole step</b> (fret ${tf}’s pitch), hold, then <b>release</b> back down`,
+    prebend:`<b>pre-bend</b> it a whole step before you pick (to fret ${tf}’s pitch), pick, then <b>release</b> it down to the fretted note`,vibrato:'hold it with <b>vibrato</b> for about two seconds: even, about 5–6 cycles a second',
+    bendvib:`bend it up a <b>whole step</b> (fret ${tf}’s pitch) and hold it there <b>with vibrato</b>`,curl:'give it a <b>quarter-tone curl</b>: bend it slightly sharp, about half a fret, the blues “in-between” note'}[kind];
+  const dots=[{s,f,cls:'fb-mark',t:'●'}];if(steps>=100)dots.push({s,f:tf,cls:'fb-alt',t:'→'});
+  return M({key:`bd-${kind}-${s}`,label:`${K.n}, string ${s}`,bend:kind,bendStart:start,target:steps?[start,Math.round(tgt)]:[start],names:steps?[midiName(start),midiName(Math.round(tgt))]:[midiName(start)],
+    degs:steps?['fret',kind==='curl'?'+¼':'+'+(steps===100?'½':'1')]:['vibrato'],maxNotes:1,hideTarget:false,
+    prompt:`String ${s}, fret ${f} (${midiName(start)}): ${how}.`,visual:fretSVG({dots,win:[Math.max(0,f-2),Math.min(15,f+4)]}),
+    audio:()=>{Piano.note(start,0.05,0.7,0.7);if(steps>=100)Piano.note(Math.round(tgt),0.85,1.0,0.75);return steps>=100?2.0:0.9;},
+    explain:`${K.n[0].toUpperCase()+K.n.slice(1)} on string ${s}, fret ${f}.${steps>=100?` The target is the pitch of fret ${tf} (${midiName(Math.round(tgt))}): hear it in your head before you bend.`:''} Bend with two or three fingers behind the bending finger; push from the wrist, not the fingertip.`,
+    hint:steps>=100?'Fret the target note first and listen; then bend up to exactly that pitch.':'Rock the wrist, not the fingertip; keep the cycles even.',after:()=>bendSVG(S&&S.micResult&&S.micResult.bend)});};}
+function bendGrade(q,res){const a=bendAnalyse((res&&res.curve)||[],q.bendStart,q.bend);const t=q.target;
+  if(a.rate!=null&&a.width<10){a.rate=null;}   // no vibrato: a rate measured on noise means nothing
+  return {ok:!!a.ok,notesOk:!!a.ok,timeOk:true,bend:a,per:t.map((m,i)=>({m,got:i===0?(a.pts&&a.pts.length?m:null):(a.ok?m:null),ok:i===0?!!(a.pts&&a.pts.length):!!a.ok})),extra:[],firstAt:res&&res.firstAt};}
+
+/* ---- Call & Response: blues phrases in time (minor pentatonic + ♭5) over a dominant chord ---- */
+const BLUES_LICKS=[[[3,0,-2,0],[0,0.67,1,2]],[[-5,-2,0,3,0],[0,0.67,1,1.67,2]],[[0,3,5,3,0,-2],[0,0.67,1,1.67,2,3]],[[5,3,0,-2,-5],[0,0.67,1,1.67,2]],
+  [[-2,0,-2,-5,-7,-5],[0,0.67,1,1.67,2,3]],[[0,3,5,6,7],[0,0.67,1,1.67,2]],[[7,6,5,3,0],[0,0.67,1,1.67,2]],[[3,0,3,5],[0.67,1.67,2,3]],[[10,7,5,3,0],[0,1,1.67,2,3]],[[0,-2,-5,-2,0],[0,0.67,1,1.67,2.67]]];
+const BLUES_DEG={0:'1',3:'♭3',5:'4',6:'♭5',7:'5',10:'♭7'};
+function crBlues(){return ()=>{const o=micOpt();for(let t=0;t<40;t++){const k=rootPick(['A','E','G','C','D']),root=P(k),b0=MKEYS[k]+12<=62?MKEYS[k]+12:MKEYS[k],[iv,grid]=R(BLUES_LICKS),mids=iv.map(x=>b0+x),a=fitWindow(mids);if(!a)continue;
+  const beat=60/o.bpm,labs=iv.map(x=>BLUES_DEG[mod(x,12)]),names=mids.map(m=>nm(tr(root,{0:1,3:3,5:4,6:5,7:5,10:7}[mod(m-b0,12)],mod(m-b0,12))));
+  return M({key:`crb-${k}-${iv.join('_')}`,label:`${labs.join(' ')} in ${nm(root)} blues`,target:mids,octaveFree:false,hideTarget:true,maxNotes:mids.length,metro:o.bpm,grid,
+    prompt:`A ${mids.length}-note blues phrase over <b>${nm(root)}7</b>, swing eighths. Hear it, then play it back with the click after the count-in: the notes <i>and</i> the rhythm, rests included.`,
+    visual:listenCard(`${nm(root)}7, then ${mids.length} notes`,`${o.bpm} bpm · swing`),
+    audio:()=>{Piano.chord([0,4,7,10].map(x=>MKEYS[k]+x+(MKEYS[k]<50?12:0)),0.05,1.4,0.6,0.02);mids.forEach((m,i)=>Piano.note(m,1.3+grid[i]*beat,beat*0.5,0.85));return 1.3+(grid.at(-1)+0.8)*beat;},
+    degs:labs,names,answerText:names.join(' '),explain:`${nm(root)} minor pentatonic${labs.includes('♭5')?' with the ♭5 (blues scale)':''}: <b>${labs.join(' – ')}</b> = ${names.join(' ')}. Notes count when they land within a quarter of a beat of their slot, so the rests and the off-beat starts matter. When it is in your fingers, slide or bend into the first note.`,
+    after:()=>fretSeq(a.seq,a.win,0),hint:'Sing it first with the rhythm (“da-ba dah…”), then find the first note against the chord.'});}return crTask(7)();};}
+
+/* ---- Call & Response: double stops (diatonic 3rds or 6ths), strummed, graded as chords ---- */
+function crDoubles(){return ()=>{const k=rootPick(['C','G','D','A','F','E']),root=P(k),sc=scale(root,'major'),sixth=Math.random()<0.5,gap=sixth?5:2,up=Math.random()<0.5;
+  for(let t=0;t<40;t++){const i0=ri(0,6),idx=[0,1,2].map(j=>up?i0+j:i0-j),base=60+pc(root)-(pc(root)>6?12:0);
+    const deg=i=>base+12*Math.floor(i/7)+mod(pc(sc[mod(i,7)])-pc(root),12),pairs=idx.map(i=>[deg(i),deg(i+gap)]);
+    if(pairs.some(([a,b])=>a<52||b>79))continue;
+    const lab=i=>String(mod(i,7)+1),names=idx.map(i=>`${nm(sc[mod(i,7)])}+${nm(sc[mod(i+gap,7)])}`);
+    return M({key:`crd-${k}-${sixth?6:3}-${idx.join('')}`,label:`${sixth?'6ths':'3rds'} in ${nm(root)}: ${idx.map(i=>lab(i)+'/'+lab(i+gap)).join(' ')}`,
+      strumSeq:pairs,target:pairs.map(p=>p[0]),names,degs:idx.map(i=>`${lab(i)}+${lab(i+gap)}`),hideTarget:true,maxNotes:3,
+      prompt:`Three double stops in <b>${nm(root)} major</b>, ${sixth?'6ths (skip a string between the two notes)':'3rds (two neighbouring strings)'}. Hear them, then play them back: pick both notes together, one double stop at a time.`,
+      visual:listenCard(`Three ${sixth?'6ths':'3rds'}, ${up?'rising':'falling'}`,`${nm(root)} major`),
+      audio:()=>{pairs.forEach((p,i)=>Piano.chord(p,0.1+i*0.9,0.8,0.7,0.01));return 0.1+pairs.length*0.9+0.4;},
+      answerText:names.join(' · '),explain:`${sixth?'Diatonic 6ths':'Diatonic 3rds'} in ${nm(root)}: ${names.join(', ')} (degrees ${idx.map(i=>lab(i)+'+'+lab(i+gap)).join(', ')}). ${sixth?'6ths on strings 3 and 1 or 4 and 2':'3rds on strings 2 and 3'} are the sweet double stops of soul and rock rhythm playing: slide between them.`,
+      hint:'Find the top note first (it is the melody), then the note a 3rd or 6th below it in the key.'});}return crTask(1)();};}
 function playOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{}),play=g.mode==='play';return `<div class="eyebrow" style="margin-top:12px">Answer by</div><div class="seg" role="group"><button class="${play?'':'on'}" data-act="mode" data-k="mark">Marking on the neck</button><button class="${play?'on':''}" data-act="mode" data-k="play">Playing it (microphone)</button></div>
-  ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label></div></div><p class="note">Strict grading: exact pitches, low string to high, one note at a time (arpeggiate chords and mute as you go). Check your tuning on the Mic check page first. Questions that need more than 8 notes stay as marking. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
+  ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label><label class="check"><input type="checkbox" data-act="micopt" data-k="strum" ${o.strum!==false?'checked':''}> Strum chords: the mic hears the whole grip (beta)</label></div></div><p class="note">Exact pitches count. Single notes and lines: one at a time, muting as you go. Chord grips: strum them once and let them ring (or switch “Strum chords” off to play them one note at a time, low to high). Bass notes below C3 are not checked: a laptop mic barely hears them. Check your tuning on the Mic check page first. Questions that need more than 8 notes stay as marking. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
 function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[60,70,80,90,100,120,140,160].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div><p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
 function micOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});const sel=(k,opts,fmt)=>`<select data-act="micopt" data-k="${k}">${opts.map(v=>`<option value="${v}" ${String(o[k])===String(v)?'selected':''}>${fmt(v)}</option>`).join('')}</select>`;
   return `<div class="eyebrow" style="margin-top:12px">Microphone game</div><div class="micopts">${x.id==='cr'?`<label class="field"><span class="muted">Key</span>${sel('key',[...MKEYLIST,'random'],v=>v==='random'?'Random each phrase':nm(P(v))+' major')}</label>`:''}
@@ -1713,7 +1847,7 @@ function gtVLQ(kinds){return ()=>{for(let t=0;t<80;t++){const kind=R(kinds),k=ro
     const opts=[[b3,b7],[b7,b3]].map(([p0,p1])=>{const g0=near(pair[0],f0,[p0]),g1=near(pair[1],f1,[p1]);return g0===null||g1===null?null:{spots:[{s:pair[0],f:g0,t:p0===b3?'3':'7'},{s:pair[1],f:g1,t:p1===b3?'3':'7'}],move:Math.abs(g0-f0)+Math.abs(g1-f1)};}).filter(Boolean).sort((a,b)=>a.move-b.move);
     if(!opts.length)continue;const best=opts[0],alts=opts.filter(o=>o.move===best.move).map(o=>o.spots);
     const lab=(n,i)=>`${nm(n)} (${i})`;const aTxt=`${lab(lowIs3?A[1]:A[3],lowIs3?'3':'7')} on string ${pair[0]}, ${lab(lowIs3?A[3]:A[1],lowIs3?'7':'3')} on string ${pair[1]}`;
-    return {snd:{prog:[aSpots.map(x=>OPEN[x.s]+x.f),best.spots.map(x=>OPEN[x.s]+x.f)]},key:`vl-${kind}-${k}-${pair.join('')}-${lowIs3?'3':'7'}`,label:`${sym(ra,qa)} → ${sym(rb,qb)} guide tones`,ui:'multi',factor:3,answer:alts[0],alts,need:2,showCount:1,
+    return {snd:{prog:[aSpots.map(x=>OPEN[x.s]+x.f),best.spots.map(x=>OPEN[x.s]+x.f)]},key:`vl-${kind}-${k}-${pair.join('')}-${lowIs3?'3':'7'}`,label:`${sym(ra,qa)} → ${sym(rb,qb)} guide tones`,ui:'multi',grip:true,factor:3,answer:alts[0],alts,need:2,showCount:1,
       answerText:best.spots.map(x=>`${PCN[(OPEN[x.s]+x.f)%12].split('/')[0]} (${x.t}) s${x.s}f${x.f}`).join(', '),prompt:`<b>${sym(ra,qa)} → ${sym(rb,qb)}</b>. The 3rd and 7th of ${sym(ra,qa)} are marked. Mark the <b>3rd and 7th of ${sym(rb,qb)}</b> on the same two strings with the <b>smallest movement</b>, then press Done.`,
       visual:null,fixedDots:aSpots.map((x,i)=>({...x,cls:'fb-alt',t:i===0?(lowIs3?'3':'7'):(lowIs3?'7':'3')})),
       explain:`${sym(ra,qa)}: ${aTxt}. ${sym(rb,qb)}: <b>${best.spots.map(x=>`${PCN[(OPEN[x.s]+x.f)%12].split('/')[0]} (${x.t})`).join(' and ')}</b>. Move each voice to the nearest guide tone of the next chord: in a ii–V or V–I the 7th falls a half step to the 3rd and the 3rd holds to become the 7th. Guide-tone voice leading is what makes comping sound connected.`,
@@ -1751,7 +1885,7 @@ function spreadQ(qs,mode){return ()=>{for(let t=0;t<100;t++){const q=R(qs),k=ri(
     if(mode==='find')return gripMulti({key:`sp-f-${name}-${k}-${set}`,label:`Mark spread ${name}, ${inv}, ${set}`,grips:gs,root,q,prompt:`Mark the <b>spread (open) triad</b> ${name}, <b>${inv}</b>, on strings ${set}.`,explain:`${tabStr(a)}: ${notes.map(n=>`${n.n} (${n.d})`).join(', ')}. A spread triad is a close triad with its middle note dropped an octave: wide, clear, pianistic.`,hint:'Take the close shape and move the middle voice down an octave onto the lower string.'});
     const d=['root position','1st inversion','2nd inversion'].filter(x=>x!==inv).map(x=>`${name} · ${x} (spread)`);d.push(`${nm(root)} ${q==='m'?'major':'minor'} · ${inv} (spread)`);
     return C({snd:{grip:a},key:`sp-${name}-${k}-${set}`,label:ans,prompt:`A <b>spread triad</b> (one string skipped between voices). Name it and its inversion (by the bass).`,visual:fretSVG({dots:notes.map(n=>({s:n.s,f:n.f,cls:'fb-mark'}))}),reveal:fretSVG({dots:notes.map(n=>({s:n.s,f:n.f,cls:n.d==='R'?'fb-ok':'fb-mark',t:n.d}))}),answer:ans,choices:mc(ans,shuffle(d)),factor:2.4,
-      explain:`Low → high: ${notes.map(n=>`${n.n} (${n.d})`).join(', ')} → <b>${ans}</b>. Spread voicings put a 6th or a 4th between the voices instead of 3rds.`,hint:'Collapse the top note down an octave in your mind to see the close triad.'});}return triadQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A'])();};}
+      explain:`Low → high: ${notes.map(n=>`${n.n} (${n.d})`).join(', ')} → <b>${ans}</b>. Spread voicings put a 6th or a 4th between the voices instead of 3rds.`,hint:'Collapse the top note down an octave in your mind to see the close triad.'});}return triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A'])();};}
 function upperQ(){return ()=>{const bassRoot=P(rootPick(['C','F','G','Bb','D','Eb','A'])),opts=[[2,'',' (9, ♯11, 13)','II major triad: Lydian dominant colour (13♯11)'],[8,'',' (♭9, ♯11, ♭13)','♭VI major triad: altered colour'],[3,'',' (♯9, ♭13... ♭III major: 7♯9♭13)','♭III major triad: 7(♯9,♭13)'],[6,'',' (♭9, ♯11, ♭13)','tritone major triad: 7(♭9,♯11)'],[9,'',' (13, ♭9)','VI major triad: 13(♭9)']];
   const o=R(opts),tri=tr(bassRoot,{2:2,8:6,3:3,6:5,9:6}[o[0]],o[0]);let t=tri;if(Math.abs(t.a)>1){const e=respell(t);if(e)t=e;}const ans=o[3];const d=opts.filter(x=>x!==o).map(x=>x[3]);
   const pcs=[pc(bassRoot),mod(pc(bassRoot)+4,12),mod(pc(bassRoot)+10,12)];const up=chord(t,'').map(pc);
@@ -1810,7 +1944,7 @@ function enhQ(){return ()=>{const pairs=[['augmented 4th','diminished 5th (trito
 /* staff to fret: dyads */
 function sightDyadQ(win){return ()=>{for(let t=0;t<80;t++){const s1=ri(2,6),s2=s1-1,f1=ri(win[0],win[1]),iv=R([3,4,5,7]);const m1=OPEN[s1]+f1,m2=m1+iv,f2=m2-OPEN[s2];if(f2<win[0]||f2>win[1])continue;if(NAT.indexOf(m1%12)<0||NAT.indexOf(m2%12)<0)continue;
     const n1=midiNoteObj(m1),n2=midiNoteObj(m2);const staff=dyadStaff(n1,m1,n2,m2);const alts=[];for(const [a,b] of [[m1,m2]]){for(let sa=1;sa<=6;sa++)for(let sb=1;sb<=6;sb++){if(sa===sb)continue;const fa=a-OPEN[sa],fb=b-OPEN[sb];if(fa>=0&&fa<=12&&fb>=0&&fb<=12&&Math.abs(fa-fb)<=4)alts.push([{s:sa,f:fa},{s:sb,f:fb}]);}}
-    const ans=[{s:s1,f:f1},{s:s2,f:f2}];return {snd:{chord:[m1,m2]},key:`sd-${m1}-${m2}`,label:`${midiName(m1)} + ${midiName(m2)}`,ui:'multi',factor:2.6,answer:ans,alts:[ans,...alts.filter(x=>!(x[0].s===s1&&x[0].f===f1&&x[1].s===s2&&x[1].f===f2))],need:2,showCount:1,staff,win,answerText:`${midiName(m1)} and ${midiName(m2)}`,
+    const ans=[{s:s1,f:f1},{s:s2,f:f2}];return {snd:{chord:[m1,m2]},key:`sd-${m1}-${m2}`,label:`${midiName(m1)} + ${midiName(m2)}`,ui:'multi',factor:2.6,answer:ans,alts:[ans,...alts.filter(x=>!(x[0].s===s1&&x[0].f===f1&&x[1].s===s2&&x[1].f===f2))],need:2,showCount:1,grip:true,staff,win,answerText:`${midiName(m1)} and ${midiName(m2)}`,
       prompt:`Two notes together (a dyad). Mark <b>both</b> on the neck inside the shaded position, then press Done.`,explain:`${midiName(m1)} and ${midiName(m2)}: a ${{3:'minor 3rd',4:'major 3rd',5:'perfect 4th',7:'perfect 5th'}[iv]}. On adjacent strings a 3rd is one or two frets apart, a 4th is level (one fret up on the B string), a 5th is two frets up.`,hint:'Find the lower note first, then the shape of the interval on the next string up.'};}return sightQ(win,[1,2,3,4,5,6],0)();};}
 function midiNoteObj(m){const p=m%12,l=NAT.indexOf(p);return l>=0?{l,a:0}:{l:NAT.indexOf(p-1),a:1};}
 function dyadStaff(n1,m1,n2,m2){return noteStaff(n1,m1)+noteStaff(n2,m2);}
@@ -1819,7 +1953,7 @@ function dyadStaff(n1,m1,n2,m2){return noteStaff(n1,m1)+noteStaff(n2,m2);}
 /* ============ PLAY MODE: answer mark-on-neck questions with the guitar (strict: exact pitches, low to high) ============ */
 const spotMidi=sp=>OPEN[sp.s]+sp.f;
 const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','chordname','shells','voicelead','walking'];
-function toPlay(q){let targets=null,how='';
+function toPlay(q){let targets=null,how='',strum=false;
   /* every spot, string by string: the same pitch on another string is its own note, so re-attacks count (q.repeats) */
   if(q.ui==='multi'&&q.playAll){const fret=q.order==='fret',sp=q.answer.slice().sort(fret?(a,b)=>a.f-b.f||b.s-a.s:(a,b)=>b.s-a.s||a.f-b.f);
     targets=[{t:sp.map(spotMidi),names:sp.map(x=>midiName(spotMidi(x))),degs:sp.map(x=>`S${x.s}`),answer:q.answer}];
@@ -1827,12 +1961,14 @@ function toPlay(q){let targets=null,how='';
       :`Play all ${sp.length} spots one at a time: string 6 first, then 5, 4… up to string 1, lower fret first on each string. Let each note sound, then mute it before the next.`;}
   else if(q.ui==='multi'){const alts=(q.alts&&q.alts.length?q.alts:[q.answer]);if(!alts[0]||!alts[0].length||new Set(alts[0].map(spotMidi)).size>8)return null;
     targets=alts.map(a=>{const sorted=a.slice().sort((x,y)=>spotMidi(x)-spotMidi(y));const t=[],sp=[];sorted.forEach(x=>{const m=spotMidi(x);if(t.at(-1)!==m){t.push(m);sp.push(x);}});return {t,names:t.map(midiName),degs:sp.map(x=>x.t||PCN[mod(spotMidi(x),12)].split('/')[0]),answer:a};});
-    const n=targets[0].t.length;how=n===1?'Play the note.':`Play the ${n} notes <b>low to high</b>, one string at a time, muting as you go.`;}
+    const n=targets[0].t.length;how=n===1?'Play the note.':`Play the ${n} notes <b>low to high</b>, one string at a time, muting as you go.`;
+    /* a grip (one note per string): strum it and the mic checks the whole chord, unless the player chose one note at a time */
+    if(q.grip&&n>=2&&n<=6&&new Set(alts[0].map(x=>x.s)).size===alts[0].length&&!(typeof S!=='undefined'&&S&&(G(S.gid).opts||{}).strum===false)){strum=true;how=`Fret the grip and <b>strum it once</b>; let it ring. (One note at a time instead: switch “Strum chords” off in the game’s options.)`;}}
   else if(q.ui==='fret'){const ok=((q.reveal&&q.reveal.dots)||[]).filter(d=>d.cls==='fb-ok');if(!ok.length)return null;const ms=[...new Set(ok.map(spotMidi))];
     targets=ms.map(m=>({t:[m],names:[midiName(m)],degs:[PCN[mod(m,12)].split('/')[0]],answer:ok.filter(d=>spotMidi(d)===m)}));how='Play the note.';}
   else return null;
   const prompt=q.prompt.replace(/\s*\(?[—–-]?\s*\d+ spots?\)?/g,'').replace(/\s*Mark one note per string \([^)]*\),?\s*then press <b>Done<\/b>\./g,'').replace(/\s*Click to mark or unmark, then press <b>Done<\/b>\./g,'').replace(/,?\s*[Tt]hen press <b>Done<\/b>\.?/g,'.').replace(/\bMark\b/g,'Play').replace(/\bClick\b/g,'Play').replace(/\(dashed = missed, red = wrong\)/g,'')+`<div class="playhint">▶ ${how} ${q.playAll?'The mic checks each spot’s pitch and that every spot is played; it cannot tell strings apart, so keep the order.':'Exact pitch counts: the octave must match.'}</div>`;
-  return Object.assign({},q,{ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,lowOct:!!q.playAll&&q.order!=='fret',   /* fret by fret: the order is checked through the octaves, so they must be exact */
+  return Object.assign({},q,{strumSeq:strum?[targets[0].t]:null,strumAlts:strum?targets.map(x=>x.t):null,ui:'mic',factor:Infinity,play:true,repeats:!!q.playAll,lowOct:!!q.playAll&&q.order!=='fret',   /* fret by fret: the order is checked through the octaves, so they must be exact */
     sound:true,target:targets[0].t,targets,names:targets[0].names,degs:targets[0].degs,maxNotes:targets[0].t.length,octaveFree:!!q.playAll,hideTarget:true,prompt,visual:playVisual(q,false),after:()=>playVisual(q,true),answerText:q.answerText||targets[0].names.join(' ')});}
 function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDots);if(q.mark)(Array.isArray(q.mark)?q.mark:[q.mark]).forEach(m=>dots.push({cls:'fb-mark',...m}));
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
@@ -1872,13 +2008,13 @@ const GAMES=[
   {n:'Accidentals',d:'Sharps and flats on the staff',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9],true)]},
   {n:'Key signatures',d:'Apply the key signature',g:[trebleSig()]}]},
  {id:'triads',cat:'neck',name:'Triad Shapes',area:'Triads on the neck',desc:'A close-position major or minor triad on three strings: name the chord and its inversion. All four string sets, every root.',levels:[
-  {n:'Major, root position',d:'Top two string sets, common keys',g:[triadQ([''],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E'])]},
-  {n:'Major and minor',d:'Root position on all four string sets',g:[triadQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
-  {n:'1st inversion',d:'Root position and 1st inversion',g:[triadQ(['','m'],[0,1],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
-  {n:'All three inversions',d:'Root, 1st and 2nd on the top three sets',g:[triadQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
-  {n:'Every root, every set',d:'All twelve roots, all four sets',g:[triadQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
-  {n:'Find the grip',d:'Pick the tab for a named triad and inversion',g:[triadQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find'),triadQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
-  {n:'Diminished & augmented',d:'All four triad qualities, every inversion',g:[triadQ(['dim','aug','','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadQ(['dim','aug'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
+  {n:'Major, root position',d:'Top two string sets, common keys',g:[triadShapeQ([''],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E'])]},
+  {n:'Major and minor',d:'Root position on all four string sets',g:[triadShapeQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
+  {n:'1st inversion',d:'Root position and 1st inversion',g:[triadShapeQ(['','m'],[0,1],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
+  {n:'All three inversions',d:'Root, 1st and 2nd on the top three sets',g:[triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'])]},
+  {n:'Every root, every set',d:'All twelve roots, all four sets',g:[triadShapeQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
+  {n:'Find the grip',d:'Pick the tab for a named triad and inversion',g:[triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find'),triadShapeQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
+  {n:'Diminished & augmented',d:'All four triad qualities, every inversion',g:[triadShapeQ(['dim','aug','','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['dim','aug'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
   {n:'Spread triads',d:'Open voicings on 6-4-3, 5-3-2 and 4-2-1',g:[spreadQ(['','m']),spreadQ(['','m'],'find')]},
   {n:'Upper structures',d:'Triads over a dominant shell; spread dim and aug',g:[upperQ(),spreadQ(['','m','dim','aug'])]}]},
  {id:'intervals',cat:'theory',name:'Intervals & Keys',area:'Scales and signatures',desc:'Key signatures, intervals, scale degrees, relative and parallel keys, harmonic and melodic minor.',levels:[
@@ -2016,7 +2152,17 @@ const GAMES=[
   {n:'Full major scale',d:'4–5 notes, steps and skips, dips below the tonic',g:[crTask(4)]},
   {n:'Minor pentatonic & blues',d:'1 ♭3 4 5 ♭7 and the ♭5 over a dominant blues cadence',g:[crTask(5)]},
   {n:'Chromatic approach',d:'Half-step approach notes; the key changes every phrase',g:[crTask(6)]},
-  {n:'Over a chord, in time',d:'Phrase over a 7th chord, played back with the click (swing eighths)',g:[crTask(7)]}]},
+  {n:'Over a chord, in time',d:'Phrase over a 7th chord, played back with the click (swing eighths)',g:[crTask(7)]},
+  {n:'Blues phrases in time',d:'Minor pentatonic and blues-scale phrases over a dominant chord: notes, swing and rests',g:[crBlues()]},
+  {n:'Double stops',d:'Diatonic 3rds and 6ths, picked together and graded as chords (beta)',g:[crDoubles()]}]},
+ {id:'bends',cat:'applied',mic:true,name:'Bends & Vibrato',area:'Phrasing · guitar',desc:'Bend to pitch, release, pre-bend, vibrato and the blues curl. The mic follows your pitch and draws it against the target, in cents.',levels:[
+  {n:'Half-step bends',d:'Bend up a fret’s worth and hold it in tune',g:[bendQ('half')]},
+  {n:'Whole-step bends',d:'Up two frets’ worth: the rock and blues bend',g:[bendQ('whole')]},
+  {n:'Bend and release',d:'Up in tune, hold, back down clean',g:[bendQ('release')]},
+  {n:'Vibrato',d:'Even width and speed on a held note',g:[bendQ('vibrato')]},
+  {n:'Bend with vibrato',d:'Whole-step bend held with vibrato on top',g:[bendQ('bendvib')]},
+  {n:'Pre-bend and release',d:'Bend silently, pick, let it down',g:[bendQ('prebend')]},
+  {n:'Quarter-tone curl',d:'The blues in-between note: about half a fret sharp',g:[bendQ('curl')]}]},
  {id:'arp',cat:'neck',mic:true,name:'Arpeggio Runner',area:'Chord tones · guitar',desc:'Play the arpeggio of a named chord inside one position; every note is checked, then in time with a click, then modes, bebop runs and guide-tone lines.',levels:[
   {n:'Root position',d:'maj7 · m7 · 7 ascending from the root',g:[arpTask(['maj7','m7','7'],[0],4,false,false)]},
   {n:'All sevenths',d:'Adds m7♭5 and dim7',g:[arpTask(['maj7','m7','7','m7♭5','dim7'],[0],4,false,false)]},
@@ -2155,7 +2301,7 @@ function gradeSet(ans,g){const key=x=>x.s+'-'+x.f,A=new Set(ans.map(key)),G=new 
 function huntGrade(q,g){if(!q.alts)return gradeSet(q.answer,g);let best=null;for(const alt of q.alts){const r=gradeSet(alt,g);if(!best||r.wrong+r.miss<best.r.wrong+best.r.miss)best={r,alt};}q.answer=best.alt;return best.r;}
 /* a grip to be marked on the neck; grips = every playable position of that voicing, any of them counts */
 function gripMulti(o){const spots=a=>a.map((f,i)=>f===null?null:{s:6-i,f}).filter(Boolean),alts=o.grips.map(a=>spots(a).map(x=>{const n=d2Notes(a,o.root,o.q).find(z=>z.s===x.s);return {...x,t:n?n.d:''};}));
-  return {key:o.key,label:o.label,ui:'multi',factor:3,snd:{grip:o.grips[0]},answer:alts[0],alts,need:alts[0].length,showCount:1,answerText:o.grips.map(tabStr).join(' or '),prompt:o.prompt+` Mark one note per string (${alts[0].length} dots), then press <b>Done</b>.`,explain:o.explain,hint:o.hint};}
+  return {key:o.key,label:o.label,ui:'multi',factor:3,snd:{grip:o.grips[0]},answer:alts[0],alts,need:alts[0].length,showCount:1,grip:true,answerText:o.grips.map(tabStr).join(' or '),prompt:o.prompt+` Mark one note per string (${alts[0].length} dots), then press <b>Done</b>.`,explain:o.explain,hint:o.hint};}
 function check(q,given){if(q.ui==='tap'){const r=tapGrade(q,given||[]);S.tapResult=r;return r.ok;}if(q.ui==='mic'){const r=micGrade(q,given);S.micResult=r;return r.ok;}if(given===null)return false;if(q.ui==='multi'){const r=huntGrade(q,given);return r.wrong===0&&r.miss===0;}if(q.ui==='pc')return given===q.answer;if(q.ui==='fret')return q.valid(given.s,given.f);if(q.ui==='spell')return Array.isArray(given)&&given.join(' ')===q.answer.join(' ');return given===q.answer;}
 function givenText(q,given){if(q.ui==='tap'){const r=S.tapResult||tapGrade(q,given||[]);return `${r.hits}/${r.n} on time${r.extra.length?', '+r.extra.length+' extra':''}`;}if(q.ui==='mic'){const r=S.micResult||micGrade(q,given);const got=r.per.map(x=>x.got).concat(r.extra).filter(x=>x!==null);return got.length?got.map(nameOf).join(' '):'nothing heard';}if(given===null)return 'no answer (time)';if(q.ui==='multi'){const r=huntGrade(q,given);return `${r.hit} of ${q.answer.length}${r.wrong?`, plus ${r.wrong} wrong`:''}`;}if(q.ui==='pc')return PCN[given];if(q.ui==='fret')return `string ${given.s}, fret ${given.f}`;if(q.ui==='spell')return given.join(' ');return given;}
 /* one more note of a spelled chord; the answer goes in when all are there */
@@ -2200,12 +2346,13 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();}
+function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 6–7 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>
-  <div class="overall"><div><span class="eyebrow">Answered</span><b>${N}</b></div><div><span class="eyebrow">Accuracy</span><b>${N?pct(Cc,N)+'%':'—'}</b></div><div><span class="eyebrow">Rounds</span><b>${sess}</b></div><div><span class="eyebrow">Practice time</span><b>${Math.round(T/60000)} min</b></div><div style="display:flex;gap:8px"><button class="btn small" data-act="overview">Overview stats</button><button class="btn small" data-act="reference">Reference</button><button class="btn small" data-act="tuner">Mic check</button><button class="btn small" data-act="fixlist">Fix list</button></div></div>
+  <div class="overall"><div><span class="eyebrow">Answered</span><b>${N}</b></div><div><span class="eyebrow">Accuracy</span><b>${N?pct(Cc,N)+'%':'—'}</b></div><div><span class="eyebrow">Rounds</span><b>${sess}</b></div><div><span class="eyebrow">Practice time</span><b>${Math.round(T/60000)} min</b></div><div style="display:flex;gap:8px"><button class="btn small" data-act="overview">Overview stats</button><button class="btn small" data-act="reference">Reference</button><button class="btn small" data-act="tuner">Mic check</button><button class="btn small" data-act="fixlist">Fix list</button><button class="btn small" data-act="checkups">Checkups</button></div></div>
+  ${CK_TAKES!==null&&ckDays()>=CK_DUE_DAYS?`<div class="panel ckdue"><b>${ckDays()===Infinity?'Record your first musical checkup':'A musical checkup is due'}</b> · ${ckDays()===Infinity?'six short recordings, so in a month you can hear what changed.':`your last one was ${Math.floor(ckDays())} days ago.`} <button class="btn small primary" data-act="checkups">Open checkups</button></div>`:''}
   ${micErr?`<div class="warn">${micErr}</div>`:''}${CLOUD_MSG?`<div class="warn">${CLOUD_MSG} Your cloud progress is untouched; click the sync label at the top to retry, or reload the page.</div>`:''}
   <nav class="catnav"><button class="${only?'':'on'}" data-act="cat" data-c="">All areas</button>${CATS.map(c=>`<button class="${only===c.id?'on':''}" data-act="cat" data-c="${c.id}">${c.name}</button>`).join('')}</nav></section>
   ${CATS.filter(c=>!only||c.id===only).map(c=>{const cs=catStats(c.id);return `<section class="catsec"><div class="cathead"><div><h2>${c.name}</h2><p>${c.desc}</p></div><div class="kv"><span>Accuracy <b>${cs.n?pct(cs.c,cs.n)+'%':'—'}</b></span><span>Answered <b>${cs.n}</b></span><span>Avg level <b>${cs.n?cs.lv.toFixed(1):'—'}</b></span></div></div>
@@ -2299,11 +2446,14 @@ const LESSONS={
  essentials:{how:['Learn each scale in one position first, then connect positions.','Over a chord, aim for its 3rd and 7th on strong beats.','For capo questions, think in shapes plus capo fret.'],
   rules:['Minor pentatonic: 1 ♭3 4 5 ♭7. Major pentatonic: 1 2 3 5 6, the same notes as its relative minor pentatonic a minor 3rd below.','Blues scale: minor pentatonic plus ♭5.','Guide-tone resolution: the 7th of one chord falls a half step to the 3rd of the next.','Sounding chord = shape name + capo fret (G shape, capo 2 = A).'],
   take:'The practical tools you use on every gig: scales that fit, notes that target the changes, and how to move a song anywhere.'},
+ bends:{how:['Fret the target note first and listen to it; then bend the lower note up to exactly that pitch.','Bend with two or three fingers behind the bending finger, and turn the wrist as if turning a key: the fingertip alone runs out of strength and pitch.','Mute the strings you are not playing with the side of the picking hand and the fretting-hand thumb, so the bend rings alone.','Look at your pitch curve after each try: flat tops and clean releases are the goal.'],
+  rules:['A half-step bend sounds like the next fret; a whole-step bend like two frets up. The target is a real pitch, not “up a bit”.','Bend and release: the release must land exactly on the fretted note.','Pre-bend: bend silently first, pick, then let it down.','Vibrato: even and controlled, about 5–6 cycles a second, roughly a quarter tone wide; on a bend, vibrato comes from relaxing and re-pushing the bend.','The quarter-tone curl (about half a fret sharp) is the blues “in-between” note, usually on the ♭3 or ♭7.'],
+  take:'Bends and vibrato are the voice of rock and blues guitar: the difference between playing the right notes and sounding like Hendrix or Frusciante is mostly here. Pitch that is “nearly there” is heard as out of tune.'},
  sing:{how:['Sing the tonic after the cadence before you sing anything else.','Walk to the degree by step if you need to; then try to land it directly.','Use numbers or solfège out loud. Your voice is the most honest ear trainer.'],
   rules:['Hear the target in your head before you sing it (audiation).','Any octave counts; pitch accuracy matters more than tone.','Chord tones: hum the root, then the 3rd, 5th, 7th in order.'],
   take:'If you can sing it, you can play it: singing connects the ear to the instrument and is the fastest way to play by ear.'},
  cr:{how:['Sing the phrase back first, then play it.','Find the first note against the key, then follow the intervals.','Keep the phrase in one position so the shape is visible.'],
-  rules:['Hear the key from the cadence; most phrases start on 1, 3 or 5.','Steps and skips: label each move (step up, 3rd down…).','Chromatic notes usually lead a half step into a chord tone.'],
+  rules:['Hear the key from the cadence; most phrases start on 1, 3 or 5.','Steps and skips: label each move (step up, 3rd down…).','Chromatic notes usually lead a half step into a chord tone.','Blues phrases: the minor pentatonic is 1 ♭3 4 5 ♭7 (♭5 for the blues scale); the rhythm and the rests are part of the phrase.','Double stops: two notes picked together, 3rds on neighbouring strings, 6ths with a string skipped.'],
   take:'Playing back what you hear is how jazz is learned: from records and from other players, in real time.'},
  arp:{how:['Find all the chord tones in the position first, then play them low to high.','Say the degree as you play it (R, 3, 5, 7).','Add the click only when you can play it slowly without stopping.'],
   rules:['maj7: R 3 5 7 · 7: R 3 5 ♭7 · m7: R ♭3 5 ♭7 · m7♭5: R ♭3 ♭5 ♭7 · dim7: R ♭3 ♭5 𝄫7.','Starting from the 3rd, 5th or 7th makes four more shapes from the same notes.','ii–V: the 7th of ii falls a half step to the 3rd of V.'],
@@ -2446,6 +2596,91 @@ function vFix(){const L=view.list;return `<div class="head"><div><div class="eye
     return `<div class="panel" style="margin-top:10px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span class="muted" style="font-size:13px">${new Date(r.t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}${gm?` · ${esc(gm.name)}${c.level?' L'+c.level:''}${c.label?' · '+esc(c.label):''}`:''}${c.ok===false?' · <span style="color:var(--bad)">marked wrong</span>':c.ok?' · marked right':''}${r.audio?' · 🎙 audio':''}</span><button class="btn small ghost" data-act="fixdel" data-id="${r.id}">Delete</button></div>
       <p style="margin:6px 0 0">${esc(r.text)}</p>${c.mic&&c.mic.heard?`<p class="note">Target ${c.mic.target.map(nameOf).join(' ')} · heard ${c.mic.heard.map(n=>nameOf(n.m)).join(' ')||'nothing'}</p>`:''}</div>`;}).join('')}</div>`;}
 
+/* ============ MUSICAL CHECKUPS: the same six tasks every four weeks, recorded, so progress is judged by what you play ============ */
+/* Takes live in IndexedDB 'fretwise-checkups' (audio as 16-bit PCM). Only the time task is measured automatically (onsets against
+   the beat, the comping detector); the others are judged by listening to your takes side by side, with a short checklist. */
+const CK_DB=(()=>{let dbp=null;const open=()=>dbp||(dbp=new Promise((ok,no)=>{const r=indexedDB.open('fretwise-checkups',1);r.onupgradeneeded=()=>r.result.createObjectStore('takes',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);}));
+  const tx=async(mode,f)=>{const db=await open();return new Promise((ok,no)=>{const t=db.transaction('takes',mode),r=f(t.objectStore('takes'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>no(t.error);});};
+  return {add:x=>tx('readwrite',st=>st.add(x)),all:()=>tx('readonly',st=>st.getAll()),del:id=>tx('readwrite',st=>st.delete(id))};})();
+const CK_DUE_DAYS=28;
+/* chord helpers for backings: {pcs, bass} */
+const ckCh=(root,q)=>{const r=pc(P(root));return {pcs:CH[q].map(k=>mod(r+IV[k][1],12)),bass:r};};
+const CK_TASKS=[
+ {id:'time',n:'Time feel',bpm:80,bars:16,click:[1,3],chords:null,
+  d:'Mute the strings with your fretting hand and strum <b>quarter notes on every beat</b> for 16 bars. The click plays only on 2 and 4 after the count-in.',
+  look:['Every beat played, none rushed into the next','The 2 and 4 sit exactly on the click','The last bars as steady as the first'],auto:true},
+ {id:'triads',n:'Triads in time',bpm:70,bars:16,click:[1,3],chords:[['C',''],['A','m'],['F',''],['G','']],
+  d:'Top three strings: <b>C – Am – F – G</b>, one chord per bar, strummed on beats 1 and 3. Change to the nearest inversion each time (no jumping up and down the neck). Four times round.',
+  look:['Every change on beat 1, no gap before it','Each chord clean: three strings, no buzz','The voicings move by small steps']},
+ {id:'iivi',n:'ii–V–I line',bpm:80,bars:16,click:[1,3],chords:[['D','m7'],['G','7'],['C','maj7'],['C','maj7']],
+  d:'Over <b>Dm7 – G7 – Cmaj7</b>, play a single-note line: start with guide tones (3rds and 7ths, one per chord), then arpeggios in quarter notes. Stay in one position.',
+  look:['The 3rd or 7th of each chord lands on beat 1','The line moves by step into each change','In time with the click the whole way']},
+ {id:'blues',n:'Blues solo',bpm:90,bars:24,click:[1,3],chords:[['A','7'],['D','7'],['A','7'],['A','7'],['D','7'],['D','7'],['A','7'],['A','7'],['E','7'],['D','7'],['A','7'],['E','7']],
+  d:'Two choruses of <b>A blues</b>. Tell a short story: a phrase, space, an answer. Use bends and vibrato; aim for a chord tone when the chord changes.',
+  look:['Phrases with space between them, not a stream of notes','Bends in tune, vibrato even','You can hear where D7 and E7 come in']},
+ {id:'sing',n:'Sing the degrees',bpm:60,bars:0,click:[],chords:null,cadence:'C',
+  d:'After the cadence, sing on “la”: <b>1 2 3 4 5 4 3 2 1</b>, then <b>1 3 5 3 1</b>, then <b>5 6 7 8</b>. No piano help after the cadence.',
+  look:['Each degree in tune (listen back with a tuner if unsure)','The tonic at the end matches the tonic at the start','No sliding into notes']},
+ {id:'phrase',n:'Your phrase',bpm:0,bars:0,click:[],chords:null,
+  d:'Play the <b>phrase or lick you are working on</b> (Hendrix, Frusciante, Wes…), three times, as musically as you can: bends, vibrato, dynamics.',
+  look:['The same each time, on purpose','Bends reach pitch, vibrato under control','It sounds like the record, not like an exercise']}];
+let CK=null;   // the take in progress: {task, chunks, sr, src, sp, t0, lead, beat, endTimer, tick}
+/* schedule the backing for a task; returns seconds until the end */
+function ckBacking(T){const beat=T.bpm?60/T.bpm:0,lead=0.3;
+  if(T.cadence){return {lead:0,beat:0,dur:playCadence(P(T.cadence),false)+20};}   // the cadence, then 20 s to sing
+  if(!T.bpm)return {lead:0,beat:0,dur:90};
+  for(let i=0;i<4;i++)Piano.tick(lead+i*beat,i===0);                                   // count-in: four clicks
+  for(let b=0;b<T.bars;b++){for(const k of T.click)Piano.tick(lead+(4+b*4+k)*beat,false);
+    if(T.chords){const c=T.chords[b%T.chords.length],ch=ckCh(c[0],c[1]),t=lead+(4+b*4)*beat;
+      Piano.note(bassOf(ch.bass),t,beat*1.8,0.55);if(T.id!=='triads'){const up=voiceUpper(ch.pcs,null);Piano.chord(up,t+beat*1.5+0.01,beat*0.45,0.42,0.01);Piano.chord(up,t+beat*3.5+0.01,beat*0.4,0.38,0.01);}}}
+  return {lead,beat,dur:lead+(4+T.bars*4+1)*beat};}
+async function ckStart(id){if(CK||!(await ensureMic()))return render();const T=CK_TASKS.find(t=>t.id===id),c=Piano.ac();await c.resume();
+  if(!Piano.ready){view.ckMsg='Loading the piano…';render();await Piano.load();}
+  const src=c.createMediaStreamSource(MIC),sp=c.createScriptProcessor(4096,1,1),R={task:id,chunks:[],sr:c.sampleRate,src,sp,t0:performance.now()};
+  sp.onaudioprocess=e=>{if(CK!==R)return;R.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};src.connect(sp);sp.connect(c.destination);
+  const B=ckBacking(T);Object.assign(R,B);CK=R;view.ckMsg='';
+  if(T.auto){const clk=[];for(let i=0;i<4;i++)clk.push((B.lead+i*B.beat)*1000);for(let b=0;b<T.bars;b++)for(const k of T.click)clk.push((B.lead+(4+b*4+k)*B.beat)*1000);
+    startListening(res=>{R.ons=res.onsets||[];},99,{onsets:true,limit:B.dur*1000+500,clicks:clk,calEnd:(B.lead+4*B.beat)*1000});}
+  R.end=setTimeout(()=>ckStop(),B.dur*1000+(T.bpm?600:0));
+  R.tick=setInterval(()=>{const el=document.getElementById('cktime');if(!el)return;const t=(performance.now()-R.t0)/1000;el.textContent=T.bpm&&B.beat?`${t<B.lead+4*B.beat?'Count-in':'Bar '+Math.min(T.bars,1+Math.floor((t-B.lead-4*B.beat)/(4*B.beat)))+' of '+T.bars} · ${t.toFixed(0)} s`:`Recording · ${t.toFixed(0)} s`;},200);
+  render();}
+/* time task: every onset against its beat (ms since the take began, latency-corrected by the onset detector) */
+function ckTimeMetrics(ons,R,T){const exp=[];for(let k=0;k<T.bars*4;k++)exp.push((R.lead+(4+k)*R.beat)*1000);const beatMs=R.beat*1000,off=[],used=new Set();
+  exp.forEach((e,k)=>{let best=-1,bd=1e9;ons.forEach((o,i)=>{if(used.has(i))return;const d=Math.abs(o-e);if(d<bd){bd=d;best=i;}});if(best>=0&&bd<=beatMs*0.4){used.add(best);off.push({k,o:ons[best]-e});}});
+  const mean=a=>a.reduce((x,y)=>x+y,0)/Math.max(1,a.length),m=mean(off.map(x=>x.o)),sd=Math.sqrt(mean(off.map(x=>(x.o-m)**2))),h=exp.length/2;
+  return {hit:off.length,of:exp.length,mean:Math.round(m),sd:Math.round(sd),drift:Math.round(mean(off.filter(x=>x.k>=h).map(x=>x.o))-mean(off.filter(x=>x.k<h).map(x=>x.o))),extra:ons.filter((o,i)=>!used.has(i)&&o>exp[0]-beatMs/2).length};}
+function ckStop(cancel){const R=CK;if(!R)return;CK=null;clearTimeout(R.end);clearInterval(R.tick);R.sp.disconnect();R.src.disconnect();if(LS)stopListening(cancel);Piano.hush();
+  if(cancel){render();return;}const T=CK_TASKS.find(t=>t.id===R.task),n=R.chunks.reduce((a,b)=>a+b.length,0),pcm=new Int16Array(n);let o=0;
+  for(const ch of R.chunks)for(let i=0;i<ch.length;i++)pcm[o++]=Math.max(-32768,Math.min(32767,Math.round(ch[i]*32767)));
+  view.ckPending={task:R.task,t:Date.now(),sr:R.sr,pcm,secs:n/R.sr,metrics:T.auto&&R.ons?ckTimeMetrics(R.ons,R,T):null};render();}
+async function ckSave(){const p=view.ckPending;if(!p)return;const T=CK_TASKS.find(t=>t.id===p.task),look=T.look.map((_,i)=>!!(document.getElementById('cklook'+i)||{}).checked),
+  rating=+((document.querySelector('input[name=ckrate]:checked')||{}).value||0),note=(document.getElementById('cknote')||{}).value||'';
+  await CK_DB.add({...p,look,rating,note,build:BUILD});view.ckPending=null;ckLoad();}
+function ckLoad(){CK_DB.all().then(rs=>{CK_TAKES=rs;if(view.name==='checkups'||view.name==='home')render();},()=>{CK_TAKES=[];});}
+let CK_TAKES=null,CK_AUDIO=null;
+function ckPlay(id){const r=(CK_TAKES||[]).find(x=>x.id===id);if(r)ckPlayRec(r);}
+/* play a take (saved or still pending) */
+function ckPlayRec(r){if(CK_AUDIO){CK_AUDIO.pause();CK_AUDIO=null;}
+  const n=r.pcm.length,buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,s2)=>{for(let i=0;i<s2.length;i++)v.setUint8(o+i,s2.charCodeAt(i));};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,r.sr,true);v.setUint32(28,r.sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,r.pcm[i],true);CK_AUDIO=new Audio(URL.createObjectURL(new Blob([buf],{type:'audio/wav'})));CK_AUDIO.play();}
+const ckDays=()=>{const last=(CK_TAKES||[]).reduce((a,r)=>Math.max(a,r.t),0);return last?(Date.now()-last)/864e5:Infinity;};
+const ckMetricTxt=m=>m?`${m.hit}/${m.of} beats · ${m.mean>=0?'+':''}${m.mean} ms (${m.mean>=0?'behind':'ahead'}) · spread ±${m.sd} ms · drift ${m.drift>=0?'+':''}${m.drift} ms${m.extra?` · ${m.extra} extra`:''}`:'';
+function vCheckups(){const takes=CK_TAKES,P0=view.ckPending,live=CK;
+  return `<div class="head"><div><div class="eyebrow">Musical checkups</div><h1>Record where you are</h1><p class="lead">Six short tasks, every four weeks. Play them the same way each time and listen to your first and latest takes side by side: that is the real measure of progress, not points in the games. Speakers are fine (the backing ends up in the take); in a quiet room.</p></div><div class="sp"><button class="btn small ghost" data-act="home">Back</button></div></div>
+  ${micErr?`<div class="warn">${micErr}</div>`:''}${view.ckMsg?`<div class="panel">${view.ckMsg}</div>`:''}
+  ${P0?(()=>{const T=CK_TASKS.find(t=>t.id===P0.task);return `<div class="panel ckpending"><h3>${T.n}: listen back, then save</h3>${P0.metrics?`<p><b>Measured:</b> ${ckMetricTxt(P0.metrics)}</p>`:''}
+    <p class="note">Recorded ${P0.secs.toFixed(0)} s. Listen with the play button, then tick what you can honestly hear:</p>
+    ${T.look.map((l,i)=>`<label class="check"><input type="checkbox" id="cklook${i}"> ${l}</label>`).join('')}
+    <div class="ckrate">Overall: ${[1,2,3,4,5].map(v=>`<label><input type="radio" name="ckrate" value="${v}"> ${v}</label>`).join(' ')}</div>
+    <input id="cknote" class="fixin" placeholder="A note to your future self (what to work on)…" autocomplete="off">
+    <div class="tools"><button class="btn small" data-act="ckplaypending">▶ Listen</button><button class="btn small primary" data-act="cksave">Save take</button><button class="btn small ghost" data-act="ckdiscard">Discard</button></div></div>`;})():''}
+  <div class="section">${CK_TASKS.map(T=>{const mine=(takes||[]).filter(r=>r.task===T.id).sort((a,b)=>a.t-b.t),first=mine[0],last=mine.at(-1),on=live&&live.task===T.id;
+    return `<div class="panel cktask"><div class="cktop"><div><b>${T.n}</b>${T.bars?` <span class="muted">· ${T.bpm} bpm · ${T.bars} bars</span>`:''}<p class="note" style="margin:4px 0 0">${T.d}</p></div>
+      ${on?`<div><span class="muted" id="cktime">Starting…</span> <button class="btn rec" data-act="ckstop">■ Stop</button></div>`:`<button class="btn ${mine.length?'ghost':'primary'}" data-act="ckgo" data-id="${T.id}" ${live||P0?'disabled':''}>● Record</button>`}</div>
+      ${mine.length?`<div class="cktakes">${mine.length>1?`<div class="ckcompare"><button class="btn small" data-act="ckplay" data-id="${first.id}">▶ First (${new Date(first.t).toLocaleDateString()})</button><button class="btn small" data-act="ckplay" data-id="${last.id}">▶ Latest (${new Date(last.t).toLocaleDateString()})</button></div>`:''}
+        <table><tbody>${mine.slice().reverse().map(r=>`<tr><td>${new Date(r.t).toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})}</td><td class="muted">${r.metrics?ckMetricTxt(r.metrics):`${(r.look||[]).filter(Boolean).length}/${T.look.length} ticked${r.rating?` · ${r.rating}/5`:''}`}${r.note?` · “${esc(r.note)}”`:''}</td><td class="n"><button class="btn small ghost" data-act="ckplay" data-id="${r.id}">▶</button><button class="btn small ghost" data-act="ckdel" data-id="${r.id}" aria-label="delete">✕</button></td></tr>`).join('')}</tbody></table></div>`:''}</div>`;}).join('')}</div>`;}
+
 /* ============ STATS: a teacher's reading of the practice log ============ */
 const sMed=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
 const sec=ms=>ms==null?'—':(ms/1000).toFixed(ms<10000?1:0)+' s',slotName=k=>/^S[1-6]$/.test(k)?'string '+k[1]:k;
@@ -2571,7 +2806,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(hit&&view.name==='lobby'&&hit.closest('#refneck')){const w=OPEN[+hit.dataset.s]+(+hit.dataset.f)+12;if(NAT.indexOf(w%12)>=0){const st=(Math.floor(w/12)-5)*7+NAT.indexOf(w%12)-2;view.ref=view.ref===st?null:st;render();}return;}if(hit&&S&&!S.locked&&view.name==='play'&&S.q.ui==='multi'){const k=hit.dataset.s+'-'+hit.dataset.f;if(S.sel.has(k))S.sel.delete(k);else S.sel.add(k);render();return;}
   if(hit&&S&&!S.locked&&view.name==='play'){answer({s:+hit.dataset.s,f:+hit.dataset.f});return;}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
-  if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);view={name:'home'};render();window.scrollTo(0,0);}
+  if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='sel'){view.sel=+b.dataset.l;render();}
@@ -2599,6 +2834,14 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='recgo')recStart(b.dataset.id);
   else if(a==='recstop')recStop();
   else if(a==='fixsend')fixSend(b.dataset.id);
+  else if(a==='checkups'){view={name:'checkups'};render();window.scrollTo(0,0);ckLoad();}
+  else if(a==='ckgo')ckStart(b.dataset.id);
+  else if(a==='ckstop')ckStop();
+  else if(a==='cksave')ckSave();
+  else if(a==='ckdiscard'){view.ckPending=null;render();}
+  else if(a==='ckplay')ckPlay(+b.dataset.id);
+  else if(a==='ckplaypending'){if(view.ckPending)ckPlayRec(view.ckPending);}
+  else if(a==='ckdel'){if(confirm('Delete this take?'))CK_DB.del(+b.dataset.id).then(ckLoad);}
   else if(a==='fixlist')openFix();
   else if(a==='fixdel')FIXDB.del(+b.dataset.id).then(openFix);
   else if(a==='savetake'&&LAST_TAKE&&S)wavSave(LAST_TAKE.x,LAST_TAKE.sr,`fretwise-${S.q.key}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.wav`);
@@ -2646,5 +2889,5 @@ document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classLis
 function checkUpdate(){if(location.protocol==='file:'||BUILD==='dev')return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);
   if(m&&m[1]!==BUILD&&!document.getElementById('upd')){const d=document.createElement('div');d.id='upd';d.className='updbar';d.innerHTML='A newer version of Fretwise is available. <button class="btn small primary" onclick="location.reload()">Reload</button>';document.body.prepend(d);}}).catch(()=>{});}
 setInterval(checkUpdate,4*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate();});
-render();initCloud();document.getElementById('sync').addEventListener('click',()=>{if(!DB)initCloud();});
+ckLoad();render();initCloud();document.getElementById('sync').addEventListener('click',()=>{if(!DB)initCloud();});
 </script>

@@ -11,6 +11,15 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 
 The user writes problems in the app: a box under every answer ("Tell Claude…") and the **Fix list** page on home. Reports are stored in the browser's IndexedDB (`fretwise-fix`/`reports`) with the question context (`fixContext`: game, level, prompt, answer, what was given, mic target/heard/per-slot/detector) and the take's audio for mic questions. When the user says "check the fix list", run `.venv/bin/python tests/read_fixlist.py`: it copies Chrome's storage to a temp profile (read-only) and writes `fixlist/reports.json` + WAVs (git-ignored). Work through the reports; the user deletes fixed ones on the Fix list page. After a fix, `.venv/bin/python tests/fix_takes.py` replays every reported take into the same question through the live path and prints old vs new grading. Note Hunt changes must also keep `tests/hunt/skip2.js` (cuts single spots out of the takes; run from tests/hunt/) catching skipped spots: leniency that passes every take but stops catching skips is not a fix.
 
+
+## Nov 2026 additions (audit items 1–4)
+
+- **`triadQ` name clash fixed**: the Triad Shapes generator is `triadShapeQ`; `triadQ(ns)` is the quality helper. The sweep now fails on any question text containing code, `undefined`, `NaN` or a `?` quality (proved by reintroducing the clash: 1,503 bad).
+- **Chord grading (beta)**: `CHO`, `bpRaw`, `chordStrums`, `chordCheck`, `strumGrade`. Questions tagged `grip:true` become “strum it” in play mode (`q.strumSeq`, `q.strumAlts`; option “Strum chords”, `opts.strum`). Notes below C3 are reported as not checked (laptop mic). Tuned on recordings/chords.wav: right 9/10, other chord 0/20, one-note-off 0/74. Regression: `.venv/bin/python tests/chord_live.py`.
+- **Bends & Vibrato** game (`bendQ`, `bendAnalyse`, `bendGrade`, `bendSVG`, `BEND`): graded from the YIN pitch curve (`opts.curve`). Verified on synthetic curves only: `node tests/bend_check.js` (verdicts and the numbers shown). Real-guitar tuning still needed: recorder takes `bends`, `vibrato`.
+- **Call & Response L8–9**: blues phrases in time (`crBlues`, `BLUES_LICKS`), double stops graded as chords (`crDoubles`; recorder take `doubles`).
+- **Musical checkups** (`CK_TASKS`, `ckStart/ckStop/ckSave`, IndexedDB `fretwise-checkups`): six recorded tasks every 28 days, first vs latest playback. Only the time task is measured (onsets vs beats: hits, mean, spread, drift; relative measures verified with synthetic players, the absolute offset depends on the real speaker→mic delay).
+
 ## Layout
 
 ```

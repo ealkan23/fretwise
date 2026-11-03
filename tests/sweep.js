@@ -33,7 +33,9 @@ for(const g of GAMES){S.gid=g.id;g.levels.forEach((lv,li)=>lv.g.forEach(gen=>{fo
  /* no program text, undefined, NaN or unknown quality may reach the player (the triadQ name clash, Nov 2026) */
  {const txt=[q.prompt,q.explain,q.label,q.answerText,JSON.stringify(q.answer),JSON.stringify(q.choices||[])].join(' | ');
   if(/=>|function *[(]|undefined|NaN|[[]object /.test(txt))throw new Error('leaked code/undefined in text: '+txt.slice(0,160));
-  if(/[A-G][♯♭#b]?[?]/.test(String(q.answerText||q.answer)+' '+JSON.stringify(q.choices||[])+' '+String(q.label)))throw new Error('unknown chord quality: '+String(q.label).slice(0,60));}
+  if(/[A-G][♯♭#b]?[?]/.test(String(q.answerText||q.answer)+' '+JSON.stringify(q.choices||[])+' '+String(q.label)))throw new Error('unknown chord quality: '+String(q.label).slice(0,60));
+  /* Roman numerals only in Berklee form: upper case, quality in the symbol (IIm7, V7, IMaj7) */
+  {const lc=txt.replace(/<[^>]*>/g,' ').match(/(?<![A-Za-z♭♯])(ii|iii|iv|vi|vii)(°|ø|7|m)?(?![A-Za-z])|(?<![A-Za-z♭♯])i(?= –|°|7)/);if(lc)throw new Error('lower-case numeral "'+lc[0]+'" in: '+txt.slice(0,120));}}
  if(q.after)q.after();
  }catch(e){bad++;if(bad<400)console.log('BAD',g.id,li+1,q.key,e.message);}
 }}));}
@@ -46,6 +48,14 @@ let conv=0;for(const id of PLAY_GAMES){G(id).mode='play';S.gid=id;GBY[id].levels
     const w=q.strumSeq[0].slice();const k=w.findIndex(m=>m>=48);if(k>=0){w[k]+=1;if(micGrade(q,{strums:[{t:0,act:act(w)}]}).ok)throw new Error('strum one-off passes');}}
   else{const r=micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,atk:true,t:3000+(q.grid?q.grid[i]:i)*750})),beat:750,beatStart:3000});if(!r.ok)throw new Error('play self');}
   if(/press <b>Done/.test(q.prompt))throw new Error('prompt');}catch(e){bad++;if(bad<400)console.log('BADPLAY',id,q.key,e.message);}}}));}
+/* prerequisites: a level's own generators must not ask what the ladder has not taught yet */
+const LEAKS={spelling:{6:/m7♭5|dim7|m[(]maj7[)]|sus|add9|half-diminished|diminished 7/},chordscale:{1:/diminished|melodic minor|Lydian|Phrygian|Aeolian/,2:/characteristic|separates/}};
+for(const [id,lvs] of Object.entries(LEAKS))for(const [L,re] of Object.entries(lvs))GBY[id].levels[L-1].g.forEach(gen=>{for(let i=0;i<150;i++){const q=gen(),t=[q.prompt,JSON.stringify(q.answer),q.label].join(' ');if(re.test(t)){bad++;console.log('LEAK',id,L,t.slice(0,120));break;}}});
+/* the path: every level of every game in exactly one stage step */
+{const seen={};PATH.forEach((st,si)=>st.steps.forEach(([id,a,b])=>{if(!GBY[id]){bad++;console.log('PATH unknown game',id);return;}if(b>GBY[id].levels.length||a<1||a>b){bad++;console.log('PATH bad range',id,a,b);}for(let L=a;L<=b;L++){const k=id+' '+L;if(seen[k]!==undefined){bad++;console.log('PATH twice',k);}seen[k]=si;}}));
+ GAMES.forEach(x=>x.levels.forEach((_,i)=>{if(seen[x.id+' '+(i+1)]===undefined){bad++;console.log('PATH missing',x.id,i+1);}}));
+ /* within a game the stages never go backwards */
+ GAMES.forEach(x=>{let p=0;x.levels.forEach((_,i)=>{const s2=seen[x.id+' '+(i+1)];if(s2<p){bad++;console.log('PATH order',x.id,i+1);}p=Math.max(p,s2);});});}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

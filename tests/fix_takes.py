@@ -15,7 +15,7 @@ with sync_playwright() as pw:
         pg.goto((root / 'dist' / 'fretwise.html').as_uri()); pg.evaluate('localStorage.clear()'); pg.reload()
         pg.evaluate('bpLoad()'); pg.wait_for_function('BP.state!=="loading"', timeout=60000)
         pg.evaluate(FEED, base64.b64encode((root / 'fixlist' / r['audioFile']).read_bytes()).decode())
-        pg.click(f"[data-act=lobby][data-g={c['game']}]")
+        pg.click(f".catsec [data-act=lobby][data-g={c['game']}]")
         if c.get('mode') == 'play': pg.click('[data-act=mode][data-k=play]')
         # replay at the level the report came from if it can produce the take's target, else any untimed level (the takes were played without a click)
         pg.evaluate("""([t,lv])=>{const o=pickQ;pickQ=(id,L)=>{for(let i=0;i<4000;i++){const L2=i<1500&&lv?lv:1+i%GBY[id].levels.length,q=o(id,L2);if(q.ui==='mic'&&q.target.join()===t&&!q.metro)return q;}return o(id,L);};}""", [','.join(map(str, c['mic']['target'])), c.get('qlv')])

@@ -20,6 +20,14 @@ The user writes problems in the app: a box under every answer ("Tell Claude…")
 - **Call & Response L8–9**: blues phrases in time (`crBlues`, `BLUES_LICKS`), double stops graded as chords (`crDoubles`; recorder take `doubles`).
 - **Musical checkups** (`CK_TASKS`, `ckStart/ckStop/ckSave`, IndexedDB `fretwise-checkups`): six recorded tasks every 28 days, first vs latest playback. Only the time task is measured (onsets vs beats: hits, mean, spread, drift; relative measures verified with synthetic players, the absolute offset depends on the real speaker→mic delay).
 
+
+## Nov 2026 consolidation (audit item 7)
+
+33 → 25 games. `MERGES` + `migrateMerge(tid)` (run once from `G()`, flag `g.mig.m25`) copy each merged game's items, level histories, rounds, speed log, keys and mix-ups into the new game with levels renumbered; what was unlocked stays unlocked (`g.unl` holds levels opened above `g.lvl`; the lobby, stats and unlock logic honour it). The old games' raw data stays in STORE (`mergedInto`). Verified on the user's real data: every answer accounted for, untouched games byte-identical, second load a no-op.
+- Reading (`sight`) ← Treble Clef · Harmony & Analysis (`analysis`) ← Chords in Keys · Triad Shapes ← Inversions & Voicings (triad theory) · Drop-2 Grips ← Inversions & Voicings (seventh/drop-2 theory) + Name That Chord · Time & Groove (`rhythmtap`) ← Two and Four, Subdivision, Notation & Meter · Guitar Essentials removed (capo/barre dropped).
+- New levels (all appended): Fretboard “Notes in time”, Reading “Read a line” ×2 (`staffLineSVG`, `readLineQ`), Note Hunt “In time” (`inTime`), Triads “Voice leading” (`tvlQ`), Hear the Degree “Hear it, play it” (`degPlayQ`), Hear the Progression “Write it down” and Analysis “Write the numerals” (token dictation: `ui:'spell'` with `q.tokens`, Berklee numerals), Intervals on the Neck “Double stops” (`dsQ`), Shells “through ii–V–I” (`shellSeqQ`, strummed sequence), Arpeggio Runner “Through ii–V–I” (`arpIIVIQ`), Walking Line “Walk it yourself” (`walkPlayQ`/`walkGrade`: rule-checked, not one answer). Intervals & Keys builds/spells by recall (`recall1`, `recallScale`). Chord Spelling shows the triad on the neck after the answer (`triNeckSVG`). Time & Groove option `opts.tapMic`: strum muted strings instead of tapping.
+- Not built (need other work first): Repertoire → tune-learning workflow and voice leading through a whole tune (need the play-along mode); comping graded on chord + time; chord-scale “play it over the chord”; Hear the Chord with guitar audio (blocked by the piano-only sound rule); drop-2 melody-on-top (chord melody track).
+
 ## Layout
 
 ```

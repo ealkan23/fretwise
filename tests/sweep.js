@@ -67,6 +67,11 @@ for(const [id,lvs] of Object.entries(LEAKS))for(const [L,re] of Object.entries(l
   n.pre.forEach(p=>{if(SKBY[p]&&!SKBY[p].goal&&skCol(SKBY[p])>c)sb(n.id+' builds on a later skill '+p);});});
  GAMES.forEach(x=>{let prev=null;x.levels.forEach((_,i)=>{const k=x.id+' '+(i+1),id=own[k];if(!id){sb('missing '+k);return;}if(prev&&prev!==id&&!anc(id).has(prev))sb(k+': skill '+id+' does not build on '+prev);prev=id;});});
  SKILLS.forEach(n=>anc(n.id));GAMES.forEach(x=>{const s=STD[x.id];if(!s||!(s.acc>=PASS&&s.acc<=1))sb('no master standard for '+x.id);else if(s.flu&&!FLU_GAMES.includes(x.id))sb('time standard on an untimed game '+x.id);});console.log('skills',SKILLS.length);}
+/* interval shapes: every shape the text gives lands on its interval from every start string; jazz voicings hold only chord tones */
+for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const m=part.match(/^(same string|next string up|([0-9]) strings up), (same fret|([0-9]+) frets? (up|back))(?: [(](same fret|([0-9]+) frets? (up|back)) when it crosses G–B[)])?$/);
+  if(!m){bad++;console.log('SHAPE unparsed',k,part);continue;}const n=m[1]==='same string'?0:m[1]==='next string up'?1:+m[2],off=m[3]==='same fret'?0:(+m[4])*(m[5]==='up'?1:-1),offB=m[6]===undefined?off:m[6]==='same fret'?0:(+m[7])*(m[8]==='up'?1:-1);
+  for(let s=6;s-n>=1;s--){const tt=s-n,o=(s>=3&&tt<=2&&n>0)?offB:off;if(OPEN[tt]-OPEN[s]+o!==semi){bad++;console.log('SHAPE wrong',k,part,'from string',s);}}}}
+for(const [n,suf,a,r,q] of JAZZ_VOICINGS)if(r&&d2Notes(a,P(r),q).some(x=>!x.d||x.d==='?')){bad++;console.log('VOICING not chord tones',n,r,q);}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

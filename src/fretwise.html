@@ -3178,7 +3178,7 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),ss=g.sessions.slice(-30);
 document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(hit&&view.name==='lobby'&&hit.closest('#refneck')){const w=OPEN[+hit.dataset.s]+(+hit.dataset.f)+12;if(NAT.indexOf(w%12)>=0){const st=(Math.floor(w/12)-5)*7+NAT.indexOf(w%12)-2;view.ref=view.ref===st?null:st;render();}return;}if(hit&&S&&!S.locked&&view.name==='play'&&S.q.ui==='multi'){const k=hit.dataset.s+'-'+hit.dataset.f;if(S.sel.has(k))S.sel.delete(k);else S.sel.add(k);render();return;}
   if(hit&&S&&!S.locked&&view.name==='play'){answer({s:+hit.dataset.s,f:+hit.dataset.f});return;}
-  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(b.tagName==='SELECT')return;/* menus act on 'change'; re-rendering on click closed them as they opened */const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
   if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}

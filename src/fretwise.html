@@ -224,6 +224,20 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .cf-sig{fill:var(--muted);font:500 10px var(--f-mono);text-anchor:middle}
 .cf-c{fill:var(--muted);font:600 11px var(--f-body);text-anchor:middle}
 .lobbynote{font-size:14px;color:var(--muted);max-width:70ch;margin:0 0 14px}
+.sk-wrap{width:min(calc(100vw - 40px),1240px);margin-left:calc(50% - min(calc(50vw - 20px),620px));overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin-top:12px}
+.sk-canvas{position:relative}.sk-inner{position:absolute;left:0;right:0}.sk-svg{position:absolute;left:0;top:0;pointer-events:none}
+.sk-colhead{position:absolute;top:6px;overflow:hidden;text-overflow:ellipsis;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sk-band{position:absolute;left:0;right:0;border-top:1px solid var(--line)}.sk-band span{position:absolute;left:14px;top:7px;font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.sk-edge{fill:none;stroke:var(--line);stroke-width:1.6}.sk-edge.on{stroke:var(--good);opacity:.55}.sk-edge.hl{stroke:var(--fg);stroke-width:2.4;opacity:1}
+.sk-node{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
+.sk-node b{font-size:12.5px;line-height:1.15}.sk-node small{font-size:10.5px;color:var(--muted)}.sk-node .bar{display:block;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}.sk-node .bar i{display:block;height:100%;background:var(--good)}
+.sk-done{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}.sk-prog{border-color:var(--fg)}
+.sk-avail{border-color:var(--fg);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 30%,transparent)}.sk-lock{opacity:.5;border-style:dashed}
+.sk-goal,.sk-ready{border-style:dashed;border-color:#b07d1a;background:color-mix(in srgb,#b07d1a 8%,var(--surface))}.sk-ready{border-style:solid;box-shadow:0 0 0 3px color-mix(in srgb,#b07d1a 30%,transparent)}
+.sk-node.sel{outline:3px solid var(--fg);outline-offset:2px}.sk-node:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.sk-legend{display:flex;flex-wrap:wrap;gap:8px}.sk-legend .sk-node{position:static;display:inline-flex;font-size:12px;padding:4px 10px;cursor:default}
+.sk-chip{font:inherit;font-size:12.5px;padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}.sk-chip.sk-lock{opacity:.6}
+.sk-lvok{color:var(--good)}
 .pathsec{margin:8px 0 26px}.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
 .stg{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);min-width:0}
 .stg b{font-family:var(--f-display);font-size:15px}.stg small{font-size:11px;color:var(--muted);letter-spacing:.04em}.stg.cur{border-color:var(--fg)}.stg.sel{box-shadow:0 0 0 2px var(--fg) inset}.stg.done b{color:var(--good)}
@@ -2538,17 +2552,84 @@ const PATH=[
   steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
   steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6]]}];
+/* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
+   Four tracks; each node bundles level ranges from one or more games, all in one PATH stage (its column). pre = skills it builds on.
+   Locks are soft: a locked skill still opens. Goals are the payoff skills that still need a feature (shown as “coming”).
+   tests/sweep.js checks: every level in exactly one node, node column = stage of its levels, within a game earlier levels sit in ancestor nodes, no cycles. */
+function stageOf(gid,L){return PATH.findIndex(st=>st.steps.some(([g,a,b])=>g===gid&&L>=a&&L<=b));}
+const SK_TRACKS=[['time','Time & groove'],['solo','Soloing & the neck'],['chords','Chords & comping'],['harm','Harmony & ears']];
+const SKILLS=[
+ {id:'t1',tr:'time',n:'Pulse',d:'Quarter notes on the click, eighths, the click on 2 and 4.',req:[['rhythmtap',1,3]],pre:[]},
+ {id:'t2',tr:'time',n:'Read rhythm & swing',d:'Read a bar, triplets and swing eighths, one click per bar.',req:[['rhythmtap',4,6]],pre:['t1']},
+ {id:'t3',tr:'time',n:'Inner clock',d:'Keep time through drop-outs; syncopation, off-beats, swing by ear.',req:[['rhythmtap',7,10]],pre:['t2']},
+ {id:'t4',tr:'time',n:'First comping rhythms',d:'Freddie Green quarters and the Charleston against 2 and 4.',req:[['comping',1,3]],pre:['t2']},
+ {id:'t5',tr:'time',n:'Fast & subdivided',d:'Sixteenths, mixed subdivisions, 150+ bpm, the Charleston on 2 & 4.',req:[['rhythmtap',11,13]],pre:['t3']},
+ {id:'t6',tr:'time',n:'Comping patterns',d:'Anticipations and mixed patterns, held for four bars.',req:[['comping',4,6]],pre:['t4','t3']},
+ {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['t6','t5','c4']},
+ {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,8]],pre:[]},
+ {id:'s2',tr:'solo',n:'Every place a note lives',d:'All the spots of one note across the neck, played.',req:[['hunt',1,5]],pre:['s1']},
+ {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces, ledger lines, accidentals and key signatures.',req:[['sight',1,3]],pre:[]},
+ {id:'s4',tr:'solo',n:'First bends & vibrato',d:'Half and whole-step bends in tune, release, even vibrato.',req:[['bends',1,4]],pre:[]},
+ {id:'s5',tr:'solo',n:'Notes in time',d:'Fret by fret, two notes at once, every spot with the click.',req:[['hunt',6,8]],pre:['s2']},
+ {id:'s6',tr:'solo',n:'Read in first position',d:'Staff to fret in position, then lines with rhythm, in time.',req:[['sight',4,9]],pre:['s3','s1']},
+ {id:'s7',tr:'solo',n:'Play it back',d:'Hear a phrase and play it: steps, skips, the major scale, pentatonic and blues in time.',req:[['cr',1,6]],pre:['s1','h2']},
+ {id:'s8',tr:'solo',n:'Interval shapes',d:'3rds, 5ths, 4ths, 6ths, 7ths and 2nds as shapes under the hand.',req:[['neckiv',1,3]],pre:['s1','h3']},
+ {id:'s9',tr:'solo',n:'Expressive bends',d:'Bend with vibrato, the blues curl, pre-bends.',req:[['bends',5,7]],pre:['s4']},
+ {id:'s10',tr:'solo',n:'Arpeggios',d:'Seventh-chord arpeggios in position, in time, through II–V–I and as guide-tone lines.',req:[['arp',1,8]],pre:['s8','c3']},
+ {id:'s11',tr:'solo',n:'Read in positions II–V',d:'The low positions and fifth position, lines in time.',req:[['sight',10,13]],pre:['s6']},
+ {id:'s12',tr:'solo',n:'Phrasing over changes',d:'Chromatic approach notes, phrases over a chord in time, double stops.',req:[['cr',7,9]],pre:['s7','s10']},
+ {id:'s13',tr:'solo',n:'Modes in position',d:'A mode of the major scale from its root, in one position.',req:[['arp',9,9]],pre:['s10','h14']},
+ {id:'s14',tr:'solo',n:'Tensions & double stops',d:'9, 11, 13 and altered tensions; intervals below; 3rds and 6ths as grips.',req:[['neckiv',4,7]],pre:['s8']},
+ {id:'s15',tr:'solo',n:'Read high & everywhere',d:'Ninth position, dyads, and every place one written pitch lives.',req:[['sight',14,16]],pre:['s11']},
+ {id:'s16',tr:'solo',n:'Bebop lines',d:'The bebop dominant run: chord tones on the beat.',req:[['arp',10,10]],pre:['s13','h19']},
+ {id:'sg',tr:'solo',goal:true,n:'Play a blues chorus',d:'Twelve bars of your own blues over a play-along, notes, bends and time graded. Needs the play-along mode.',pre:['s12','s9','h17']},
+ {id:'c1',tr:'chords',n:'Triads by heart',d:'Every major, minor, diminished and augmented triad, spelled and named fast.',req:[['spelling',1,5]],pre:['h1']},
+ {id:'c2',tr:'chords',n:'Triads on the neck',d:'Inversions on paper, then every triad on all four string sets, voice-led.',req:[['triads',1,9]],pre:['c1','s1']},
+ {id:'c3',tr:'chords',n:'Sevenths by heart',d:'maj7, 7, m7, m7♭5, °7, sixths, sus: spelled and named.',req:[['spelling',6,8]],pre:['c1']},
+ {id:'c4',tr:'chords',n:'Shells & guide tones',d:'Root–7–3 shells, the 3rd and 7th in position, comped through II–V–I.',req:[['shells',1,4],['guidetones',1,4]],pre:['c3','c2']},
+ {id:'c5',tr:'chords',n:'Voice leading',d:'3rds and 7ths that move by step from chord to chord.',req:[['voicelead',1,5]],pre:['c4','h11']},
+ {id:'c6',tr:'chords',n:'Walking bass',d:'Approach notes and a walking bar over II→V and V→I.',req:[['walking',1,5]],pre:['c4','h11']},
+ {id:'c7',tr:'chords',n:'Triads anywhere',d:'Any triad, any inversion, any set; diminished and augmented.',req:[['triads',10,11]],pre:['c2']},
+ {id:'c8',tr:'chords',n:'Drop-2 grips',d:'Seventh-chord inversions as drop-2 on three string sets, every key, II–V–I combos.',req:[['drop2',1,12]],pre:['c3','c2']},
+ {id:'c9',tr:'chords',n:'Spread triads & upper structures',d:'Open triads and triads over a dominant shell.',req:[['triads',12,13]],pre:['c7','c4']},
+ {id:'c10',tr:'chords',n:'Full arpeggios on the neck',d:'Every chord tone in position, every seventh quality.',req:[['guidetones',5,6]],pre:['c4','s10']},
+ {id:'c11',tr:'chords',n:'Extensions & symbols',d:'9, 11, 13 and altered chords; every chord-symbol style.',req:[['spelling',9,10]],pre:['c3']},
+ {id:'c12',tr:'chords',n:'Drop-3',d:'Drop-3 on both string sets; drop-2 or drop-3?',req:[['shells',5,7]],pre:['c8','c4']},
+ {id:'c13',tr:'chords',n:'Drop-2 colours',d:'m7♭5, °7, sixths, extensions and the minor II–V–I in grips.',req:[['drop2',13,14]],pre:['c8','c11']},
+ {id:'cg',tr:'chords',goal:true,n:'Chord melody',d:'A melody on top of drop-2 and triad voicings, played through a tune. Needs the chord-melody track.',pre:['c13','c9','c5']},
+ {id:'h1',tr:'harm',n:'Major scales & keys',d:'Every major scale, key signatures, major intervals, minor keys.',req:[['intervals',1,4]],pre:[]},
+ {id:'h2',tr:'harm',n:'Hear the key',d:'Scale degrees after a cadence, and find them on the guitar.',req:[['eardeg',1,4]],pre:[]},
+ {id:'h3',tr:'harm',n:'First intervals by ear',d:'m2 M2 P5 octave, then 3rds, 4ths, 6ths and 7ths.',req:[['eariv',1,3]],pre:[]},
+ {id:'h4',tr:'harm',n:'Sing the degrees',d:'Sing 1, 3, 5 and then any degree after a cadence.',req:[['sing',1,2]],pre:['h2']},
+ {id:'h5',tr:'harm',n:'Minor, every interval',d:'All intervals, harmonic and melodic minor, inversions and enharmonics.',req:[['intervals',5,7]],pre:['h1']},
+ {id:'h6',tr:'harm',n:'Minor key & dictation',d:'Degrees in minor, two notes, three- and four-note dictation.',req:[['eardeg',5,7]],pre:['h2']},
+ {id:'h7',tr:'harm',n:'All intervals by ear',d:'Every interval rising, then falling.',req:[['eariv',4,5]],pre:['h3']},
+ {id:'h8',tr:'harm',n:'Hear triads & progressions',d:'Major or minor, the four triads, the classic progressions and the 12-bar blues.',req:[['earchord',1,2],['earprog',1,3]],pre:['h2']},
+ {id:'h9',tr:'harm',n:'Harmonic intervals',d:'Both notes together; rising or falling, you decide.',req:[['eariv',6,7]],pre:['h7']},
+ {id:'h10',tr:'harm',n:'Sing intervals & chord tones',d:'Intervals above a note, the 3rd, 5th or 7th of a chord, degrees in minor.',req:[['sing',3,5]],pre:['h4','h7']},
+ {id:'h11',tr:'harm',n:'Numerals & function',d:'Diatonic triads and sevenths, IIm7–V7–IMaj7, function, minor keys, finding the key.',req:[['analysis',1,7]],pre:['h5','c3']},
+ {id:'h12',tr:'harm',n:'Hear sevenths & cadences',d:'The seventh qualities by ear; minor progressions and II–V–I substitutes.',req:[['earchord',3,4],['earprog',4,5]],pre:['h8','c3']},
+ {id:'h13',tr:'harm',n:'Substitutions',d:'Secondary dominants, tritone subs, backdoor, borrowed and passing chords; full analysis.',req:[['analysis',8,12]],pre:['h11']},
+ {id:'h14',tr:'harm',n:'Chord–scale',d:'The scale for each chord, modes in a key, melodic-minor modes.',req:[['chordscale',1,4]],pre:['h11','h5']},
+ {id:'h15',tr:'harm',n:'Hear everything',d:'Sixths, sus, extensions, voicings by ear; turnarounds, forms and dictation of changes.',req:[['earchord',5,8],['earprog',6,10]],pre:['h12']},
+ {id:'h16',tr:'harm',n:'Long dictation',d:'Chromatic degrees, bass lines and five-note lines.',req:[['eardeg',8,9]],pre:['h6']},
+ {id:'h17',tr:'harm',n:'First tunes',d:'Blues in F and B♭, minor and Bird blues, rhythm changes.',req:[['repertoire',1,3]],pre:['h11']},
+ {id:'h18',tr:'harm',n:'Sing lines',d:'Chromatic degrees, short lines, bass and guide-tone lines.',req:[['sing',6,8]],pre:['h10']},
+ {id:'h19',tr:'harm',n:'Advanced scales',d:'Symmetric and bebop scales, harmonic minor over V, avoid notes.',req:[['chordscale',5,7]],pre:['h14']},
+ {id:'h20',tr:'harm',n:'Standards',d:'The first eight bars of six standards; which form, what comes next, numerals.',req:[['repertoire',4,6]],pre:['h17','h13']},
+ {id:'hg',tr:'harm',goal:true,n:'Learn a standard by ear',d:'Hear a tune’s changes and melody and write them down. Needs the tune-learning workflow.',pre:['h20','h15']}];
+const SKBY=Object.fromEntries(SKILLS.map(n=>[n.id,n]));
+const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
 /* ============ VIEWS ============ */
 const app=document.getElementById('app');
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
+function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='tree')app.innerHTML=vTree();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
-function stageOf(gid,L){return PATH.findIndex(st=>st.steps.some(([g,a,b])=>g===gid&&L>=a&&L<=b));}
-/* a level counts as passed once the ladder has moved past it (or, on the top level, once it meets the unlock rule) */
-function lvPassed(gid,L){const g=G(gid),x=GBY[gid];if(L<g.lvl||(g.unl||[]).includes(L+1))return true;if(L===x.levels.length&&g.lvl===L){const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}return false;}
+/* a level counts as passed once the ladder has moved past it, or (your own level, the top level, a level opened out of order) once its own record meets the unlock rule */
+function lvPassed(gid,L){const g=G(gid);if(L<g.lvl)return true;const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}
 const lvOpen=(gid,L)=>{const g=G(gid);return L<=g.lvl||GBY[gid].levels[L-1].open||(g.unl||[]).includes(L);};
 function stepInfo([gid,a,b]){let done=0,next=null;for(let L=a;L<=b;L++){if(lvPassed(gid,L))done++;else if(next===null)next=L;}
   const g=G(gid);let go=next;if(go!==null&&!lvOpen(gid,go)){go=1;while(go<g.lvl&&lvPassed(gid,go))go++;}   // still locked: the earliest open level of the game not yet passed
@@ -2559,11 +2640,39 @@ function pathNext(s){const c=s.steps.filter(x=>x.done<x.n).sort((p,q)=>(q.starte
   for(const x of c){const cat=GBY[x.gid].cat;if(!cats.has(cat)){cats.add(cat);out.push(x);}if(out.length===3)break;}for(const x of c){if(out.length>=3)break;if(!out.includes(x))out.push(x);}return out;}
 function vPath(){const P=pathState(),sel=view.stage!=null?view.stage:P.cur,s=P.st[sel],nx=pathNext(s);
   const lvName=(gid,L)=>GBY[gid].levels[L-1].n;
-  return `<section class="pathsec"><div class="cathead"><div><div class="eyebrow">Your path · stage ${P.cur+1} of ${PATH.length}</div><h2>${sel===P.cur?'Now':'Stage '+(sel+1)}: ${s.n}</h2><p>${s.d}</p></div></div>
+  return `<section class="pathsec"><div class="cathead"><div><div class="eyebrow">Your path · stage ${P.cur+1} of ${PATH.length}</div><h2>${sel===P.cur?'Now':'Stage '+(sel+1)}: ${s.n}</h2><p>${s.d}</p></div><div class="kv"><button class="btn small primary" data-act="tree">Skill tree</button></div></div>
   <div class="stages">${P.st.map((x,i)=>`<button class="stg${i===sel?' sel':''}${i===P.cur?' cur':''}${x.done>=x.tot?' done':''}" data-act="stage" data-s="${i}" aria-pressed="${i===sel}"><small>Stage ${i+1}${x.done>=x.tot?' ✓':i===P.cur?' · now':''}</small><b>${x.n}</b><span class="bar"><i style="width:${Math.round(x.done/x.tot*100)}%"></i></span><small>${x.done}/${x.tot} levels</small></button>`).join('')}</div>
   ${nx.length?`<div class="eyebrow" style="margin-top:14px">${sel===P.cur?'Work on next':'Next in this stage'}</div><div class="grid nextgrid">${nx.map(x=>`<article class="card"><div class="eyebrow">${GBY[x.gid].area}</div><h3>${GBY[x.gid].name}</h3><p><b>Level ${x.go}</b> · ${lvName(x.gid,x.go)}${x.go<x.a?` <span class="muted">(opens the stage’s levels ${x.a}–${x.b})</span>`:''}</p><span class="bar"><i style="width:${Math.round(x.frac*100)}%"></i></span><div class="row"><button class="btn primary" data-act="lobby" data-g="${x.gid}" data-l="${x.go}">Play level ${x.go}</button></div></article>`).join('')}</div>`:'<p class="note">Every level of this stage is passed. Keep its games in review; move on to the next stage.</p>'}
   <details class="pathall"><summary>All of stage ${sel+1}: ${s.steps.length} games, ${s.tot} levels</summary><div class="panel tablewrap"><table><thead><tr><th>Game</th><th>Levels</th><th class="n">Passed</th><th></th></tr></thead><tbody>${s.steps.map(x=>`<tr><td>${GBY[x.gid].name}</td><td>${x.a===x.b?x.a:x.a+'–'+x.b}: ${lvName(x.gid,x.a)}${x.b>x.a?' → '+lvName(x.gid,x.b):''}</td><td class="n">${x.done}/${x.n}</td><td><button class="btn small" data-act="lobby" data-g="${x.gid}" data-l="${x.done<x.n?x.go:x.b}">${x.done<x.n?'Play':'Review'}</button></td></tr>`).join('')}</tbody></table>
   <p class="note">Nothing is locked by the path: it is the order a teacher would take you through the material, so each game prepares the next. A game’s own ladder still unlocks level by level.</p></div></details></section>`;}
+function skState(n){if(n.goal){const r=n.pre.every(p=>skState(SKBY[p]).st==='done');return {st:r?'ready':'goal',done:0,tot:0};}
+  const inf=n.req.map(stepInfo),done=inf.reduce((a,x)=>a+x.done,0),tot=inf.reduce((a,x)=>a+x.n,0),started=inf.some(x=>x.started||x.done);
+  return {st:done>=tot?'done':started?'prog':n.pre.every(p=>skState(SKBY[p]).st==='done')?'avail':'lock',done,tot,inf};}
+function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
+  const CW=200,NW=176,NH=54,RH=64,HD=30,cols=PATH.length+1,pos={};let y=0,bands='';
+  for(const [tr,tn] of SK_TRACKS){const ns=SKILLS.filter(n=>n.tr===tr),per={};ns.forEach(n=>{const c=skCol(n);per[c]=(per[c]||0)+1;});const rows=Math.max(...Object.values(per)),cnt={};
+    bands+=`<div class="sk-band" style="top:${y}px;height:${HD+rows*RH+6}px"><span>${tn}</span></div>`;
+    ns.forEach(n=>{const c=skCol(n),r=cnt[c]=(cnt[c]||0)+1;pos[n.id]={x:c*CW+14,y:y+HD+(r-1)*RH};});y+=HD+rows*RH+14;}
+  const W=cols*CW+10,H=y,sel=view.skill&&SKBY[view.skill]?view.skill:null;
+  let edges='';SKILLS.forEach(n=>n.pre.forEach(p=>{const a=pos[p],b=pos[n.id];if(!a||!b)return;const on=ST[p].st==='done',hl=sel&&(sel===p||sel===n.id);if(SKBY[p].tr!==n.tr&&!hl)return;   /* links between tracks show for the selected skill only */let d;
+    if(Math.abs(a.x-b.x)<5){const x=a.x,y1=a.y+NH/2,y2=b.y+NH/2;d=`M${x} ${y1} C${x-26} ${y1} ${x-26} ${y2} ${x} ${y2}`;}
+    else{const x1=a.x+NW,y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=(x1+x2)/2;d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;}
+    edges+=`<path class="sk-edge${on?' on':''}${hl?' hl':''}" d="${d}"/>`;}));
+  const heads=Array.from({length:cols},(_,c)=>`<div class="sk-colhead" style="left:${c*CW+14}px;width:${NW}px" title="${c<PATH.length?PATH[c].n:'Goals'}">${c<PATH.length?'Stage '+(c+1)+' · '+PATH[c].n:'Goals'}</div>`).join('');
+  const nodes=SKILLS.map(n=>{const p=pos[n.id],s=ST[n.id];return `<button class="sk-node sk-${s.st}${sel===n.id?' sel':''}" style="left:${p.x}px;top:${p.y}px;width:${NW}px;height:${NH}px" data-act="skill" data-k="${n.id}" aria-pressed="${sel===n.id}">
+    <b>${n.goal?'★ ':''}${n.n}</b><small>${n.goal?(s.st==='ready'?'ready · coming':'goal · coming'):s.st==='done'?'mastered ✓':`${s.done}/${s.tot} levels${s.st==='lock'?' · locked':''}`}</small>${n.goal?'':`<span class="bar"><i style="width:${Math.round(s.done/s.tot*100)}%"></i></span>`}</button>`;}).join('');
+  let det='<p class="note">Click a skill to see what it needs, what it opens, and to play its levels. Locked skills still open: locks only show the order.</p>';
+  if(sel){const n=SKBY[sel],s=ST[sel],kids=SKILLS.filter(k=>k.pre.includes(sel)),chip=k=>`<button class="sk-chip sk-${ST[k.id].st}" data-act="skill" data-k="${k.id}">${k.goal?'★ ':''}${k.n}</button>`;
+    det=`<div class="panel"><div class="eyebrow">${SK_TRACKS.find(t=>t[0]===n.tr)[1]} · ${n.goal?'goal':'stage '+(skCol(n)+1)}</div><h2 style="margin:4px 0 6px">${n.goal?'★ ':''}${n.n}</h2><p style="margin:0 0 10px">${n.d}</p>
+     <div class="kv" style="flex-wrap:wrap;gap:6px 10px"><span>Builds on</span>${n.pre.length?n.pre.map(p=>chip(SKBY[p])).join(''):'<span class="muted">nothing: start here</span>'}</div>
+     <div class="kv" style="flex-wrap:wrap;gap:6px 10px;margin-top:6px"><span>Opens</span>${kids.length?kids.map(chip).join(''):'<span class="muted">—</span>'}</div>
+     ${n.goal?`<p class="note" style="margin-top:12px">Not playable yet: this is where the tracks lead. ${s.st==='ready'?'You have every skill it needs.':''}</p>`:`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Game</th><th>Levels</th><th class="n">Passed</th><th></th></tr></thead><tbody>${s.inf.map(x=>`<tr><td>${GBY[x.gid].name}</td><td>${Array.from({length:x.n},(_,i)=>x.a+i).map(L=>`<span class="${lvPassed(x.gid,L)?'sk-lvok':'muted'}">${lvPassed(x.gid,L)?'✓':'○'} ${L} ${GBY[x.gid].levels[L-1].n}</span>`).join('<br>')}</td><td class="n">${x.done}/${x.n}</td><td><button class="btn small${x.done<x.n?' primary':''}" data-act="lobby" data-g="${x.gid}" data-l="${x.done<x.n?x.go:x.b}">${x.done<x.n?'Play level '+x.go:'Review'}</button></td></tr>`).join('')}</tbody></table></div>`}</div>`;}
+  const cnt=k=>SKILLS.filter(n=>!n.goal&&ST[n.id].st===k).length;
+  return `<div class="head"><div><div class="eyebrow">The path, as skills</div><h1>Skill tree</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button></div></div>
+  <p class="lobbynote">Every level of every game sits in one skill. A skill is mastered when all its levels are passed; the lines show what each skill builds on inside its track, and a selected skill also shows its links to the other tracks. Mastered <b>${cnt('done')}</b> · in progress <b>${cnt('prog')}</b> · ready to start <b>${cnt('avail')}</b> · locked <b>${cnt('lock')}</b>.</p>
+  <div class="sk-legend"><span class="sk-node sk-done">mastered</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready</span><span class="sk-node sk-lock">locked (still opens)</span><span class="sk-node sk-goal">goal · coming</span></div>
+  <div class="sk-wrap"><div class="sk-canvas" style="width:${W}px;height:${H+24}px">${heads}<div class="sk-inner" style="top:24px">${bands}<svg class="sk-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${edges}</svg>${nodes}</div></div></div>
+  <div class="section" id="skdet">${det}</div>`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 4–14 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>
@@ -3007,6 +3116,8 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){view.stage=+b.dataset.s;render();}
+  else if(a==='tree'){view={name:'tree'};render();window.scrollTo(0,0);}
+  else if(a==='skill'){const sx=document.querySelector('.sk-wrap')?.scrollLeft||0;view.skill=b.dataset.k;render();const w=document.querySelector('.sk-wrap');if(w)w.scrollLeft=sx;document.getElementById('skdet')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='sel'){view.sel=+b.dataset.l;render();}
   else if(a==='nmap'){view.nmap=b.dataset.k;render();}

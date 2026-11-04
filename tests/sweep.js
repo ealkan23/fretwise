@@ -56,6 +56,12 @@ for(const [id,lvs] of Object.entries(LEAKS))for(const [L,re] of Object.entries(l
  GAMES.forEach(x=>x.levels.forEach((_,i)=>{if(seen[x.id+' '+(i+1)]===undefined){bad++;console.log('PATH missing',x.id,i+1);}}));
  /* within a game the stages never go backwards */
  GAMES.forEach(x=>{let p=0;x.levels.forEach((_,i)=>{const s2=seen[x.id+' '+(i+1)];if(s2<p){bad++;console.log('PATH order',x.id,i+1);}p=Math.max(p,s2);});});}
+/* the skill tree: every level in exactly one skill, a skill's levels all in its column's stage, earlier levels of a game in ancestor skills, no cycles */
+{const own={},sb=m=>{bad++;console.log('SKILL',m);};const anc=id=>{const out=new Set(),st=[...SKBY[id].pre];while(st.length){const p=st.pop();if(p===id){sb('cycle at '+id);return out;}if(!SKBY[p]){sb('unknown pre '+p);continue;}if(!out.has(p)){out.add(p);st.push(...SKBY[p].pre);}}return out;};
+ SKILLS.forEach(n=>{if(!SK_TRACKS.some(t=>t[0]===n.tr))sb('track '+n.id);if(n.goal)return;const c=skCol(n);n.req.forEach(([g,a,b])=>{for(let L=a;L<=b;L++){const k=g+' '+L;if(own[k])sb('twice '+k);own[k]=n.id;if(stageOf(g,L)!==c)sb(n.id+' '+k+' stage '+stageOf(g,L)+' != column '+c);}});
+  n.pre.forEach(p=>{if(SKBY[p]&&!SKBY[p].goal&&skCol(SKBY[p])>c)sb(n.id+' builds on a later skill '+p);});});
+ GAMES.forEach(x=>{let prev=null;x.levels.forEach((_,i)=>{const k=x.id+' '+(i+1),id=own[k];if(!id){sb('missing '+k);return;}if(prev&&prev!==id&&!anc(id).has(prev))sb(k+': skill '+id+' does not build on '+prev);prev=id;});});
+ SKILLS.forEach(n=>anc(n.id));console.log('skills',SKILLS.length);}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

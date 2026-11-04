@@ -232,7 +232,10 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .cf-sig{fill:var(--muted);font:500 10px var(--f-mono);text-anchor:middle}
 .cf-c{fill:var(--muted);font:600 11px var(--f-body);text-anchor:middle}
 .lobbynote{font-size:14px;color:var(--muted);max-width:70ch;margin:0 0 14px}
-.jazziv{margin:0 0 16px}.jazziv summary{cursor:pointer}.jvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.jv{margin:0;display:flex;flex-direction:column;align-items:center}.jv figcaption{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12.5px;text-align:center}
+.jazziv{margin:0 0 16px}.jazziv summary{cursor:pointer}.ivwrap{overflow-x:auto;margin:6px 0 10px}.ivmap{width:100%;max-width:560px;display:block}
+.ivm-fret{stroke:var(--line);stroke-width:1.5}.ivm-nut{stroke:var(--fg);stroke-width:5}.ivm-str{stroke:var(--muted)}.ivm-inlay{fill:var(--sunk)}.ivm-lab{fill:var(--muted);font-size:11px}
+.ivm-dot circle{stroke:var(--surface);stroke-width:2}.ivm-dot text{font:700 12px var(--f-body);fill:#fff}.ivm-dot.root circle{fill:var(--brass)}.ivm-dot.ct circle{fill:var(--fg)}.ivm-dot.ct text{fill:var(--bg)}.ivm-dot.col circle{fill:var(--good)}
+.ivleg{display:flex;flex-wrap:wrap;gap:6px}.ivchip{font-size:12.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line)}.ivchip b{display:inline-block;min-width:16px;text-align:center;border-radius:999px;padding:0 4px;margin-right:2px;color:#fff}.ivchip.ct b{background:var(--fg);color:var(--bg)}.ivchip.col b{background:var(--good)}.ivchip.root b{background:var(--brass)}
 .sk-wrap{width:min(calc(100vw - 40px),1240px);margin-left:calc(50% - min(calc(50vw - 20px),620px));overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin-top:12px}
 .sk-canvas{position:relative}.sk-inner{position:absolute;left:0;right:0}.sk-svg{position:absolute;left:0;top:0;pointer-events:none}
 .sk-colhead{position:absolute;top:6px;overflow:hidden;text-overflow:ellipsis;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
@@ -1049,30 +1052,23 @@ function nivShapeTxt(semi){const opts=[];if(semi<=4)opts.push({t:`same string, $
   [[1,5,4],[2,10,9],[3,15,14],[4,19,19]].forEach(([n,a,b])=>{const o=semi-a,ob=semi-b;opts.push({t:`${n===1?'next string up':n+' strings up'}, ${fretTxt(o)}${b!==a?` (${fretTxt(ob)} when it crosses G–B)`:''}`,o:Math.max(Math.abs(o),Math.abs(ob))});});
   opts.sort((x,y)=>x.o-y.o);const ok=opts.filter(x=>x.o<=3);return (ok.length?ok.slice(0,2):opts.slice(0,1)).map(x=>x.t).join('; or ');}
 const NIV_SHAPE=Object.fromEntries(NIV.map(x=>[x[0],nivShapeTxt(x[2])]));
-/* Intervals on the Neck lobby: the intervals jazz voicings are built from, and the voicings to know (grips low → high, null = not played) */
-const JAZZ_IVS=[['TT','The 3rd and ♭7 of every dominant chord: the guide tones of V7 (and of its tritone sub).'],
- ['P5','3rd up to 7th in maj7 and m7 chords (the guide tones of IIm7 and IMaj7); root to 5th.'],
- ['P4','7th up to the next chord’s 3rd; stacked, the quartal voicings (the So What chord); the top interval of many drop-2 grips.'],
- ['m7','Root to ♭7: the frame of every 7, m7 and m7♭5 shell.'],['M7','Root to 7: the frame of every maj7 shell.'],
- ['M3','Root to 3rd of major chords; 5th to 7th of maj7.'],['m3','Root to 3rd of minor chords; 3rd to 5th of major; 5th to ♭7.'],
- ['M6','Root to 6 in 6 and m6 chords; the 13 of a dominant is the same note an octave up.'],
- ['m2','The crunch in maj7 grips: the 7 a half step under the root; the ♭9 next to the root on altered dominants.'],['M2','♭7 next to the root in 7 and m7 grips; the 9 next to the root or 3rd.'],
- ['9','The colour tone on maj7, m7 and 7 chords.'],['b9','The tension of V7 going to a minor chord.'],['13','The colour tone of dominant chords, usually voiced above the ♭7 or 3rd.']];
-const JAZZ_VOICINGS=[
- ['Shell, root on 6','maj7',[3,null,4,4,null,null],'G','maj7'],['Shell, root on 6','7',[3,null,3,4,null,null],'G','7'],['Shell, root on 6','m7',[3,null,3,3,null,null],'G','m7'],
- ['Shell, root on 5','maj7',[null,3,null,4,5,null],'C','maj7'],['Shell, root on 5','7',[null,3,null,3,5,null],'C','7'],['Shell, root on 5','m7',[null,3,null,3,4,null],'C','m7'],
- ['Guide tones: IIm7','',[null,null,3,5,null,null],'D','m7'],['Guide tones: V7','',[null,null,3,4,null,null],'G','7'],['Guide tones: IMaj7','',[null,null,2,4,null,null],'C','maj7'],
- ['Drop-2, root position','maj7',[null,3,5,4,5,null],'C','maj7'],['Drop-3','7',[3,null,3,4,3,null],'G','7'],['Dominant 13','13',[3,null,3,4,5,null],'G','13'],
- ['Quartal: three 4ths and a 3rd','',[null,7,7,7,8,7],null,null]];
-const ivOfSemi=d=>{const x=NIV.find(v=>v[2]===d);return x?x[0].replace('b','♭').replace('#','♯'):d+' st';};
-function jazzIvPanel(){const card=([n,suf,a,r,q])=>{const ms=a.map((f,i)=>f===null?null:OPEN[6-i]+f).filter(v=>v!==null),ivs=ms.slice(1).map((m,i)=>ivOfSemi(m-ms[i]));
-    const notes=r?d2Notes(a,P(r),q):a.map((f,i)=>f===null?null:{n:PCN[(OPEN[6-i]+f)%12].split('/')[0],d:''}).filter(Boolean),title=r?`${r.replace('b','♭')}${suf||q}`:'So What';
-    return `<figure class="jv">${boxSVG(a,r?{labels:1,root:P(r),q,title}:{title})}<figcaption><b>${n}</b><span class="mono">${a.map(f=>f===null?'x':f).join('')}</span><span>${notes.map(x=>x.d||x.n).join(' · ')}</span><span class="muted">${ivs.join(' – ')}</span></figcaption></figure>`;};
-  return `<details class="panel jazziv" ${view.jiv===false?'':'open'}><summary><b>The intervals inside jazz voicings: what to memorize</b></summary>
-   <p class="note">Jazz chords on the guitar are built from a handful of intervals. Know each as a shape and you can build, find and move any voicing. Shapes go from the lower note; standard tuning has a major 3rd from G to B, so a shape that crosses that pair moves one fret up.</p>
-   <div class="tablewrap"><table><thead><tr><th>Interval</th><th>Where it lives in jazz chords</th><th>Shape from the lower note</th></tr></thead><tbody>${JAZZ_IVS.map(([k,w])=>{const x=NIV.find(v=>v[0]===k);return `<tr><td><b>${ivOfSemi(x[2])}</b> <span class="muted">${x[1]}</span></td><td>${w}</td><td>${NIV_SHAPE[k]}</td></tr>`;}).join('')}</tbody></table></div>
-   <h3 style="margin:16px 0 4px">Voicings to know by shape</h3><p class="note">Each grip low → high (x = not played), its chord tones, and the interval between neighbouring voices. Move any of them up or down the neck for other roots.</p>
-   <div class="jvgrid">${JAZZ_VOICINGS.map(card).join('')}</div></details>`;}
+/* Intervals on the Neck lobby: one root (C, string 5 fret 3) and the major-scale intervals jazz chords are built from, each where the hand finds it.
+   The 2 and 3 on the root's own string are left out on purpose. [degree, string, fret, semitones above the root, kind] */
+const IVMAP_ROOT={s:5,f:3},IVMAP=[['R',5,3,0,'root'],['3',4,2,4,'ct'],['5',4,5,7,'ct'],['6',3,2,9,'col'],['7',3,4,11,'ct'],['R',3,5,12,'root'],['9',2,3,14,'col'],['11',2,6,17,'col'],['13',1,5,21,'col']];
+const IVMAP_NAME={'3':'major 3rd','5':'perfect 5th','6':'major 6th','7':'major 7th','9':'major 9th','11':'perfect 11th','13':'major 13th'};
+function ivMapSVG(){const F=7,X0=34,FW=66,Y0=22,SH=30,W=X0+F*FW+16,H=Y0+5*SH+30,y=s=>Y0+(s-1)*SH,x=f=>f===0?X0-12:X0+(f-.5)*FW;
+  let h=`<svg class="ivmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="C on string 5 fret 3 and the intervals around it">`;
+  [3,5,7].forEach(f=>h+=`<circle class="ivm-inlay" cx="${X0+(f-.5)*FW}" cy="${Y0+2.5*SH}" r="5"/>`);
+  for(let f=0;f<=F;f++)h+=`<line class="${f===0?'ivm-nut':'ivm-fret'}" x1="${X0+f*FW}" x2="${X0+f*FW}" y1="${Y0}" y2="${Y0+5*SH}"/>`;
+  for(let s=1;s<=6;s++)h+=`<line class="ivm-str" x1="${X0}" x2="${X0+F*FW}" y1="${y(s)}" y2="${y(s)}" style="stroke-width:${1+(s-1)*.35}"/><text class="ivm-lab" x="12" y="${y(s)+4}">${s}</text>`;
+  for(let f=1;f<=F;f++)h+=`<text class="ivm-lab" x="${X0+(f-.5)*FW}" y="${H-8}" text-anchor="middle">${f}</text>`;
+  IVMAP.forEach(([d,s,f,,k])=>h+=`<g class="ivm-dot ${k}"><circle cx="${x(f)}" cy="${y(s)}" r="13"/><text x="${x(f)}" y="${y(s)+4.5}" text-anchor="middle">${d}</text></g>`);
+  return h+'</svg>';}
+function jazzIvPanel(){const rs=IVMAP_ROOT,rel=(s,f)=>{const n=rs.s-s,o=f-rs.f;return `${n===1?'next string':n+' strings up'}, ${o===0?'same fret':Math.abs(o)+' fret'+(Math.abs(o)>1?'s':'')+(o>0?' up':' back')}`;};
+  return `<details class="panel jazziv" ${view.jiv===false?'':'open'}><summary><b>The intervals jazz chords use, around one note</b></summary>
+   <p class="note">C on string 5, fret 3. Around it, the major-scale degrees worth knowing by shape: the chord tones 3, 5 and 7, and the colours 6, 9, 11 and 13. Move the root and the shapes move with it.</p>
+   <div class="ivwrap">${ivMapSVG()}</div>
+   <div class="ivleg">${IVMAP.filter(r=>r[0]!=='R').map(([d,s,f,,k])=>`<span class="ivchip ${k}"><b>${d}</b> ${IVMAP_NAME[d]} · ${rel(s,f)}</span>`).join('')}<span class="ivchip root"><b>R</b> octave · 2 strings up, 2 frets up</span></div></details>`;}
 
 /* ============ CHORD–SCALE REFLEX ============ */
 const MAJ_MODES=['Ionian','Dorian','Phrygian','Lydian','Mixolydian','Aeolian','Locrian'];

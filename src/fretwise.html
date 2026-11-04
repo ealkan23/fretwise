@@ -2749,8 +2749,9 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
 const FIRE_RED=[[0,0,0],[31,7,7],[47,15,7],[71,15,7],[87,23,7],[103,31,7],[119,31,7],[143,39,7],[159,47,7],[175,63,7],[191,71,7],[199,71,7],[223,79,7],[223,87,7],[223,87,7],[215,95,7],[215,95,7],[215,103,15],[207,111,15],[207,119,15],[207,127,15],[207,135,23],[199,135,23],[199,143,23],[199,151,31],[191,159,31],[191,159,31],[191,167,39],[191,167,39],[191,175,47],[183,175,47],[183,183,47],[183,183,55],[207,207,111],[223,223,159],[239,239,199],[255,255,255]];
 const FIRE_BLUE=FIRE_RED.map(([r,g,b],i)=>i>=33?[Math.round(r*.85),Math.round(g*.95),255]:[Math.min(255,b+Math.round(r*.15)),Math.round(g*.9),Math.min(255,r+20)]);
 const FMAX=FIRE_RED.length-1;let FIRE=null;
-function fireSync(){const on=view.name==='play'&&S&&S.streak>=10;if(!on){fireStop();return;}if(!FIRE)fireStart();document.body.classList.add('onfire');
-  if(FIRE.n!==S.streak){if(S.streak===10||S.streak===20)FIRE.burst=45;FIRE.n=S.streak;}FIRE.blue=S.streak>=20;FIRE.bd.querySelector('b').textContent=S.streak;FIRE.bd.classList.toggle('blue',FIRE.blue);}
+const FIRE_ON=5,FIRE_MAX=20;   /* fire starts at 5 in a row and grows to full (blue) at 20 */
+function fireSync(){const on=view.name==='play'&&S&&S.streak>=FIRE_ON;if(!on){fireStop();return;}if(!FIRE)fireStart();document.body.classList.add('onfire');
+  if(FIRE.n!==S.streak){if(S.streak%5===0&&S.streak<=FIRE_MAX)FIRE.burst=45;FIRE.n=S.streak;}FIRE.blue=S.streak>=FIRE_MAX;FIRE.lv=Math.min(1,(S.streak-FIRE_ON)/(FIRE_MAX-FIRE_ON));FIRE.bd.querySelector('b').textContent=S.streak;FIRE.bd.classList.toggle('blue',FIRE.blue);}
 function fireStart(){const cv=document.createElement('canvas');cv.className='firecv';cv.setAttribute('aria-hidden','true');
   const bd=document.createElement('div');bd.className='firebadge';bd.setAttribute('role','status');bd.innerHTML='<canvas aria-hidden="true"></canvas><div class="fb-txt"><b></b><span>streak</span></div>';
   document.body.append(cv,bd);FIRE={cv,ctx:cv.getContext('2d'),bd,bcv:bd.querySelector('canvas'),buf:null,W:0,H:0,bbuf:null,t:0,ft:0,raf:0,blue:false,burst:0,n:0,embers:[],still:matchMedia('(prefers-reduced-motion: reduce)').matches,frames:0};
@@ -2765,10 +2766,11 @@ function fireFrame(){const st=document.querySelector('.stage');if(!st){fireStop(
   Object.assign(F.cv.style,{left:(r.left+scrollX-MX)+'px',top:(r.top+scrollY-MT)+'px',width:W*PX+'px',height:H*PX+'px'});
   const x0=Math.round(MX/PX),y0=Math.round(MT/PX),x1=x0+Math.round(r.width/PX)-1,y1=y0+Math.round(r.height/PX)-1,buf=F.buf,burst=F.burst>0;if(burst)F.burst--;
   /* source heat in moving clusters: two slow waves make tall tongues and low gaps travel round the panel */
-  const heat=(k)=>{const w=Math.sin(k*.47+now*.0042)+.8*Math.sin(k*.17-now*.0027)+.4*Math.sin(k*1.1+now*.009)+(burst?1.4:0);return w>.7?(burst?FMAX:FMAX-2):w>.05?FMAX-4:w>-.55?FMAX-13:0;};
+  const lv=F.lv||0,cut=Math.round((1-lv)*10);   /* smaller, cooler flames early in the streak */
+  const heat=(k)=>{const w=Math.sin(k*.47+now*.0042)+.8*Math.sin(k*.17-now*.0027)+.4*Math.sin(k*1.1+now*.009)+(burst?1.4:0)-(1-lv)*.5;return w>.7?(burst?FMAX:FMAX-2-cut):w>.05?FMAX-4-cut:w>-.55?FMAX-13-cut:0;};
   const yb=Math.min(H-1,y1+Math.round(MB/PX)-1);for(let x=x0-1;x<=x1+1;x++){buf[(y0-1)*W+x]=heat(x);buf[yb*W+x]=Math.max(0,heat(x+90)-8);if(burst)buf[(y0-2)*W+x]=heat(x+7);}   /* the bottom source sits below the panel so its short flames show */
   for(let y=y0;y<=yb;y++){buf[y*W+x0-1]=heat(y+40);buf[y*W+x1+1]=heat(y+140);if(burst&&y<=y1){buf[y*W+x0-2]=heat(y+41);buf[y*W+x1+2]=heat(y+141);}}
-  fireSpread(buf,W,H,burst?2:3,Math.sin(now*.0007)*.3);
+  fireSpread(buf,W,H,burst?2:3+Math.round((1-lv)*1),Math.sin(now*.0007)*.3);
   for(let y=y0;y<y1;y++)buf.fill(0,y*W+x0,y*W+x1+1);                                       // the panel's inside stays clear
   /* embers: single sparks that rise from the top edge, drift and fade */
   if(Math.random()<(burst?.9:.35))F.embers.push({x:x0+Math.random()*(x1-x0),y:y0-6-Math.random()*6,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.6,h:FMAX-Math.random()*8});
@@ -2778,7 +2780,7 @@ function fireFrame(){const st=document.querySelector('.stage');if(!st){fireStop(
   const BW=28,BH=39,room=innerWidth-r.right>200,left=room?r.right+scrollX+28:r.right+scrollX-176,top=r.top+scrollY+(room?0:-150);
   Object.assign(F.bd.style,{left:left+'px',top:top+'px'});if(!F.bbuf){F.bbuf=new Uint8Array(BW*BH);F.bcv.width=BW;F.bcv.height=BH;}
   const bb=F.bbuf;if(!F.edge)F.edge=Array.from({length:BW},(_,x)=>{const c=Math.abs(x-(BW-1)/2)/(BW/2);return c<.3?0:c<.55?.2:c<.75?.6:1.2;});
-  for(let x=0;x<BW;x++){const c=Math.abs(x-(BW-1)/2)/(BW/2),w=Math.sin(x*.9+now*.007)+Math.cos(x*.37-now*.005);const v=c>.9?0:w>-.5||burst?FMAX:FMAX-10;bb[(BH-1)*BW+x]=v;bb[(BH-2)*BW+x]=c>.75?0:v;}
+  for(let x=0;x<BW;x++){const c=Math.abs(x-(BW-1)/2)/(BW/2),w=Math.sin(x*.9+now*.007)+Math.cos(x*.37-now*.005);const v=c>.9?0:(w>-.5||burst?FMAX:FMAX-10)-Math.round((1-(F.lv||0))*9);bb[(BH-1)*BW+x]=v;bb[(BH-2)*BW+x]=c>.75?0:v;}
   fireSpread(bb,BW,BH,2,Math.sin(now*.0011)*.25,F.edge);F.bctx.putImageData(firePaint(F.bctx,bb,BW,BH,pal),0,0);}
 
 const app=document.getElementById('app');

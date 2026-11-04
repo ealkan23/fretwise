@@ -2434,7 +2434,7 @@ const CATS=[
 const gamesIn=c=>GAMES.filter(g=>g.cat===c);
 const LIMITS={relaxed:{s:20,n:'Relaxed'},std:{s:12,n:'Standard'},blitz:{s:7,n:'Blitz'},super:{s:5,n:'Super speed'},none:{s:Infinity,n:'No timer'}};
 const ROUND=12, NEED=16, PASS=.85;
-const roundMax=n=>Math.max(60000,n*120000),activeMs=(wall,n)=>Math.min(wall,roundMax(n));   /* practice time of a round: a tab left open does not count */
+const roundMax=n=>Math.max(60000,n*120000),activeMs=(wall,n)=>Math.min(wall,roundMax(n)),practiceMs=g=>g.time||0;   /* practice time of a round: a tab left open does not count */
 /* fluency (Nov 2026): in the recall games a level also needs speed. Each clean answer stores its time as a fraction of a target;
    the median of the last 12 at that level must be at or under the target (1.0), over at least FLU_N answers.
    Targets: spelling 1 s + 0.7 s a note you enter (the given root is not counted: a triad 2.4 s, a 7th chord 3.1 s); numerals 1.5 s + 1.2 s each; name a note 3 s; click a spot 4 s;
@@ -2485,23 +2485,29 @@ function migrateReorder(id,g){const R=REORDERS[id],mp=L=>R.m[L]||L,n=GBY[id].lev
   g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
   g.mig={...(g.mig||{}),r26:1};}
-/* one-time backfill of answers per level and input (g.lc). Guitar answers come from the played-answer log (g.pl: each answer's own level);
-   played answers older than the log are spread over the levels of the guitar rounds. Screen answers come from the screen rounds' levels.
-   Rounds no longer listed (only the last 80 are kept) are spread over the stored questions' levels. */
-const dualMode=gid=>PLAY_GAMES.includes(gid)||(GBY[gid].tap&&!GBY[gid].mic);
-function countBackfill(id,g){const x=GBY[id],lc={},add=(L,md,n)=>{if(!L||L>x.levels.length||n<=0)return;const o=lc[L]||(lc[L]={s:0,g:0});o[md]+=n;},dual=dualMode(id);
-  const spread=(by,total,md)=>{const Ls=Object.keys(by).map(Number).filter(L=>by[L]>0),tot=Ls.reduce((p,L)=>p+by[L],0);if(!tot||total<=0)return;let left=total;Ls.sort((p,q)=>by[q]-by[p]).forEach((L,i)=>{const k=i===Ls.length-1?left:Math.min(left,Math.round(total*by[L]/tot));add(L,md,k);left-=k;});};
-  const sg={},ss={};let seen=0;(g.sessions||[]).forEach(r=>{const md=x.mic?'g':x.tap?'s':(r.mode==='play'?'g':'s');(md==='g'?sg:ss)[r.L]=((md==='g'?sg:ss)[r.L]||0)+(r.n||0);seen+=r.n||0;});
-  if(dual&&!x.tap){const pc={};let pt=0;(g.pl||[]).forEach(e=>{if(e.m===0)return;pc[e.lv]=(pc[e.lv]||0)+1;pt++;});Object.entries(pc).forEach(([L,n])=>add(+L,'g',n));
-    spread(sg,Object.values(sg).reduce((p,q)=>p+q,0)-pt,'g');}else Object.entries(sg).forEach(([L,n])=>add(+L,'g',n));
-  Object.entries(ss).forEach(([L,n])=>add(+L,'s',n));
-  const by={};Object.values(g.items||{}).forEach(it=>{if(it.lv)by[it.lv]=(by[it.lv]||0)+it.n;});spread(by,(g.n||0)-seen,x.mic?'g':'s');
+/* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
+   played counts (it.pn) give the total, the play log (g.pl, each answer's own level) places them, older played answers go to the levels of the
+   guitar-mode rounds. Before the one-input rule (ONE_INPUT_T) a “playing it” round still asked most questions on screen, so a round's mode
+   alone never makes its answers guitar. Everything else is screen, placed by the rounds' levels. */
+const ONE_INPUT_T=1793804400000;
+const dualMode=gid=>PLAY_GAMES.includes(gid)||(GBY[gid].tap&&!GBY[gid].mic);   /* games answered both ways */
+function countBackfill(id,g){const x=GBY[id],nL=x.levels.length,lc={},add=(L,md,n)=>{if(!L||L>nL||n<=0)return;const o=lc[L]||(lc[L]={s:0,g:0});o[md]+=n;};
+  const spread=(by,total,md)=>{const Ls=Object.keys(by).map(Number).filter(L=>by[L]>0&&L<=nL),tot=Ls.reduce((p,L)=>p+by[L],0);if(!tot||total<=0)return 0;let left=total;Ls.sort((p,q)=>by[q]-by[p]).forEach((L,i)=>{const k=i===Ls.length-1?left:Math.min(left,Math.round(total*by[L]/tot));add(L,md,k);left-=k;});return total;};
+  const all={},gr={};let seen=0;(g.sessions||[]).forEach(r=>{all[r.L]=(all[r.L]||0)+(r.n||0);seen+=r.n||0;if(x.mic||r.mode==='play')gr[r.L]=(gr[r.L]||0)+(r.n||0);});
+  const by={};Object.values(g.items||{}).forEach(it=>{if(it.lv)by[it.lv]=(by[it.lv]||0)+it.n;});const rest=(g.n||0)-seen;if(rest>0)Object.keys(by).forEach(L=>{all[L]=(all[L]||0)+Math.round(rest*by[L]/Object.values(by).reduce((p,q)=>p+q,0));});
+  let gT;if(x.mic)gT=g.n||0;else if(x.tap)gT=(g.pl||[]).filter(e=>e.m===1).length;else gT=Object.values(g.items||{}).reduce((p,it)=>p+(it.pn||0),0);
+  const G0={};if(x.mic)Object.assign(G0,all);else{(g.pl||[]).forEach(e=>{if(x.tap?e.m===1:e.m!==0)G0[e.lv]=(G0[e.lv]||0)+1;});const placed=Object.values(G0).reduce((p,q)=>p+q,0);
+    if(gT>placed){const tmp={};const n0=gT-placed,Ls=Object.keys(gr).map(Number),tot=Ls.reduce((p,L)=>p+gr[L],0);let left=n0;Ls.sort((p,q)=>gr[q]-gr[p]).forEach((L,i)=>{const k=i===Ls.length-1?left:Math.min(left,Math.round(n0*gr[L]/tot));tmp[L]=k;left-=k;});Object.entries(tmp).forEach(([L,k])=>G0[L]=(G0[L]||0)+k);}}
+  Object.entries(G0).forEach(([L,n])=>add(+L,'g',n));
+  /* screen answers: the rest, placed by the rounds' levels; a “playing it” round counts as screen only for the share of such rounds that was not really played */
+  if(!x.mic){const playN=Object.values(gr).reduce((p,q)=>p+q,0),gf=x.tap?0:playN?Math.min(1,gT/playN):0,wS={};(g.sessions||[]).forEach(r=>{wS[r.L]=(wS[r.L]||0)+(r.n||0)*(r.mode==='play'&&!x.tap?1-gf:1);});
+    if(rest>0)Object.keys(by).forEach(L=>{wS[L]=(wS[L]||0)+rest*by[L]/Object.values(by).reduce((p,q)=>p+q,0);});spread(wS,Math.max(0,(g.n||0)-gT),'s');}
   g.lc=lc;}
 const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[id].mig.m25))migrateMerge(id);let g=STORE.games[id]||(STORE.games[id]=blank());if(id==='spelling'&&!g.v2){g=STORE.games[id]=blank();g.v2=1;}/* rebuilt game: the user chose a fresh start */if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
   if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
   if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
-  if(!(g.mig&&g.mig.c26)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1};saveLocal();}return g;};
+  if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}
 let DB=null,UID=null;
@@ -2960,17 +2966,18 @@ const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;
    older ones count as guitar except in Time & Groove, where they were taps */
 function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=levelAvail(gid,L,true),dual=dualMode(gid),both=dual&&aS&&aG;
   const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L&&!(e.ab>1000)),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
-  const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);
+  const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);if(both&&gm&&!n)return {n:0,rn:0,rc:0,fb:'',avg:null,flu:[],ab:[],gp:[],rt:[]};   /* never played on the guitar: nothing to show */
   /* the stored questions at this level, split by input: played answers (pn/pc) are guitar, the rest screen */
   const its=Object.values(g.items).filter(i=>i.lv===L);let iN=0,iC=0,iMs=0,iMsN=0;its.forEach(it=>{const gn=both?(it.pn||0):(gm?it.n:it.n),gc=both?Math.min(it.c,it.pc||0):it.c;
     const nn=both?(gm?gn:it.n-gn):gn,cc=both?(gm?gc:it.c-gc):gc;iN+=nn;iC+=cc;if(!gm&&(!both||!it.pn)&&nn){iMs+=it.ms||0;iMsN+=it.n;}});
   let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
   if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}}
   let rn=win.length,rc=win.reduce((p,q)=>p+q,0);
-  if(!rn){const x=GBY[gid],rs=(g.sessions||[]).filter(r=>r.L===L&&(x.mic?gm:x.tap?!gm:((r.mode==='play')===!!gm))).reverse();let k=0;for(const r of rs){if(k>=20)break;rn+=r.n||0;rc+=r.c||0;k+=r.n||0;}if(rn)fb='your recent rounds on this input';}   // rounds carry level, input and score
+  if(!rn){const x=GBY[gid],rs=(g.sessions||[]).filter(r=>r.L===L&&(x.mic?gm:x.tap?!gm:!both?true:gm?(r.t>=ONE_INPUT_T&&r.mode==='play'):(r.t>=ONE_INPUT_T?r.mode!=='play':(r.mode!=='play'||!o.g)))).reverse();   /* before the one-input rule a “playing it” round was mostly screen answers unless the level was really played */let k=0;for(const r of rs){if(k>=20)break;rn+=r.n||0;rc+=r.c||0;k+=r.n||0;}if(rn)fb='your recent rounds on this input';}   // rounds carry level, input and score
   if(!rn&&iN){rn=iN;rc=iC;fb='all your answers on this input';}                       // older answers, split by input
-  if(!rn&&(g.hist[L]||[]).length&&(!both||!gm)){const h=g.hist[L];rn=h.length;rc=h.reduce((p,q)=>p+q,0);fb='recent answers, both inputs';}
+  if(!rn&&(g.hist[L]||[]).length&&(!both||(!gm&&!o.g))){const h=g.hist[L];rn=h.length;rc=h.reduce((p,q)=>p+q,0);fb='recent answers, both inputs';}
   if(!n)n=fb==='all your answers on this input'?iN:rn&&!fb?rn:n;if(!n&&rn)n=rn;
+  if(n&&!rn){let tn=0,tc=0;Object.values(g.items).forEach(it=>{const gn=both?(it.pn||0):it.n,gc=both?Math.min(it.c,it.pc||0):it.c;tn+=gm?gn:it.n-gn;tc+=gm?gc:it.c-gc;});if(tn){rn=n;rc=Math.round(n*tc/tn);fb='estimated from all your answers on this input in this game';}}
   return {n,rn,rc,fb,avg:iMsN?iMs/iMsN/1000:null,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
 function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
   const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;

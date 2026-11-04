@@ -38,7 +38,9 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 /* top bar */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px}
-.topnav{display:flex;gap:4px;margin-right:auto}@media (max-width:560px){.top .sync span,.top .mic span{display:none}.brand{font-size:21px}.topnav button{padding:6px 6px}}.topnav button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;padding:6px 10px;color:var(--muted);cursor:pointer}
+.topnav{display:flex;gap:4px;margin-right:auto}
+#castlebg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}
+html.castle{background:#07061a}html.castle body{background:transparent}html.castle .top{background:rgba(10,9,30,.84);backdrop-filter:blur(3px)}@media (max-width:560px){.top .sync span,.top .mic span{display:none}.brand{font-size:21px}.topnav button{padding:6px 6px}}.topnav button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;padding:6px 10px;color:var(--muted);cursor:pointer}
 .topnav button[aria-current="page"]{color:var(--fg);border-bottom-color:var(--fg)}.topnav button:focus-visible{outline:2px solid var(--fg)}
 .brand{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase;background:none;border:0;padding:0}
 .brand span{color:var(--brass)}
@@ -2749,6 +2751,92 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
   if(s.flu){const sec=stdSeconds(gid);p.push(`median clean answer at most ${Math.round(s.flu*100)}% of the unlock target time${s.ex?` (${s.ex})`:sec?` (about ${sec.toFixed(1)} s for a typical question)`:''}`);}
   if(s.gp)p.push(`under ${s.gp.toFixed(1)} s from one played note to the next`);if(s.ab)p.push(`within ${s.ab} ms of the click on timed levels`);return p.join('; ')+': '+s.why+'.';}
 /* ============ VIEWS ============ */
+/* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
+   Original pixel art drawn in code (not copied from references): a castle music hall at night in indigo, blue and purple. Stone walls lit by
+   moonlight, ribbed vaults, tall pointed stained-glass windows (rose, lead lines, a gold eighth note), moonbeams on a polished floor that
+   reflects them, pillars with candle sconces, chandeliers, a harp on the left and organ pipes on the right. The centre behind the game is kept
+   dark and plain for reading. Drawn once per size at 1/4 resolution (crisp pixels); only candle flames, their glow and dust in the moonbeams move. */
+const BGC={void:[7,6,26],w0:[12,10,34],w1:[19,16,50],w2:[27,23,68],w3:[37,32,90],mort:[8,7,24],s0:[38,32,96],s1:[54,46,134],s2:[78,66,172],s3:[108,94,208],
+  gB0:[20,54,140],gB1:[47,108,236],gB2:[96,184,255],gP0:[56,26,120],gP1:[118,62,190],gM:[170,60,156],gT:[40,156,148],lead:[8,7,24],gold:[232,176,74],gold2:[150,96,30],goldD:[84,54,20],
+  f0:[10,9,30],f1:[22,19,58],f2:[32,27,82],cream:[236,226,196],moon:[200,190,255]};
+let BG=null;
+setTimeout(()=>{try{bgInit();}catch(e){}},0);
+function bgWanted(){return matchMedia('(prefers-color-scheme: dark)').matches;}
+function bgInit(){const apply=()=>{if(bgWanted()){if(!BG)bgStart();}else bgStop();};apply();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply);}
+function bgStart(){const cv=document.createElement('canvas');cv.id='castlebg';cv.setAttribute('aria-hidden','true');document.body.prepend(cv);document.documentElement.classList.add('castle');
+  BG={cv,ctx:cv.getContext('2d'),base:null,w:0,h:0,key:'',flames:[],glows:[],shafts:[],motes:[],t:0,raf:0,still:matchMedia('(prefers-reduced-motion: reduce)').matches};
+  const loop=ts=>{if(!BG)return;BG.raf=requestAnimationFrame(loop);if(ts-BG.t<110)return;BG.t=ts;bgFrame();};BG.raf=requestAnimationFrame(loop);}
+function bgStop(){if(!BG)return;cancelAnimationFrame(BG.raf);BG.cv.remove();document.documentElement.classList.remove('castle');BG=null;}
+function bgFrame(){const S=4,w=Math.ceil(innerWidth/S),h=Math.ceil(innerHeight/S),app=document.getElementById('app').getBoundingClientRect(),aL=Math.floor((app.left+8)/S),aR=Math.ceil((app.right-8)/S),key=[w,h,aL,aR].join();
+  if(key!==BG.key){BG.key=key;BG.w=w;BG.h=h;BG.cv.width=w;BG.cv.height=h;bgPaint(w,h,aL,aR);}
+  if(BG.still&&BG.drawn)return;const c=BG.ctx;c.putImageData(BG.base,0,0);BG.drawn=1;const now=performance.now()/1000,px=(x,y,col)=>{c.fillStyle=col;c.fillRect(x|0,y|0,1,1);};
+  /* warm glow round each flame, flickering */
+  for(const g of BG.glows){const r=g.r*(0.9+0.15*Math.sin(now*7+g.x));for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){const d=Math.hypot(x,y)/r;if(d>1)continue;if(BAYER[((g.y+y)&3)*4+((g.x+x)&3)]/16>(1-d)*0.55)continue;c.fillStyle=`rgba(255,170,70,${(0.16*(1-d)).toFixed(3)})`;c.fillRect(g.x+x,g.y+y,1,1);}}
+  /* candle flames: a few pixels, each frame a new shape */
+  for(const f of BG.flames){const k=(Math.random()*3)|0;px(f.x,f.y,'#fff4c2');px(f.x,f.y-1,k?'#ffd33d':'#fff4c2');if(k!==2)px(f.x,f.y-2,'#ff9d1c');if(k===1)px(f.x+(Math.random()<.5?-1:1),f.y-1,'#ff9d1c');}
+  /* dust in the moonbeams */
+  if(BG.shafts.length&&BG.motes.length<30)BG.motes.push({sh:BG.shafts[(Math.random()*BG.shafts.length)|0],u:Math.random(),v:Math.random()});
+  BG.motes=BG.motes.filter(m=>{m.v+=0.004;if(m.v>1)return false;const sh=m.sh,y=sh.y0+(sh.y1-sh.y0)*m.v,x=sh.x0+(sh.x1-sh.x0)*m.u+(y-sh.y0)*sh.slope+Math.sin(now+m.u*9)*1.5;c.fillStyle='rgba(210,200,255,0.55)';c.fillRect(x|0,y|0,1,1);return true;});}
+function bgPaint(w,h,aL,aR){const D=new Uint8ClampedArray(w*h*4),C=BGC,dith=(x,y)=>BAYER[(y&3)*4+(x&3)]/16;
+  const set=(x,y,c)=>{x|=0;y|=0;if(x<0||y<0||x>=w||y>=h)return;const o=(y*w+x)*4;D[o]=c[0];D[o+1]=c[1];D[o+2]=c[2];D[o+3]=255;};
+  const mix=(x,y,c,t)=>{x|=0;y|=0;if(x<0||y<0||x>=w||y>=h)return;const o=(y*w+x)*4;D[o]+=(c[0]-D[o])*t;D[o+1]+=(c[1]-D[o+1])*t;D[o+2]+=(c[2]-D[o+2])*t;D[o+3]=255;};
+  const hash=(a,b)=>{let v=(a*374761393+b*668265263)|0;v=(v^(v>>>13))*1274126177|0;return ((v^(v>>>16))>>>0)/4294967296;};
+  const vb=Math.round(h*0.11),fl=Math.round(h*0.85),sides=[[0,aL,-1],[aR,w,1]].filter(([a,b])=>b-a>=14);
+  BG.flames=[];BG.glows=[];BG.shafts=[];BG.motes=[];
+  /* windows: one per side, between the outer pillar and the pillar by the game */
+  const wins=sides.map(([a,b,dir])=>{const span=b-a-22,ww=Math.max(0,Math.min(30,span));if(ww<12)return null;const cx=Math.round((a+b)/2+dir*1),top=Math.round(h*0.19),bot=Math.round(h*0.68),ah=Math.round(ww*0.866);return {cx,ww,top,bot,ah,yb:top+ah,dir};}).filter(Boolean);
+  const inArch=(W,x,y,grow)=>{const hw=W.ww/2+grow;if(y>W.bot+grow||x<W.cx-hw||x>W.cx+hw)return false;if(y>=W.yb)return true;const R=W.ww+grow*2;return (x-(W.cx+hw))**2+(y-W.yb)**2<=R*R&&(x-(W.cx-hw))**2+(y-W.yb)**2<=R*R&&y>=W.top-grow;};
+  /* 1. stone wall: blocks, moonlit near the windows, dark and calm behind the game */
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const row=(y/6)|0,bx=((x+(row&1)*7)/14)|0,mort=y%6===0||(x+(row&1)*7)%14===0,inC=x>=aL&&x<aR;
+    let lit=0;for(const W of wins){const d=Math.abs(x-W.cx)/(W.ww*1.6+8),dy=y<W.top?(W.top-y)/40:y>W.bot?(y-W.bot)/40:0;lit=Math.max(lit,Math.max(0,1-d-dy));}
+    let c=inC?(mort?[10,9,30]:hash(bx,row)<.7?C.w0:[14,12,38]):(mort?C.mort:hash(bx,row)<.55?C.w1:C.w2);   /* behind the game: nearly plain dark stone */
+    if(!inC&&!mort&&dith(x,y)<lit*0.7)c=c===C.w1?C.w2:C.w3;set(x,y,c);}
+  /* 2. ribbed vaults across the top */
+  const bay=Math.max(40,Math.round(w/8));for(let x0=-((w/2)%bay);x0<w;x0+=bay){const mid=x0+bay/2,half=bay/2;
+    for(let x=Math.floor(x0);x<x0+bay;x++){const u=Math.min(1,Math.abs(x-mid)/half),ya=Math.round(vb*(1-Math.pow(1-u,0.55)));for(let y=0;y<ya;y++)set(x,y,y<ya-3?C.void:C.w0);set(x,ya,C.s2);set(x,ya+1,C.s1);set(x,ya+2,C.s0);}}
+  for(let x=0;x<w;x++){set(x,vb,C.s1);set(x,vb+1,C.s0);}
+  /* 3. polished floor in perspective, with dithered tiles and the windows' reflections */
+  const vx=w/2,vy=fl-h*0.3;for(let y=fl;y<h;y++){const t=(y-fl)/(h-fl),r=Math.floor(7*Math.pow(t,1/1.7));for(let x=0;x<w;x++){const col=Math.floor((x-vx)/(y-vy)*5),edgeR=Math.abs(7*Math.pow(t,1/1.7)-r-.5)>.45,edgeC=Math.abs(((x-vx)/(y-vy)*5)-col-.5)>.46;
+    let c=(r+col)&1?C.f1:C.f2;if(edgeR||edgeC)c=C.f0;set(x,y,c);if(y===fl)set(x,y,C.s0);
+    for(const W of wins){const dx=Math.abs(x-W.cx);if(dx<W.ww/2&&dith(x,y)<0.55*(1-t)){const g=[C.gB1,C.gP1,C.gT,C.gB2][((x-W.cx+40)>>2)&3];mix(x,y,g,0.28*(1-t));}}}}
+  /* 4. pillars: by each screen edge and by the game, with capitals, bases and candle sconces */
+  const pil=[];for(const [a,b,dir] of sides){pil.push(dir<0?a+2:b-11);pil.push(dir<0?b-12:a+3);}
+  for(const px0 of pil){for(let y=vb+2;y<fl;y++)for(let i=0;i<9;i++)set(px0+i,y,i<2?C.s2:i>6?C.s0:(i===4&&dith(px0+i,y)<.2)?C.s2:C.s1);
+    for(let y=vb+2;y<vb+6;y++)for(let i=-2;i<11;i++)set(px0+i,y,y===vb+5?C.s0:C.s2);for(let y=fl-4;y<fl;y++)for(let i=-2;i<11;i++)set(px0+i,y,y===fl-4?C.s2:C.s1);
+    const sy=Math.round(h*0.5);for(let i=1;i<8;i++)set(px0+i,sy,C.gold2);set(px0+4,sy-1,C.gold);for(let k=0;k<3;k++)set(px0+4,sy-2-k,C.cream);BG.flames.push({x:px0+4,y:sy-5});BG.glows.push({x:px0+4,y:sy-6,r:9});}
+  /* 5. stained-glass windows: stone frame, rose, panes in lead, a gold eighth note; moonbeams to the floor */
+  const NOTE=['...X...','...XX..','...X.X.','...X..X','...X..X','...X.X.','...X...','.XXX...','XXXX...','XXX....'];
+  for(const W of wins){const pal=[C.gB1,C.gP1,C.gB0,C.gT,C.gP0,C.gB2,C.gM];
+    for(let y=W.top-3;y<=W.bot+3;y++)for(let x=W.cx-W.ww/2-3;x<=W.cx+W.ww/2+3;x++){const inn=inArch(W,x,y,0);if(!inn){if(inArch(W,x,y,3))set(x,y,inArch(W,x,y,1)?C.s0:C.s2);continue;}
+      /* two lancets mirrored round the centre mullion; colour bands by row, borders in teal and violet; a pale medallion behind the note */
+      const ax=Math.abs(x-W.cx),q=W.ww/4,ci=ax<q?0:1,ri=Math.floor((y-W.yb)/9),lead=ax<.5||(W.ww>=20&&Math.abs(ax-q)<.5)||(y>W.yb&&(y-W.yb)%9===0);
+      const medal=ri===Math.floor(((W.bot-W.yb)*0.42)/9)||ri===Math.floor(((W.bot-W.yb)*0.42)/9)+1;
+      let base=y<W.yb?(ci?C.gP1:C.gB1):medal&&ci===0?C.gB2:ci===0?[C.gB1,C.gP1,C.gB0][((ri%3)+3)%3]:[C.gT,C.gP0][((ri%2)+2)%2];
+      if(y>=W.yb&&ri<2&&!medal)base=base===C.gB0?C.gB1:base===C.gB1?C.gB2:base===C.gP0?C.gP1:base===C.gP1?C.gM:base;   // brighter near the top
+      const pTop=y>W.yb&&(y-W.yb)%9===1,pLeft=ci===0?Math.abs(ax-1)<.5:Math.abs(ax-q-1)<.5;let c=lead?C.lead:base;
+      if(!lead&&(pTop||pLeft)&&dith(x,y)<.6)c=[Math.min(255,base[0]+46),Math.min(255,base[1]+46),Math.min(255,base[2]+40)];set(x,y,c);}
+    const rx=W.cx,ry=W.top+Math.round(W.ah*0.58),rr=Math.max(3,Math.round(W.ww*0.28));for(let y=-rr-1;y<=rr+1;y++)for(let x=-rr-1;x<=rr+1;x++){const d=Math.hypot(x,y);if(d>rr+1)continue;if(d>rr){set(rx+x,ry+y,C.lead);continue;}const a=Math.atan2(y,x),pet=Math.floor((a+Math.PI)/(Math.PI/4))&1;set(rx+x,ry+y,d<rr*0.3?C.gold:d<rr*0.36?C.lead:pet?C.gM:C.gP1);}
+    const ny=W.yb+Math.round((W.bot-W.yb)*0.42)-5,nx=W.cx-3;NOTE.forEach((row,j)=>[...row].forEach((ch,i)=>{if(ch==='X'){set(nx+i,ny+j,C.gold);if(row[i+1]!=='X')set(nx+i+1,ny+j,C.goldD);}}));
+    /* moonbeam: a dithered shaft from the window falling toward the middle of the floor */
+    const slope=-W.dir*0.42,y0=W.yb+2,y1=h-1;BG.shafts.push({x0:W.cx-W.ww/2,x1:W.cx+W.ww/2,y0,y1,slope});
+    for(let y=y0;y<h;y++){const off=(y-y0)*slope;for(let x=Math.floor(W.cx-W.ww/2+off);x<=W.cx+W.ww/2+off;x++){if(x>=aL-2&&x<=aR+2)continue;if(inArch(W,x,y,3))continue;const fade=1-(y-y0)/(h-y0);if(dith(x,y)<0.32)mix(x,y,C.moon,0.2*fade+0.05);}}}
+  /* 6. chandeliers: chain, gold ring, candles, warm glow */
+  for(const W of wins){const cx=W.cx,ry=Math.round(h*0.15),hw=Math.min(9,Math.round(W.ww/2)+1);for(let y=vb;y<ry-1;y++)set(cx,y,y%2?C.gold2:C.goldD);
+    for(let x=-hw;x<=hw;x++){set(cx+x,ry,C.gold);set(cx+x,ry+1,C.gold2);}for(let x=-hw+2;x<=hw-2;x++)set(cx+x,ry+2,C.goldD);set(cx,ry+3,C.gold2);set(cx,ry+4,C.gold);
+    for(let k=-2;k<=2;k++){const x=cx+Math.round(k*hw/2.3);set(x,ry-1,C.cream);set(x,ry-2,C.cream);BG.flames.push({x,y:ry-3});}BG.glows.push({x:cx,y:ry-3,r:14});}
+  /* 7. instruments: a harp on the left, organ pipes on the right */
+  for(const [a,b,dir] of sides){if(b-a<46)continue;const base=fl-1,room=base-(wins.length?Math.max(...wins.map(W=>W.bot)):0)-5;if(room<16)continue;   /* never into the windows */
+    if(dir<0){const hx=Math.round(a+(b-a)*0.36),H=Math.min(42,Math.round(h*0.2),room),top=base-H;
+      for(let y=top+5;y<=base;y++){set(hx,y,C.gold);set(hx+1,y,C.gold2);}for(let x=-2;x<=5;x++)set(hx+x,base,C.goldD);
+      const neck=x=>top+5-Math.round(4*Math.sin(Math.PI*x/18))+Math.round(x*0.35),board=x=>base-Math.round((x-2)*(H-12)/16);
+      for(let x=0;x<=18;x++){set(hx+x,neck(x),C.gold);set(hx+x,neck(x)+1,C.gold2);}for(let x=2;x<=18;x++){set(hx+x,board(x),C.gold2);set(hx+x+1,board(x),C.goldD);}
+      for(let x=4;x<=17;x+=2)for(let y=neck(x)+2;y<board(x);y++)if(dith(hx+x,y)<.7)set(hx+x,y,C.cream);}
+    else{const cx=Math.round(a+(b-a)*0.62),hs=[16,22,28,34,28,22,16].map(v=>Math.min(v,Math.round(v*h/420)+6,room-2));
+      hs.forEach((ph,i)=>{const x0=cx-12+i*4;for(let y=base-ph;y<base-2;y++){set(x0,y,C.gold);set(x0+1,y,C.gold2);set(x0+2,y,C.goldD);}set(x0,base-ph-1,C.gold2);set(x0+1,base-ph-1,C.gold);set(x0+1,base-8,C.lead);set(x0+1,base-7,C.goldD);});
+      for(let x=cx-14;x<=cx+14;x++){set(x,base-2,C.s2);set(x,base-1,C.s1);set(x,base,C.s0);}}}
+  /* 8. calm the middle and the far edges a little */
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const e=Math.min(x,w-1-x)/w;if(e<0.04&&dith(x,y)<(0.04-e)*12)mix(x,y,C.void,0.5);}
+  BG.base=new ImageData(D,w,h);}
 /* ============ STREAK FIRE (Nov 2026) ============
    10 in a row: the round catches fire; 20: blue flame. Pixel fire in the Doom-fire manner: heat sources on the panel's edges, each cell passes its
    heat up a row with a random sideways step and a little cooling, coloured through a 37-shade palette (black → red → orange → yellow → white).

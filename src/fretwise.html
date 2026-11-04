@@ -2698,6 +2698,9 @@ const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
    (the unlock bar is 1.0); ab = mean distance from the click (ms); gp = median seconds from one played note to the next.
    A level is at standard when its accuracy and its game's speed measure (when the level has one) both meet it; a skill is green when all its levels are. */
 const STD_N=12;
+/* guitar speed standards (seconds) where the game has no own: rt = from listening to your first right note or strum, gp = from one played note to the next */
+const GSTD={fretboard:{rt:2},sight:{rt:3,gp:1.5},hunt:{rt:2.5},triads:{rt:4},drop2:{rt:5},shells:{rt:4,gp:2.5},guidetones:{rt:2.5,gp:1.5},neckiv:{rt:2.5,gp:1.5},voicelead:{rt:3,gp:1.5},walking:{gp:1.2},eardeg:{rt:3},cr:{rt:3,gp:1.2},arp:{rt:2.5}};
+const gStd=gid=>({rt:(GSTD[gid]||{}).rt||3,gp:(STD[gid]&&STD[gid].gp)||(GSTD[gid]||{}).gp||1.5});
 const STD={
  fretboard:{acc:.95,flu:.6,why:'name any note on the neck instantly'},
  sight:{acc:.95,flu:.75,why:'read a note and find it in position without hesitating; lines in time'},
@@ -2953,7 +2956,7 @@ const LOBBY_NOTES={
    (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */
 const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];
   for(const gen of lv.g){for(let t=0;t<6&&!kind;t++){try{const keep=LAST_ROOT,q=fitQ(gid,gen(),gm);LAST_ROOT=keep;if(!q)continue;
-    kind=fluTarget(gid,q)?'time':q.ui==='tap'||(q.ui==='mic'&&q.metro)?'timing':q.ui==='mic'&&STD[gid]&&STD[gid].gp?'gp':'none';}catch(e){}}if(kind)break;}
+    kind=fluTarget(gid,q)?'time':q.ui==='tap'||(q.ui==='mic'&&q.metro)?'timing':q.ui==='mic'&&!q.curve&&!GBY[gid].id.startsWith('sing')&&gid!=='bends'?((q.strumSeq?q.strumSeq.length:q.target.length)<=1?'rt':'gp'):'none';}catch(e){}}if(kind)break;}
   return LVK[k]=kind==='none'?'':kind;}
 /* games answered both ways get one row per input in the lobby */
 /* a level's numbers for one input. Answers logged since the per-input window began (g.hm) give the recent accuracy; older answers are split by
@@ -2965,7 +2968,7 @@ function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=leve
   let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
   if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}else if(!gm&&!plL.some(isG)&&!o.g){win=g.hist[L]||[];fb='';}}
   const rc=win.reduce((p,q)=>p+q,0);
-  return {n,rn:win.length,rc,fb,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp)};}
+  return {n,rn:win.length,rc,fb,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
 function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
   const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
   const an=M.rn,ac=M.rc,p=an?ac/an:0;
@@ -2978,8 +2981,10 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
       `unlock ${T.toFixed(1)} s · master ${(f*T).toFixed(1)} s`,t!==null&&!full);}
   else if(kind==='timing'){const a=M.ab.length?Math.round(M.ab.reduce((p,q)=>p+q,0)/M.ab.length):null,S0=Math.max(100,(sd.ab||35)*3);
     sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click; master standard ${sd.ab||35} ms. The bar fills as you get tighter.`,`master ±${sd.ab||35} ms from the click`);}
-  else if(kind==='gp'){const v=M.gp.length?med(M.gp)/1000:null,S0=Math.max(4,sd.gp*3);
-    sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s/note`,v===null?0:1-v/S0,[[1-sd.gp/S0,'std',`master standard ${sd.gp} s per note`]],v!==null&&v<=sd.gp,v===null?'Time from one played note to the next: shows after your first round.':`Median ${v.toFixed(1)} s from one played note to the next; master standard ${sd.gp} s. The bar fills as you get faster.`,`master ${sd.gp} s a note`);}
+  else if(kind==='gp'){const G0=gStd(x.id).gp,v=M.gp.length?med(M.gp)/1000:null,S0=Math.max(4,G0*3);
+    sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s/note`,v===null?0:1-v/S0,[[1-G0/S0,'std',`master: ${G0} s per note`]],v!==null&&v<=G0,v===null?'Time from one played note to the next: shows after your first round.':`Median ${v.toFixed(1)} s from one played note to the next; master ${G0} s. The bar fills as you get faster.`);}
+  else if(kind==='rt'){const R0=gStd(x.id).rt,v=M.rt.length?med(M.rt)/1000:null,S0=R0*3;
+    sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s`,v===null?0:1-v/S0,[[1-R0/S0,'std',`master: ${R0} s`]],v!==null&&v<=R0,v===null?'Time to play it: from when listening starts to your first right note or strum. Shows after your first clean answer.':`Your typical time to play it: ${v.toFixed(1)} s from when listening starts to the first right note or strum; master ${R0} s. The bar fills as you get faster.`);}
   return `<div class="mrow${label?' lab':''}${label&&gm===guitarMode(x.id)?' cur':''}">${label?`<span class="mlab">${label}</span>`:''}${acc}${sp}<div class="mn"><b>${M.n}</b><span>played</span></div></div>`;}
 /* lobby rung: one row per input the game is answered with (accuracy, the level's speed or timing, answers played), and one caption on the frontier level */
 function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&!(g.unl||[]).includes(L);if(ladder)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;

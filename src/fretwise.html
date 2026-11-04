@@ -2491,6 +2491,7 @@ function migrateReorder(id,g){const R=REORDERS[id],mp=L=>R.m[L]||L,n=GBY[id].lev
 /* one-time backfill of answers per level and input (g.lc). Guitar answers come from the played-answer log (g.pl: each answer's own level);
    played answers older than the log are spread over the levels of the guitar rounds. Screen answers come from the screen rounds' levels.
    Rounds no longer listed (only the last 80 are kept) are spread over the stored questions' levels. */
+const dualMode=gid=>PLAY_GAMES.includes(gid)||(GBY[gid].tap&&!GBY[gid].mic);
 function countBackfill(id,g){const x=GBY[id],lc={},add=(L,md,n)=>{if(!L||L>x.levels.length||n<=0)return;const o=lc[L]||(lc[L]={s:0,g:0});o[md]+=n;},dual=dualMode(id);
   const spread=(by,total,md)=>{const Ls=Object.keys(by).map(Number).filter(L=>by[L]>0),tot=Ls.reduce((p,L)=>p+by[L],0);if(!tot||total<=0)return;let left=total;Ls.sort((p,q)=>by[q]-by[p]).forEach((L,i)=>{const k=i===Ls.length-1?left:Math.min(left,Math.round(total*by[L]/tot));add(L,md,k);left-=k;});};
   const sg={},ss={};let seen=0;(g.sessions||[]).forEach(r=>{const md=x.mic?'g':x.tap?'s':(r.mode==='play'?'g':'s');(md==='g'?sg:ss)[r.L]=((md==='g'?sg:ss)[r.L]||0)+(r.n||0);seen+=r.n||0;});
@@ -2953,7 +2954,6 @@ const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;
     kind=fluTarget(gid,q)?'time':q.ui==='tap'||(q.ui==='mic'&&q.metro)?'timing':q.ui==='mic'&&STD[gid]&&STD[gid].gp?'gp':'none';}catch(e){}}if(kind)break;}
   return LVK[k]=kind==='none'?'':kind;}
 /* games answered both ways get one row per input in the lobby */
-const dualMode=gid=>PLAY_GAMES.includes(gid)||(GBY[gid].tap&&!GBY[gid].mic);
 /* a level's numbers for one input. Answers logged since the per-input window began (g.hm) give the recent accuracy; older answers are split by
    what was stored: played answers (it.pn/pc) are guitar, a level that exists in one input only belongs to it; timed logs carry m (1 = guitar),
    older ones count as guitar except in Time & Groove, where they were taps */

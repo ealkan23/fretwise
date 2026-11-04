@@ -47,6 +47,9 @@ If a game is answered on the guitar, every question is played or strummed into t
 ## Intervals on the Neck reference (Nov 2026)
 `NIV_SHAPE` is computed by `nivShapeTxt(semi)` from standard tuning (span 5/10/15/19 half steps for 1–4 strings up, 4/9/14 when the span crosses G–B); the old hand-written table had wrong G–B and 13th shapes. `jazzIvPanel()` on the lobby: `JAZZ_IVS` (intervals jazz voicings are built from) and `JAZZ_VOICINGS` (shells, guide-tone pairs, drop-2/drop-3, 13, quartal) drawn with `boxSVG`, intervals between voices computed from the frets. `DEGL` now labels tensions (♭9 … 13). The sweep proves every shape from every start string and that every voicing holds only chord tones.
 
+## Spelling with the root given (Nov 2026)
+`q.given` (set by `recallQ`): notes placed in the first slots when the question starts, only if they equal the first answer notes (`spGiven()`); the matching key is highlighted, Undo/Backspace cannot remove them, and the fluency target counts only the notes you enter.
+
 ## Layout
 
 ```

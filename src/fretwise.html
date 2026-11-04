@@ -322,6 +322,7 @@ svg.chart{width:100%;display:block}
 .slot{min-width:74px;border:1px solid var(--line);border-radius:10px;padding:10px 8px;display:grid;justify-items:center;gap:2px;background:var(--bg)}
 .slot .n{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1}.slot .s{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .slot.empty .n{color:var(--line)}.slot.ok{background:var(--good-soft);border-color:var(--good)}.slot.no{background:var(--bad-soft);border-color:var(--bad)}
+.slot.given{border-color:var(--good);box-shadow:0 0 0 2px color-mix(in srgb,var(--good) 35%,transparent) inset}.key.given{background:var(--good-soft);border-color:var(--good);box-shadow:0 0 0 2px var(--good) inset}
 .slot.ok .n{color:var(--good)}.slot.no .n{color:var(--bad)}.slot.late .s{color:var(--bad)}
 .lane{display:grid;gap:6px;margin-top:10px}.lane .lab{font-size:12px;color:var(--muted);font-family:var(--f-display);letter-spacing:.1em;text-transform:uppercase}
 .level{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}.level i{display:block;height:100%;width:0;background:var(--good);transition:width .06s linear}
@@ -610,7 +611,7 @@ function altExplain(root,q,ns){const M=chord(root,''),R=nm(root),sp=a=>a.map(nm)
 function recallQ(qs,roots,max,o={}){return ()=>{let root,q,ns;
   if(o.cycle){const i=typeof S!=='undefined'&&S?(S.i||0)+Math.floor((S.t0||0)/1000):0;root=P(CYCLE4[mod(i,12)]);q=qs[0];ns=chord(root,q);}else({root,q,ns}=pickChord(roots,qs,max));
   const s=sym(root,q);
-  return {ui:'spell',snd:{chord:ascMidis(ns,48)},key:`sp-${s}`,label:s,prompt:`Spell <b>${s}</b> (${QNAME[q]}), root first: ${ns.length} notes.`,answer:ns.map(nm),need:ns.length,answerText:spell(ns),factor:o.factor||1.2,
+  return {ui:'spell',snd:{chord:ascMidis(ns,48)},key:`sp-${s}`,label:s,prompt:`Spell <b>${s}</b> (${QNAME[q]}): the root ${nm(root)} is in place, add the other ${ns.length-1} notes.`,answer:ns.map(nm),need:ns.length,given:[nm(root)],answerText:spell(ns),factor:o.factor||1.2,
     explain:altExplain(root,q,ns),after:()=>triNeckSVG(root,q),hint:q===''?'Every other letter from the root; then check each 3rd: major 3rd = 4 half steps, minor 3rd = 3.':`Start from ${nm(root)} major (${spell(chord(root,''))}) and alter it.`};};}
 const G_cs={
  maj:spellQ(['','m'],ROOTS_ALL,1,['','m','dim','aug']),
@@ -2433,11 +2434,11 @@ const LIMITS={relaxed:{s:20,n:'Relaxed'},std:{s:12,n:'Standard'},blitz:{s:7,n:'B
 const ROUND=12, NEED=16, PASS=.85;
 /* fluency (Nov 2026): in the recall games a level also needs speed. Each clean answer stores its time as a fraction of a target;
    the median of the last 12 at that level must be at or under the target (1.0), over at least FLU_N answers.
-   Targets: spelling 1 s + 0.7 s a note (a triad 3.1 s, a 7th chord 3.8 s); numerals 1.5 s + 1.2 s each; name a note 3 s; click a spot 4 s;
+   Targets: spelling 1 s + 0.7 s a note you enter (the given root is not counted: a triad 2.4 s, a 7th chord 3.1 s); numerals 1.5 s + 1.2 s each; name a note 3 s; click a spot 4 s;
    multiple choice 4.8 s × the question's time factor. Played, tapped, heard and marked-on-neck answers have no target (they have their own timing). */
 const FLU_GAMES=['spelling','intervals','analysis','chordscale','fretboard','sight','triads','drop2','shells','neckiv'],FLU_N=6;
 function fluTarget(gid,q){if(!FLU_GAMES.includes(gid)||!q||q.audio||q.play||['mic','tap','multi'].includes(q.ui))return 0;
-  if(q.ui==='spell')return q.tokens?1.5+1.2*q.need:1+0.7*q.need;if(q.ui==='pc'||q.ui==='letters')return 3;if(q.ui==='fret')return 4;return Math.min(12,4.8*(q.factor||1));}
+  if(q.ui==='spell')return q.tokens?1.5+1.2*q.need:1+0.7*(q.need-(q.given?q.given.length:0));if(q.ui==='pc'||q.ui==='letters')return 3;if(q.ui==='fret')return 4;return Math.min(12,4.8*(q.factor||1));}
 const FLU_LV={};/* does this level ask timed recall questions at all? (sampled once) */
 function levelFlu(gid,L){const k=gid+'|'+L;if(FLU_LV[k]!==undefined)return FLU_LV[k];let y=false;if(FLU_GAMES.includes(gid)){const lv=GBY[gid].levels[L-1];if(lv)for(const gen of lv.g){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;if(fluTarget(gid,q)){y=true;break;}}catch(e){}}}return FLU_LV[k]=y;}
 function fluency(g,gid,L){if(!levelFlu(gid,L))return {need:false,ok:true,n:0};const h=(g.ht||{})[L]||[],b=h.slice().sort((x,y)=>x-y),med=b.length?b[b.length>>1]:null;return {need:true,n:h.length,med,ok:h.length>=FLU_N&&med<=1};}
@@ -2529,7 +2530,7 @@ function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag=
 function start(gid,L){const g=G(gid);g.last=L;cancelAnimationFrame(raf);clearTimeout(autoT);
   S={gid,L,i:0,score:0,streak:0,bestStreak:0,t0:Date.now(),answers:[],used:new Set(),q:null,acc:0,hinted:false,locked:false,unlocked:null,startLvl:g.lvl,round:g.round||ROUND};
   view={name:'play'};nextQ();}
-function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.spell=[];S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
+function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.spell=S.q.ui==='spell'&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.slice():[];S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
   S.limit=(LIMITS[G(S.gid).limit]||LIMITS.std).s*(S.q.factor||1)*1000;S.untimed=!isFinite(S.limit);S.qt=performance.now();S.replays=0;S.loading=false;render();
   // a played question has no prompt sound: cut the last answer's sound and listen at once, or the first notes fall into the wait
   if(S.q.ui==='mic'&&!S.q.audio){const q=S.q;Piano.hush();if(micOpt().auto)setTimeout(()=>{if(S&&S.q===q&&!S.locked&&!S.listening)micListen();},150);}
@@ -2680,7 +2681,7 @@ const STD={
  hunt:{acc:.95,gp:1.2,why:'every spot of a note found without stopping to think'},
  triads:{acc:.95,flu:.45,why:'see a triad shape and know chord and inversion at once'},
  intervals:{acc:.95,flu:.6,why:'scales, signatures and intervals answered from memory, not counted'},
- spelling:{acc:.95,flu:.6,ex:'about 1.9 s for a triad, 2.3 s for a seventh chord, 2.7 s for a 9th chord',why:'any chord spelled from memory as fast as you can say it'},
+ spelling:{acc:.95,flu:.6,ex:'about 1.4 s for a triad, 1.9 s for a seventh chord, 2.3 s for a 9th chord, root given',why:'any chord spelled from memory as fast as you can say it'},
  drop2:{acc:.9,flu:.5,why:'name and place every drop-2 grip in any key'},
  eardeg:{acc:.9,why:'hear every degree in a key the first time'},
  eariv:{acc:.9,why:'name any interval by ear, rising, falling or together'},
@@ -2936,15 +2937,16 @@ function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.se
    ${x.tap?tapOptsUI(x,g):x.mic?micOptsUI(x,g):PLAY_GAMES.includes(x.id)?playOptsUI(x,g):''}
    <p class="note">Round of ${g.round}${(rvOK=>{const pvOK=g.preview&&sel<x.levels.length&&sel<=g.lvl&&levelAvail(x.id,sel+1);return rvOK||pvOK?`: about ${100-(rvOK?25:0)-(pvOK?15:0)}% level ${sel}${rvOK?', 25% review':''}${pvOK?', 15% preview':''}`:', all from level '+sel;})(g.review&&Array.from({length:Math.min(sel-1,g.lvl)},(_,i)=>i+1).some(k=>levelAvail(x.id,k)))}. Multi-note and listening questions get extra time. No timer: no time-outs and no speed bonus; the round clock still runs.</p></div>
    <button class="btn primary" data-act="start" style="padding:12px 28px;font-size:16px">Start level ${sel}</button></div>`;}
+const spGiven=()=>S&&S.q&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.length:0;
 function answerUI(q,done){const dis=done?'disabled':'';
   if(q.ui==='choices')return `<div class="choices">${q.choices.map((c,i)=>{let cls='';if(done){if(c===q.answer)cls='right';else if(S.answers.at(-1).given===c)cls='wrong';}return `<button class="choice ${cls}" data-act="ans" data-v="${esc(c)}" ${dis}><kbd>${i+1}</kbd><span>${c}</span></button>`;}).join('')}</div>`;
   if(q.ui==='pc')return `<div class="keys pc">${PCN.map((n,p)=>{let cls=n.length>1?'sharp':'';if(done){if(p===q.answer)cls+=' right';else if(S.answers.at(-1).given===p)cls+=' wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${p}" ${dis}>${n}</button>`;}).join('')}</div>`;
   if(q.ui==='letters'){const acc=q.acc?`<div class="accrow">Accidental <div class="seg">${[[-1,'♭'],[0,'♮'],[1,'♯']].map(([a,s])=>`<button class="${S.acc===a?'on':''}" data-act="acc" data-a="${a}" ${dis} aria-label="${['flat','natural','sharp'][a+1]}">${s}</button>`).join('')}</div><span>then pick the letter</span></div>`:'';
     return acc+`<div class="keys">${'CDEFGAB'.split('').map(L=>{let cls='';if(done){const g=S.answers.at(-1).given;if(q.answer[0]===L)cls='right';else if(g&&g[0]===L)cls='wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${L}" ${dis}>${L}</button>`;}).join('')}</div>`;}
   if(q.ui==='spell'){const got=done?(S.answers.at(-1).given||[]):S.spell;
-    const slots=Array.from({length:q.need},(_,i)=>{const v=got[i],cls=done?(v===q.answer[i]?'ok':'no'):v?'':'empty';return `<div class="slot ${cls}"><span class="n">${v||'·'}</span>${done&&v!==q.answer[i]?`<span class="s">${q.answer[i]}</span>`:''}</div>`;}).join('');
+    const gv=spGiven(),slots=Array.from({length:q.need},(_,i)=>{const v=got[i],cls=(done?(v===q.answer[i]?'ok':'no'):v?'':'empty')+(i<gv?' given':'');return `<div class="slot ${cls}"><span class="n">${v||'·'}</span>${done&&v!==q.answer[i]?`<span class="s">${q.answer[i]}</span>`:''}</div>`;}).join('');
     if(q.tokens)return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="tokkeys">${q.tokens.map(t=>`<button class="key tok" data-act="sp" data-v="${esc(t)}">${t}</button>`).join('')}</div><div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Pick the numerals in order; Backspace to undo</span></div>`}`;
-    const row=(acc,lab)=>`<div class="sprow"><span class="splab">${lab}</span>${'CDEFGAB'.split('').map(L=>`<button class="key" data-act="sp" data-v="${L+acc}">${L+acc}</button>`).join('')}</div>`;
+    const root=gv?q.given[0]:null,row=(acc,lab)=>`<div class="sprow"><span class="splab">${lab}</span>${'CDEFGAB'.split('').map(L=>`<button class="key${L+acc===root?' given':''}" data-act="sp" data-v="${L+acc}"${L+acc===root?' title="the root, already in place"':''}>${L+acc}</button>`).join('')}</div>`;
     return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="spkeys">${row('','Natural')}${row('♭','Flat')}${row('♯','Sharp')}</div>
       <div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Keyboard: the letter for a natural; - or [ then the letter for a flat; = or # then the letter for a sharp; Backspace to undo</span></div>`}`;}
   if(q.ui==='fret')return '';
@@ -3235,7 +3237,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='again'){start(S.gid,S.unlocked||S.L);}
   else if(a==='ans'){const q=S.q;let v=b.dataset.v;if(q.ui==='pc')v=+v;else if(q.ui==='letters')v=v+ACC[S.acc];answer(v);}
   else if(a==='sp')spellKey(b.dataset.v);
-  else if(a==='spdel'){S.spell.pop();render();}
+  else if(a==='spdel'){if(S.spell.length>spGiven())S.spell.pop();render();}
   else if(a==='acc'){S.acc=+b.dataset.a;document.querySelectorAll('[data-act="acc"]').forEach(x=>x.classList.toggle('on',+x.dataset.a===S.acc));}
   else if(a==='hint'){S.hinted=true;render();tick();}
   else if(a==='next')nextQ();
@@ -3299,7 +3301,7 @@ document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classLis
   if(q.ui==='tap'&&k===' '){e.preventDefault();if(e.repeat)return;if(TAP)tapHit();else tapBegin();return;}
   if(q.ui==='choices'&&/^[1-9]$/.test(k)){const i=+k-1;if(i<q.choices.length)answer(q.choices[i]);return;}
   if(q.ui==='spell'){if(k==='['||k==='-'){S.acc=-1;render();return;}if(k===']'||k==='='||k==='#'){S.acc=1;render();return;}if(k==='0'){S.acc=0;render();return;}
-    if(k==='Backspace'){e.preventDefault();S.spell.pop();render();return;}if(q.tokens)return;const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1)spellKey(L);return;}
+    if(k==='Backspace'){e.preventDefault();if(S.spell.length>spGiven())S.spell.pop();render();return;}if(q.tokens)return;const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1)spellKey(L);return;}
   if(q.ui==='letters'||q.ui==='pc'){if(k==='['||k==='-'){S.acc=-1;render();return;}if(k===']'||k==='='||k==='#'){S.acc=1;render();return;}if(k==='0'){S.acc=0;render();return;}
     const L=k.toUpperCase();if('CDEFGAB'.includes(L)&&L.length===1){if(q.ui==='letters')answer(L+ACC[S.acc]);else answer(mod(NAT[LET.indexOf(L)]+S.acc,12));}}
 });

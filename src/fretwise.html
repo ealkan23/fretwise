@@ -2520,6 +2520,7 @@ const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
   if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
   if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
+  if(id==='rhythmtap'&&!(g.mig&&g.mig.ur1)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur1:1};saveLocal();}   /* user asked (5 Nov 2026): open every Time & Groove level; opened, not passed */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}

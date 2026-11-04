@@ -66,6 +66,9 @@ The user's own image `art/castle-hall.webp` (made with ChatGPT, 1536×1024; depl
 ## Streak fire (Nov 2026)
 `fireSync()` runs at the end of `render()`: in a round with `S.streak>=FIRE_ON` (5) the panel burns, growing to full at `FIRE_MAX` (20, blue). Rewritten for quality (user: “one even outlay”, not many little fires): every canvas cell outside `.stage` gets its distance d from the panel and its perimeter position s; one flame height h(s,t) runs round the whole perimeter (`fireWaves`: periodic sines with integer cycles so the outline closes, sharpened into tongues); a cell burns when d < h, its colour band from d/h through six shades (`FIRE_BANDS`, white-hot at the panel → deep red/blue at the tips) with 4×4 Bayer dithering at band edges. Streak level `FIRE.lv` (0 at 5 → 1 at 20) sets height, motion speed and canvas opacity (0.45 → 1); milestones (5, 10, 15, 20) swell and settle (`burst`); a few slow embers. The badge (`.firebadge`) is one crafted three-lick flame drawn the same way, with the streak number. The HUD stays on top (`body.onfire` outline); everything is removed when the streak breaks or the round ends; prefers-reduced-motion holds it still. The round timer is a pixel health bar (`HP_HEART`, `.hp-track`: black outline plus dark halo, segments, highlight, pointed end; drains by width; `data-hp` g/y/o/r).
 
+## One-off unlocks
+Opening levels at the user's request goes through `g.unl` (open, not passed: stats, `g.lvl` and the Path stay honest), run once in `G()` with a flag. Done so far: Time & Groove all levels (`mig.ur1`, 5 Nov 2026).
+
 ## Layout
 
 ```

@@ -50,6 +50,9 @@ If a game is answered on the guitar, every question is played or strummed into t
 ## Spelling with the root given (Nov 2026)
 `q.given` (set by `recallQ`): notes placed in the first slots when the question starts, only if they equal the first answer notes (`spGiven()`); the matching key is highlighted, Undo/Backspace cannot remove them, and the fluency target counts only the notes you enter.
 
+## Practice time (Nov 2026)
+A round's practice time is `activeMs(wall,n)` = wall clock, at most 2 min per answer (1 min floor): a tab left open no longer counts its idle hours. Sessions keep `dur` (counted) and `wall` (raw, only when capped); `g.time` sums `dur`. Migration `g.mig.t26` capped the saved rounds once and took the excess off `g.time` (the user's total went from ~2,300 to 624 min; nine rounds had been left open, one for 18 h).
+
 ## Layout
 
 ```

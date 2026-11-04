@@ -2432,6 +2432,7 @@ const CATS=[
 const gamesIn=c=>GAMES.filter(g=>g.cat===c);
 const LIMITS={relaxed:{s:20,n:'Relaxed'},std:{s:12,n:'Standard'},blitz:{s:7,n:'Blitz'},super:{s:5,n:'Super speed'},none:{s:Infinity,n:'No timer'}};
 const ROUND=12, NEED=16, PASS=.85;
+const roundMax=n=>Math.max(60000,n*120000),activeMs=(wall,n)=>Math.min(wall,roundMax(n));   /* practice time of a round: a tab left open does not count */
 /* fluency (Nov 2026): in the recall games a level also needs speed. Each clean answer stores its time as a fraction of a target;
    the median of the last 12 at that level must be at or under the target (1.0), over at least FLU_N answers.
    Targets: spelling 1 s + 0.7 s a note you enter (the given root is not counted: a triad 2.4 s, a 7th chord 3.1 s); numerals 1.5 s + 1.2 s each; name a note 3 s; click a spot 4 s;
@@ -2483,7 +2484,8 @@ function migrateReorder(id,g){const R=REORDERS[id],mp=L=>R.m[L]||L,n=GBY[id].lev
   g.mig={...(g.mig||{}),r26:1};}
 const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[id].mig.m25))migrateMerge(id);let g=STORE.games[id]||(STORE.games[id]=blank());if(id==='spelling'&&!g.v2){g=STORE.games[id]=blank();g.v2=1;}/* rebuilt game: the user chose a fresh start */if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
-  if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}return g;};
+  if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
+  if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}
 let DB=null,UID=null;
@@ -2583,8 +2585,8 @@ function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.
   else if(q.ui==='tap'&&S.tapResult){const offs=S.tapResult.per.filter(x=>x.ok).map(x=>x.off);if(offs.length)e={n:offs.length,dr:Math.round(mean(offs)),ab:Math.round(mean(offs.map(Math.abs)))};}
   if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
   if(e.rt!=null&&e.rt<30000){it.rt=(it.rt||0)+e.rt;it.rn=(it.rn||0)+1;}if(e.gp!=null){it.gp=(it.gp||0)+e.gp;it.gn=(it.gn||0)+1;}}
-function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.filter(a=>a.ok).length,ms=Math.round(S.answers.reduce((a,b)=>a+b.ms,0)/n),dur=Date.now()-S.t0;
-  g.sessions.push({t:Date.now(),L:S.L,n,c,ms,dur,sc:S.score,mode:G(S.gid).mode||'mark'});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;saveGame(S.gid);}
+function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.filter(a=>a.ok).length,ms=Math.round(S.answers.reduce((a,b)=>a+b.ms,0)/n),wall=Date.now()-S.t0,dur=activeMs(wall,n);
+  g.sessions.push({t:Date.now(),L:S.L,n,c,ms,dur,wall,sc:S.score,mode:G(S.gid).mode||'mark'});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;saveGame(S.gid);}
   view={name:'results'};render();}
 function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);if(S&&S.answers.length)finish();else{view={name:'lobby',gid:S.gid};S=null;render();}}
 
@@ -3112,7 +3114,7 @@ const isMarkTime=it=>!(it.pn&&it.pn===it.n);   // answer time means something on
 const OLDMIC=id=>id==='cr'||id==='arp';
 function trusted(v,id){const n=(OLDMIC(id)?0:v.n-(v.pn||0))+(v.qn||0),c=(OLDMIC(id)?0:v.c-(v.pc||0))+(v.qc||0);return {n,c:Math.max(0,Math.min(c,n))};}
 /* a round left open in a background tab should not count as hours of practice */
-const roundCap=ss=>Math.max(10*60000,ss.n*120000),practiceMs=g=>Math.max(0,g.time-g.sessions.reduce((a,v)=>a+Math.max(0,(v.dur||0)-roundCap(v)),0));
+
 /* items worth practising next: low (smoothed) accuracy, a recent miss, or correct but slow */
 function focusItems(g,id,minN=2){const items=Object.entries(g.items).map(([k,v])=>{const t=trusted(v,id);return {k,...v,n:t.n,c:t.c};}).filter(v=>v.n>=minN);if(!items.length)return [];
   const times=items.filter(isMarkTime).map(v=>v.ms/v.n),medT=sMed(times)||0,finds=items.filter(v=>v.gn).map(v=>v.gp/v.gn),medF=sMed(finds)||0;
@@ -3214,7 +3216,7 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),ss=g.sessions.slice(-30);
   <div class="section"><h3>Levels</h3><div class="panel lvbars">${lvRows}<div class="legend"><span><i style="background:var(--brass)"></i>mastery (last ${20} clean answers)</span><span>Dashed line = ${PASS*100}% unlock mark</span><span>Right: lifetime accuracy · answers</span></div></div></div>
   ${special}
   ${conf.length?`<div class="section"><h3>Recurring mix-ups</h3><div class="panel tablewrap"><table><thead><tr><th>Correct → you said</th><th class="n">Times</th></tr></thead><tbody>${conf.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td></tr>`).join('')}</tbody></table></div></div>`:''}
-  <div class="section"><h3>Recent rounds</h3><div class="panel tablewrap"><table><thead><tr><th>When</th><th class="n">Level</th><th>Mode</th><th class="n">Score</th><th class="n">Correct</th><th class="n">Avg</th><th class="n">Time</th></tr></thead><tbody>${g.sessions.slice(-10).reverse().map(s=>`<tr><td>${new Date(s.t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="n">${s.L}</td><td class="muted">${s.mode==='play'?'played':'marked'}</td><td class="n">${s.sc||0}</td><td class="n">${s.c}/${s.n}</td><td class="n">${(s.ms/1000).toFixed(1)}s</td><td class="n">${s.dur>roundCap(s)?'<span class="muted" title="left open">—</span>':fmtClock(s.dur)}</td></tr>`).join('')}</tbody></table></div></div>`
+  <div class="section"><h3>Recent rounds</h3><div class="panel tablewrap"><table><thead><tr><th>When</th><th class="n">Level</th><th>Mode</th><th class="n">Score</th><th class="n">Correct</th><th class="n">Avg</th><th class="n">Time</th></tr></thead><tbody>${g.sessions.slice(-10).reverse().map(s=>`<tr><td>${new Date(s.t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td class="n">${s.L}</td><td class="muted">${s.mode==='play'?'played':'marked'}</td><td class="n">${s.sc||0}</td><td class="n">${s.c}/${s.n}</td><td class="n">${(s.ms/1000).toFixed(1)}s</td><td class="n">${(s.wall||0)>s.dur?'<span class="muted" title="left open">—</span>':fmtClock(s.dur)}</td></tr>`).join('')}</tbody></table></div></div>`
   :`<div class="panel empty">No rounds played yet. <button class="btn primary small" data-act="lobby" data-g="${x.id}">Play level 1</button></div>`}
   <div class="section"><div class="confirm" id="resetbox">${view.confirm?`<b>Erase all ${x.name} progress?</b> <button class="btn small" data-act="reset-yes">Erase</button><button class="btn small ghost" data-act="reset-no">Keep it</button>`:`<button class="btn small ghost" data-act="reset">Reset ${x.name} progress</button>`}</div></div>`;}
 

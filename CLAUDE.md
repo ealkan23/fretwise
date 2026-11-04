@@ -40,6 +40,10 @@ The user writes problems in the app: a box under every answer ("Tell Claude…")
 - Leaks fixed: Chord Spelling L6/L7 formula pools; Chord–Scale quality question takes a pool (`G_cs2.quality(pool)`), characteristic notes only after spelling the modes. Hear the Progression shows Berklee names (`progName`; PROGS keys stay the stats ids). All prose numerals are Berklee (sweep fails on lower-case numerals). `bnum` spells ascending passing diminished chords ♯I°7 ♯II°7 (`DIM_UP`), `anChordOf` spells their roots with sharps.
 - Still open: the 38 old Chords in Keys answers now inside Harmony & Analysis L1–2 were given against the old broken triad questions; the user has not decided whether to drop them.
 
+## One input per game (user rule, Nov 2026)
+If a game is answered on the guitar, every question is played or strummed into the mic; if it is answered on screen, nothing is recorded. Never mix.
+`guitarMode(gid)` (mic games always; Time & Groove when `opts.tapMic`; `PLAY_GAMES` when `g.mode==='play'` — Hear the Degree is in `PLAY_GAMES` for this), `isGuitarQ`, `fitQ` (converts with `toPlay` in guitar mode, rejects what the mode cannot ask). `pickQ` only returns fitting questions; review and stretch draw only from levels the mode can ask (`levelAvail`, cached per mode). A frontier level the mode cannot ask is skipped by `modeSkip` (recorded in `g.skip`; never jumps an askable unpassed level; a skipped level counts as passed only on its own record). Lobby marks such levels “guitar only / screen only”. The sweep checks every level exists in at least one mode and that no question of the other input appears in either mode (proved by re-allowing mixing: caught in 9 games).
+
 ## Layout
 
 ```

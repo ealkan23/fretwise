@@ -53,6 +53,9 @@ If a game is answered on the guitar, every question is played or strummed into t
 ## Practice time (Nov 2026)
 A round's practice time is `activeMs(wall,n)` = wall clock, at most 2 min per answer (1 min floor): a tab left open no longer counts its idle hours. Sessions keep `dur` (counted) and `wall` (raw, only when capped); `g.time` sums `dur`. Migration `g.mig.t26` capped the saved rounds once and took the excess off `g.time` (the user's total went from ~2,300 to 624 min; nine rounds had been left open, one for 18 h).
 
+## Lobby level bars (Nov 2026)
+Each rung shows `lvMeter`: an accuracy bar (recent clean %, dark tick = unlock 85%, green tick = the game's master standard, fill green when met over ≥12), the level's own measure from `lvKind` (sampled per mode: `time` vs the fluency target for recall levels, `timing` ±ms from the click for tapped/strummed/in-time levels, `gp` s/note for played levels out of time, none for ear levels), the answers played at that level, and one caption on the frontier level saying what still blocks the unlock.
+
 ## Layout
 
 ```

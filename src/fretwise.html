@@ -38,7 +38,7 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 /* top bar */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px}
-.topnav{display:flex;gap:4px;margin-right:auto}.topnav button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;padding:6px 10px;color:var(--muted);cursor:pointer}
+.topnav{display:flex;gap:4px;margin-right:auto}@media (max-width:560px){.top .sync span,.top .mic span{display:none}.brand{font-size:21px}.topnav button{padding:6px 6px}}.topnav button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;padding:6px 10px;color:var(--muted);cursor:pointer}
 .topnav button[aria-current="page"]{color:var(--fg);border-bottom-color:var(--fg)}.topnav button:focus-visible{outline:2px solid var(--fg)}
 .brand{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase;background:none;border:0;padding:0}
 .brand span{color:var(--brass)}
@@ -84,6 +84,11 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 .rung .lv small{display:block;font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600}
 .rung b{font-weight:700}
 .rung .d{color:var(--muted);font-size:13px;min-width:0}
+.meter2{display:grid;grid-template-columns:118px 118px 54px;gap:4px 14px;align-items:end;font-size:11px;color:var(--muted)}
+.meter2 .ml{display:block;white-space:nowrap}.meter2 .ml b{color:var(--fg);font-weight:700}.meter2 .bar2{position:relative;display:block;height:6px;border-radius:3px;background:var(--sunk);margin-top:4px}
+.meter2 .bar2 i{display:block;height:100%;border-radius:3px;background:var(--brass)}.meter2 .bar2 i.good{background:var(--good)}
+.meter2 .bar2 u{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;background:var(--fg);opacity:.55;border-radius:1px}.meter2 .bar2 u.std{background:var(--good);opacity:1}
+.meter2 .mn{display:grid;justify-items:end;line-height:1.1}.meter2 .mn b{font-size:16px;color:var(--fg)}.meter2 .mcap{grid-column:1/-1;text-align:right}
 .meter{width:110px;display:grid;gap:4px;justify-items:end;font-size:11px;color:var(--muted)}
 .meter .bar{width:100%;height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
 .meter .bar i{display:block;height:100%;background:var(--brass)}
@@ -302,7 +307,7 @@ svg.chart{width:100%;display:block}
 @media (max-width:560px){
   .setup{grid-template-columns:1fr}
   .rung{grid-template-columns:44px 1fr}
-  .rung .meter{grid-column:2;justify-items:start}
+  .rung .meter{grid-column:2;justify-items:start}.rung .meter2{grid-column:2;grid-template-columns:1fr 1fr 48px}.rung .meter2 .mcap{text-align:left}
   .keys.pc{grid-template-columns:repeat(4,1fr)}
   .stage{padding:16px}
   .hud .sp{margin-left:0;width:100%}
@@ -2927,12 +2932,34 @@ const LOBBY_NOTES={
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
  rhythmtap:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Read levels show the bar before the count-in; tap-back levels play it once.'};
+/* the level's own success measure, sampled once per mode: time against the fluency target (recall), timing against the click
+   (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */
+const LVK={};function lvKind(gid,L){const k=gid+'|'+L+'|'+guitarMode(gid);if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];
+  for(const gen of lv.g){for(let t=0;t<6&&!kind;t++){try{const keep=LAST_ROOT,q=fitQ(gid,gen());LAST_ROOT=keep;if(!q)continue;
+    kind=fluTarget(gid,q)?'time':q.ui==='tap'||(q.ui==='mic'&&q.metro)?'timing':q.ui==='mic'&&STD[gid]&&STD[gid].gp?'gp':'none';}catch(e){}}if(kind)break;}
+  return LVK[k]=kind==='none'?'':kind;}
+/* lobby rung: accuracy bar (ticks: unlock line, green = master standard), the level's speed or timing bar, answers played */
+function lvMeter(x,g,L,locked,other){if(other)return `<div class="meter2"><span class="mcap">Not in this mode</span></div>`;if(locked)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;
+  const sd=STD[x.id]||{acc:PASS},m=mastery(g,L),M=lvMetrics(x.id,L),kind=lvKind(x.id,L),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
+  const bar=(lab,val,fill,ticks,good,tip)=>`<div class="mb" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
+  const acc=bar('Accuracy',m.n?Math.round(m.p*100)+'%':'—',m.n?m.p:0,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],m.n>=STD_N&&m.p>=sd.acc,
+    m.n?`${m.c} of your last ${m.n} answers clean. Unlocks the next level at ${PASS*100}% over ${NEED}+; master standard ${Math.round(sd.acc*100)}%.`:'Not played yet');
+  let sp='<div class="mb"></div>';
+  if(kind==='time'){const n=M.flu.length,r=n?med(M.flu):null,top=1/(sd.flu||1)*1.15,pc=r?Math.round((r-1)*100):0;
+    sp=bar('Speed',n<FLU_N?`${n}/${FLU_N} timed`:`${pc>0?'+':pc<0?'−':'±'}${Math.abs(pc)}%`,r&&n>=FLU_N?(1/r)/top:0,[[1/top,'','unlock: the target time'],[(1/(sd.flu||1))/top,'std',`master standard: ${Math.round((sd.flu||1)*100)}% of the target time`]],r&&n>=FLU_N&&r<=(sd.flu||1),
+      n<FLU_N?`Your clean answers are being timed: ${FLU_N-n} more and the speed check starts.`:`Median clean answer ${pc<=0?Math.abs(pc)+'% faster':pc+'% slower'} than the target time (− is faster). Unlock at the target; master standard ${Math.round((sd.flu||1)*100)}% of it.`);}
+  else if(kind==='timing'){const a=M.ab.length?Math.round(M.ab.reduce((p,q)=>p+q,0)/M.ab.length):null,S0=Math.max(100,(sd.ab||35)*3);
+    sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click; master standard ${sd.ab||35} ms.`);}
+  else if(kind==='gp'){const v=M.gp.length?med(M.gp)/1000:null,S0=Math.max(4,sd.gp*3);
+    sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s/note`,v===null?0:1-v/S0,[[1-sd.gp/S0,'std',`master standard ${sd.gp} s per note`]],v!==null&&v<=sd.gp,v===null?'Time from one played note to the next: shows after your first round.':`Median ${v.toFixed(1)} s from one played note to the next; master standard ${sd.gp} s.`);}
+  let cap='';if(L===g.lvl&&L<x.levels.length){const fl=fluency(g,x.id,L);cap=m.n<NEED?`${NEED-m.n} more answers to unlock`:m.p<PASS?`Unlocks at ${PASS*100}%`:!fl.ok?(fl.n<FLU_N?`${FLU_N-fl.n} more timed answers to unlock`:'Faster to unlock'):'';}
+  return `<div class="meter2">${acc}${sp}<div class="mn"><b>${M.n}</b><span>played</span></div>${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
   ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=(L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L))||!levelAvail(x.id,L),other=!levelAvail(x.id,L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${other?` · <i>${guitarMode(x.id)?'screen only: switch Answer by to on screen':'guitar only: switch Answer by to playing it'}</i>`:locked?' · <i>locked</i>':''}</div>
-    <div class="meter"><span>${other?'Not in this mode':locked?'Reach '+PASS*100+'% on level '+(L-1):m.n?`Last ${m.n}: ${Math.round(m.p*100)}%${L===g.lvl&&L<x.levels.length?(m.n<NEED?` · ${NEED-m.n} more to unlock`:m.p<PASS?` · need ${PASS*100}%`:''):''}${(fl=>fl.need&&(L===g.lvl||fl.n)?' · '+fluTxt(fl):'')(fluency(g,x.id,L))}`:'Not played'}</span><div class="bar"><i style="width:${locked?0:Math.round(Math.min(1,m.n/NEED)*m.p*100)}%"></i></div></div></button>`;}).join('')}</div>
+    ${lvMeter(x,g,L,locked,other)}</button>`;}).join('')}</div>
   <div class="setup"><div><div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
    <div class="eyebrow" style="margin-top:12px">Round length</div><div class="seg" role="group">${[6,12,24].map(n=>`<button class="${g.round===n?'on':''}" data-act="round" data-k="${n}">${n} questions</button>`).join('')}</div>
    <div class="eyebrow" style="margin-top:12px">Mix</div><div class="mixrow"><label class="check"><input type="checkbox" data-act="sound" ${g.sound?'checked':''}> Sound: play the answer on the piano after each question</label><label class="check"><input type="checkbox" data-act="mix" data-k="review" ${g.review?'checked':''}> Review: 25% of questions from the levels below (weakest items first)</label><label class="check"><input type="checkbox" data-act="mix" data-k="preview" ${g.preview?'checked':''}> Preview: 15% from the next level</label></div>

@@ -2752,91 +2752,64 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
   if(s.gp)p.push(`under ${s.gp.toFixed(1)} s from one played note to the next`);if(s.ab)p.push(`within ${s.ab} ms of the click on timed levels`);return p.join('; ')+': '+s.why+'.';}
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
-   Original pixel art drawn in code (not copied from references): a castle music hall at night in indigo, blue and purple. Stone walls lit by
-   moonlight, ribbed vaults, tall pointed stained-glass windows (rose, lead lines, a gold eighth note), moonbeams on a polished floor that
-   reflects them, pillars with candle sconces, chandeliers, a harp on the left and organ pipes on the right. The centre behind the game is kept
-   dark and plain for reading. Drawn once per size at 1/4 resolution (crisp pixels); only candle flames, their glow and dust in the moonbeams move. */
-const BGC={void:[7,6,26],w0:[12,10,34],w1:[19,16,50],w2:[27,23,68],w3:[37,32,90],mort:[8,7,24],s0:[38,32,96],s1:[54,46,134],s2:[78,66,172],s3:[108,94,208],
-  gB0:[20,54,140],gB1:[47,108,236],gB2:[96,184,255],gP0:[56,26,120],gP1:[118,62,190],gM:[170,60,156],gT:[40,156,148],lead:[8,7,24],gold:[232,176,74],gold2:[150,96,30],goldD:[84,54,20],
-  f0:[10,9,30],f1:[22,19,58],f2:[32,27,82],cream:[236,226,196],moon:[200,190,255]};
+   The user's own image (art/castle-hall.webp, made with ChatGPT; 1536×1024) brought to life, classy and slow: the candles breathe and glow,
+   the light beam swells and shimmers with drifting dust and the odd glint on the piano's gold, and a translucent layer of pixel clouds drifts
+   very slowly behind the glass, clipped to each pane so it never crosses the stone. All positions are in image pixels (measured from the art)
+   and mapped to the screen with the image's cover fit. The centre behind the game is softly darkened for reading. */
+const CASTLE={src:'art/castle-hall.webp',W:1536,H:1024,
+  flames:[[309,306],[337,327],[169,455],[152,634],[191,674]],                                  // candle flame tips
+  panes:[[486,205,514,304],[522,205,546,308],[555,205,590,311],[637,205,680,317],[688,205,722,322],[787,205,821,331],[831,205,866,336],[874,205,913,340],[922,205,963,344],
+         [1035,205,1072,352],[1080,205,1137,355],[1145,205,1206,358],[1215,205,1287,361],[1304,205,1357,364],[1438,205,1485,390],[1492,205,1528,392]],
+  beam:[[1536,212],[1536,332],[1480,612],[1250,548]],piano:[1236,380,1500,640]};
 let BG=null;
 setTimeout(()=>{try{bgInit();}catch(e){}},0);
 function bgWanted(){return matchMedia('(prefers-color-scheme: dark)').matches;}
 function bgInit(){const apply=()=>{if(bgWanted()){if(!BG)bgStart();}else bgStop();};apply();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply);}
 function bgStart(){const cv=document.createElement('canvas');cv.id='castlebg';cv.setAttribute('aria-hidden','true');document.body.prepend(cv);document.documentElement.classList.add('castle');
-  BG={cv,ctx:cv.getContext('2d'),base:null,w:0,h:0,key:'',flames:[],glows:[],shafts:[],motes:[],t:0,raf:0,still:matchMedia('(prefers-reduced-motion: reduce)').matches};
-  const loop=ts=>{if(!BG)return;BG.raf=requestAnimationFrame(loop);if(ts-BG.t<110)return;BG.t=ts;bgFrame();};BG.raf=requestAnimationFrame(loop);}
+  const img=new Image();BG={cv,ctx:cv.getContext('2d'),img,ok:false,t0:performance.now(),last:0,raf:0,glints:[],motes:[],nextGlint:0,gold:[],still:matchMedia('(prefers-reduced-motion: reduce)').matches,drawn:false};
+  img.onload=()=>{if(!BG)return;BG.ok=true;BG.clouds=castleClouds();BG.gold=castleGold(img);};img.src=(window.ART_DATA&&window.ART_DATA['castle-hall'])||CASTLE.src;
+  BG.motes=Array.from({length:22},()=>({u:Math.random(),v:Math.random(),p:Math.random()*6.28,k:1+Math.random()*2}));
+  const loop=ts=>{if(!BG)return;BG.raf=requestAnimationFrame(loop);if(document.hidden||ts-BG.last<33)return;BG.last=ts;if(BG.ok&&!(BG.still&&BG.drawn)){bgFrame((ts-BG.t0)/1000);BG.drawn=true;}};BG.raf=requestAnimationFrame(loop);}
 function bgStop(){if(!BG)return;cancelAnimationFrame(BG.raf);BG.cv.remove();document.documentElement.classList.remove('castle');BG=null;}
-function bgFrame(){const S=4,w=Math.ceil(innerWidth/S),h=Math.ceil(innerHeight/S),app=document.getElementById('app').getBoundingClientRect(),aL=Math.floor((app.left+8)/S),aR=Math.ceil((app.right-8)/S),key=[w,h,aL,aR].join();
-  if(key!==BG.key){BG.key=key;BG.w=w;BG.h=h;BG.cv.width=w;BG.cv.height=h;bgPaint(w,h,aL,aR);}
-  if(BG.still&&BG.drawn)return;const c=BG.ctx;c.putImageData(BG.base,0,0);BG.drawn=1;const now=performance.now()/1000,px=(x,y,col)=>{c.fillStyle=col;c.fillRect(x|0,y|0,1,1);};
-  /* warm glow round each flame, flickering */
-  for(const g of BG.glows){const r=g.r*(0.9+0.15*Math.sin(now*7+g.x));for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){const d=Math.hypot(x,y)/r;if(d>1)continue;if(BAYER[((g.y+y)&3)*4+((g.x+x)&3)]/16>(1-d)*0.55)continue;c.fillStyle=`rgba(255,170,70,${(0.16*(1-d)).toFixed(3)})`;c.fillRect(g.x+x,g.y+y,1,1);}}
-  /* candle flames: a few pixels, each frame a new shape */
-  for(const f of BG.flames){const k=(Math.random()*3)|0;px(f.x,f.y,'#fff4c2');px(f.x,f.y-1,k?'#ffd33d':'#fff4c2');if(k!==2)px(f.x,f.y-2,'#ff9d1c');if(k===1)px(f.x+(Math.random()<.5?-1:1),f.y-1,'#ff9d1c');}
-  /* dust in the moonbeams */
-  if(BG.shafts.length&&BG.motes.length<30)BG.motes.push({sh:BG.shafts[(Math.random()*BG.shafts.length)|0],u:Math.random(),v:Math.random()});
-  BG.motes=BG.motes.filter(m=>{m.v+=0.004;if(m.v>1)return false;const sh=m.sh,y=sh.y0+(sh.y1-sh.y0)*m.v,x=sh.x0+(sh.x1-sh.x0)*m.u+(y-sh.y0)*sh.slope+Math.sin(now+m.u*9)*1.5;c.fillStyle='rgba(210,200,255,0.55)';c.fillRect(x|0,y|0,1,1);return true;});}
-function bgPaint(w,h,aL,aR){const D=new Uint8ClampedArray(w*h*4),C=BGC,dith=(x,y)=>BAYER[(y&3)*4+(x&3)]/16;
-  const set=(x,y,c)=>{x|=0;y|=0;if(x<0||y<0||x>=w||y>=h)return;const o=(y*w+x)*4;D[o]=c[0];D[o+1]=c[1];D[o+2]=c[2];D[o+3]=255;};
-  const mix=(x,y,c,t)=>{x|=0;y|=0;if(x<0||y<0||x>=w||y>=h)return;const o=(y*w+x)*4;D[o]+=(c[0]-D[o])*t;D[o+1]+=(c[1]-D[o+1])*t;D[o+2]+=(c[2]-D[o+2])*t;D[o+3]=255;};
-  const hash=(a,b)=>{let v=(a*374761393+b*668265263)|0;v=(v^(v>>>13))*1274126177|0;return ((v^(v>>>16))>>>0)/4294967296;};
-  const vb=Math.round(h*0.11),fl=Math.round(h*0.85),sides=[[0,aL,-1],[aR,w,1]].filter(([a,b])=>b-a>=14);
-  BG.flames=[];BG.glows=[];BG.shafts=[];BG.motes=[];
-  /* windows: one per side, between the outer pillar and the pillar by the game */
-  const wins=sides.map(([a,b,dir])=>{const span=b-a-22,ww=Math.max(0,Math.min(30,span));if(ww<12)return null;const cx=Math.round((a+b)/2+dir*1),top=Math.round(h*0.19),bot=Math.round(h*0.68),ah=Math.round(ww*0.866);return {cx,ww,top,bot,ah,yb:top+ah,dir};}).filter(Boolean);
-  const inArch=(W,x,y,grow)=>{const hw=W.ww/2+grow;if(y>W.bot+grow||x<W.cx-hw||x>W.cx+hw)return false;if(y>=W.yb)return true;const R=W.ww+grow*2;return (x-(W.cx+hw))**2+(y-W.yb)**2<=R*R&&(x-(W.cx-hw))**2+(y-W.yb)**2<=R*R&&y>=W.top-grow;};
-  /* 1. stone wall: blocks, moonlit near the windows, dark and calm behind the game */
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const row=(y/6)|0,bx=((x+(row&1)*7)/14)|0,mort=y%6===0||(x+(row&1)*7)%14===0,inC=x>=aL&&x<aR;
-    let lit=0;for(const W of wins){const d=Math.abs(x-W.cx)/(W.ww*1.6+8),dy=y<W.top?(W.top-y)/40:y>W.bot?(y-W.bot)/40:0;lit=Math.max(lit,Math.max(0,1-d-dy));}
-    let c=inC?(mort?[10,9,30]:hash(bx,row)<.7?C.w0:[14,12,38]):(mort?C.mort:hash(bx,row)<.55?C.w1:C.w2);   /* behind the game: nearly plain dark stone */
-    if(!inC&&!mort&&dith(x,y)<lit*0.7)c=c===C.w1?C.w2:C.w3;set(x,y,c);}
-  /* 2. ribbed vaults across the top */
-  const bay=Math.max(40,Math.round(w/8));for(let x0=-((w/2)%bay);x0<w;x0+=bay){const mid=x0+bay/2,half=bay/2;
-    for(let x=Math.floor(x0);x<x0+bay;x++){const u=Math.min(1,Math.abs(x-mid)/half),ya=Math.round(vb*(1-Math.pow(1-u,0.55)));for(let y=0;y<ya;y++)set(x,y,y<ya-3?C.void:C.w0);set(x,ya,C.s2);set(x,ya+1,C.s1);set(x,ya+2,C.s0);}}
-  for(let x=0;x<w;x++){set(x,vb,C.s1);set(x,vb+1,C.s0);}
-  /* 3. polished floor in perspective, with dithered tiles and the windows' reflections */
-  const vx=w/2,vy=fl-h*0.3;for(let y=fl;y<h;y++){const t=(y-fl)/(h-fl),r=Math.floor(7*Math.pow(t,1/1.7));for(let x=0;x<w;x++){const col=Math.floor((x-vx)/(y-vy)*5),edgeR=Math.abs(7*Math.pow(t,1/1.7)-r-.5)>.45,edgeC=Math.abs(((x-vx)/(y-vy)*5)-col-.5)>.46;
-    let c=(r+col)&1?C.f1:C.f2;if(edgeR||edgeC)c=C.f0;set(x,y,c);if(y===fl)set(x,y,C.s0);
-    for(const W of wins){const dx=Math.abs(x-W.cx);if(dx<W.ww/2&&dith(x,y)<0.55*(1-t)){const g=[C.gB1,C.gP1,C.gT,C.gB2][((x-W.cx+40)>>2)&3];mix(x,y,g,0.28*(1-t));}}}}
-  /* 4. pillars: by each screen edge and by the game, with capitals, bases and candle sconces */
-  const pil=[];for(const [a,b,dir] of sides){pil.push(dir<0?a+2:b-11);pil.push(dir<0?b-12:a+3);}
-  for(const px0 of pil){for(let y=vb+2;y<fl;y++)for(let i=0;i<9;i++)set(px0+i,y,i<2?C.s2:i>6?C.s0:(i===4&&dith(px0+i,y)<.2)?C.s2:C.s1);
-    for(let y=vb+2;y<vb+6;y++)for(let i=-2;i<11;i++)set(px0+i,y,y===vb+5?C.s0:C.s2);for(let y=fl-4;y<fl;y++)for(let i=-2;i<11;i++)set(px0+i,y,y===fl-4?C.s2:C.s1);
-    const sy=Math.round(h*0.5);for(let i=1;i<8;i++)set(px0+i,sy,C.gold2);set(px0+4,sy-1,C.gold);for(let k=0;k<3;k++)set(px0+4,sy-2-k,C.cream);BG.flames.push({x:px0+4,y:sy-5});BG.glows.push({x:px0+4,y:sy-6,r:9});}
-  /* 5. stained-glass windows: stone frame, rose, panes in lead, a gold eighth note; moonbeams to the floor */
-  const NOTE=['...X...','...XX..','...X.X.','...X..X','...X..X','...X.X.','...X...','.XXX...','XXXX...','XXX....'];
-  for(const W of wins){const pal=[C.gB1,C.gP1,C.gB0,C.gT,C.gP0,C.gB2,C.gM];
-    for(let y=W.top-3;y<=W.bot+3;y++)for(let x=W.cx-W.ww/2-3;x<=W.cx+W.ww/2+3;x++){const inn=inArch(W,x,y,0);if(!inn){if(inArch(W,x,y,3))set(x,y,inArch(W,x,y,1)?C.s0:C.s2);continue;}
-      /* two lancets mirrored round the centre mullion; colour bands by row, borders in teal and violet; a pale medallion behind the note */
-      const ax=Math.abs(x-W.cx),q=W.ww/4,ci=ax<q?0:1,ri=Math.floor((y-W.yb)/9),lead=ax<.5||(W.ww>=20&&Math.abs(ax-q)<.5)||(y>W.yb&&(y-W.yb)%9===0);
-      const medal=ri===Math.floor(((W.bot-W.yb)*0.42)/9)||ri===Math.floor(((W.bot-W.yb)*0.42)/9)+1;
-      let base=y<W.yb?(ci?C.gP1:C.gB1):medal&&ci===0?C.gB2:ci===0?[C.gB1,C.gP1,C.gB0][((ri%3)+3)%3]:[C.gT,C.gP0][((ri%2)+2)%2];
-      if(y>=W.yb&&ri<2&&!medal)base=base===C.gB0?C.gB1:base===C.gB1?C.gB2:base===C.gP0?C.gP1:base===C.gP1?C.gM:base;   // brighter near the top
-      const pTop=y>W.yb&&(y-W.yb)%9===1,pLeft=ci===0?Math.abs(ax-1)<.5:Math.abs(ax-q-1)<.5;let c=lead?C.lead:base;
-      if(!lead&&(pTop||pLeft)&&dith(x,y)<.6)c=[Math.min(255,base[0]+46),Math.min(255,base[1]+46),Math.min(255,base[2]+40)];set(x,y,c);}
-    const rx=W.cx,ry=W.top+Math.round(W.ah*0.58),rr=Math.max(3,Math.round(W.ww*0.28));for(let y=-rr-1;y<=rr+1;y++)for(let x=-rr-1;x<=rr+1;x++){const d=Math.hypot(x,y);if(d>rr+1)continue;if(d>rr){set(rx+x,ry+y,C.lead);continue;}const a=Math.atan2(y,x),pet=Math.floor((a+Math.PI)/(Math.PI/4))&1;set(rx+x,ry+y,d<rr*0.3?C.gold:d<rr*0.36?C.lead:pet?C.gM:C.gP1);}
-    const ny=W.yb+Math.round((W.bot-W.yb)*0.42)-5,nx=W.cx-3;NOTE.forEach((row,j)=>[...row].forEach((ch,i)=>{if(ch==='X'){set(nx+i,ny+j,C.gold);if(row[i+1]!=='X')set(nx+i+1,ny+j,C.goldD);}}));
-    /* moonbeam: a dithered shaft from the window falling toward the middle of the floor */
-    const slope=-W.dir*0.42,y0=W.yb+2,y1=h-1;BG.shafts.push({x0:W.cx-W.ww/2,x1:W.cx+W.ww/2,y0,y1,slope});
-    for(let y=y0;y<h;y++){const off=(y-y0)*slope;for(let x=Math.floor(W.cx-W.ww/2+off);x<=W.cx+W.ww/2+off;x++){if(x>=aL-2&&x<=aR+2)continue;if(inArch(W,x,y,3))continue;const fade=1-(y-y0)/(h-y0);if(dith(x,y)<0.32)mix(x,y,C.moon,0.2*fade+0.05);}}}
-  /* 6. chandeliers: chain, gold ring, candles, warm glow */
-  for(const W of wins){const cx=W.cx,ry=Math.round(h*0.15),hw=Math.min(9,Math.round(W.ww/2)+1);for(let y=vb;y<ry-1;y++)set(cx,y,y%2?C.gold2:C.goldD);
-    for(let x=-hw;x<=hw;x++){set(cx+x,ry,C.gold);set(cx+x,ry+1,C.gold2);}for(let x=-hw+2;x<=hw-2;x++)set(cx+x,ry+2,C.goldD);set(cx,ry+3,C.gold2);set(cx,ry+4,C.gold);
-    for(let k=-2;k<=2;k++){const x=cx+Math.round(k*hw/2.3);set(x,ry-1,C.cream);set(x,ry-2,C.cream);BG.flames.push({x,y:ry-3});}BG.glows.push({x:cx,y:ry-3,r:14});}
-  /* 7. instruments: a harp on the left, organ pipes on the right */
-  for(const [a,b,dir] of sides){if(b-a<46)continue;const base=fl-1,room=base-(wins.length?Math.max(...wins.map(W=>W.bot)):0)-5;if(room<16)continue;   /* never into the windows */
-    if(dir<0){const hx=Math.round(a+(b-a)*0.36),H=Math.min(42,Math.round(h*0.2),room),top=base-H;
-      for(let y=top+5;y<=base;y++){set(hx,y,C.gold);set(hx+1,y,C.gold2);}for(let x=-2;x<=5;x++)set(hx+x,base,C.goldD);
-      const neck=x=>top+5-Math.round(4*Math.sin(Math.PI*x/18))+Math.round(x*0.35),board=x=>base-Math.round((x-2)*(H-12)/16);
-      for(let x=0;x<=18;x++){set(hx+x,neck(x),C.gold);set(hx+x,neck(x)+1,C.gold2);}for(let x=2;x<=18;x++){set(hx+x,board(x),C.gold2);set(hx+x+1,board(x),C.goldD);}
-      for(let x=4;x<=17;x+=2)for(let y=neck(x)+2;y<board(x);y++)if(dith(hx+x,y)<.7)set(hx+x,y,C.cream);}
-    else{const cx=Math.round(a+(b-a)*0.62),hs=[16,22,28,34,28,22,16].map(v=>Math.min(v,Math.round(v*h/420)+6,room-2));
-      hs.forEach((ph,i)=>{const x0=cx-12+i*4;for(let y=base-ph;y<base-2;y++){set(x0,y,C.gold);set(x0+1,y,C.gold2);set(x0+2,y,C.goldD);}set(x0,base-ph-1,C.gold2);set(x0+1,base-ph-1,C.gold);set(x0+1,base-8,C.lead);set(x0+1,base-7,C.goldD);});
-      for(let x=cx-14;x<=cx+14;x++){set(x,base-2,C.s2);set(x,base-1,C.s1);set(x,base,C.s0);}}}
-  /* 8. calm the middle and the far edges a little */
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const e=Math.min(x,w-1-x)/w;if(e<0.04&&dith(x,y)<(0.04-e)*12)mix(x,y,C.void,0.5);}
-  BG.base=new ImageData(D,w,h);}
+/* the gold of the piano (where glints may sparkle), read from the image itself */
+function castleGold(img){try{const [x0,y0,x1,y1]=CASTLE.piano,c=document.createElement('canvas');c.width=x1-x0;c.height=y1-y0;const g=c.getContext('2d');g.drawImage(img,-x0,-y0);
+  const d=g.getImageData(0,0,c.width,c.height).data,out=[];for(let y=0;y<c.height;y+=2)for(let x=0;x<c.width;x+=2){const o=(y*c.width+x)*4;if(d[o]>200&&d[o+1]>150&&d[o+2]<130)out.push([x0+x,y0+y]);}return out;}catch(e){return [];}}
+/* a seamless strip of pixel clouds in the image's night purples: puffs with a lit rim on top and a shaded underside */
+function castleClouds(){const TW=640,TH=120,c=document.createElement('canvas');c.width=TW;c.height=TH;const g=c.getContext('2d'),m=new Uint8Array(TW*TH);let sd=11;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let i=0;i<34;i++){const cx=rnd()*TW,cy=TH*(0.45+rnd()*0.4),rx=12+rnd()*30,ry=rx*(0.45+rnd()*0.2);for(let y=Math.max(0,cy-ry|0);y<Math.min(TH,cy+ry);y++)for(let dx=-rx;dx<=rx;dx++){const x=((Math.round(cx+dx)%TW)+TW)%TW;if((dx*dx)/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1&&y<cy+ry*0.55)m[y*TW+x]=1;}}
+  const body=[54,40,124],shade=[36,27,92],rim=[104,72,176];const im=g.createImageData(TW,TH),d=im.data;
+  for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){if(!m[y*TW+x])continue;const up=y>0&&m[(y-1)*TW+x],up2=y>1&&m[(y-2)*TW+x],dn=y<TH-1&&m[(y+1)*TW+x],col=!up||!up2?rim:!dn?shade:body,o=(y*TW+x)*4;d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=255;}
+  g.putImageData(im,0,0);return c;}
+function bgFrame(t){const C=CASTLE,c=BG.ctx,cv=BG.cv,dpr=Math.min(2,devicePixelRatio||1),vw=innerWidth,vh=innerHeight;
+  if(cv.width!==Math.round(vw*dpr)||cv.height!==Math.round(vh*dpr)){cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);}
+  const s=Math.max(vw/C.W,vh/C.H),iw=C.W*s,ih=C.H*s,ox=(vw-iw)/2,oy=(vh-ih)*0.3;
+  c.setTransform(dpr,0,0,dpr,0,0);c.imageSmoothingEnabled=false;c.globalCompositeOperation='source-over';c.globalAlpha=1;c.drawImage(BG.img,ox,oy,iw,ih);
+  c.setTransform(dpr*s,0,0,dpr*s,dpr*ox,dpr*oy);c.imageSmoothingEnabled=false;
+  /* clouds: a slow translucent drift behind each pane */
+  if(BG.clouds){const TW=BG.clouds.width,off=(t*2.2)%TW;c.globalAlpha=0.32;for(const [x0,y0,x1,y1] of C.panes){c.save();c.beginPath();c.rect(x0,y0,x1-x0,y1-y0);c.clip();for(let x=440-off;x<C.W;x+=TW)c.drawImage(BG.clouds,Math.round(x),236);c.restore();}c.globalAlpha=1;}
+  c.globalCompositeOperation='lighter';
+  /* the light beam: a slow swell and shimmer bands moving down it */
+  const [b0,b1,b2,b3]=C.beam,poly=()=>{c.beginPath();c.moveTo(...b0);c.lineTo(...b1);c.lineTo(...b2);c.lineTo(...b3);c.closePath();};
+  const sw=0.045+0.025*Math.sin(t*0.55)+0.012*Math.sin(t*1.7),lg=c.createLinearGradient(1536,270,1360,590);lg.addColorStop(0,`rgba(200,175,255,${sw.toFixed(3)})`);lg.addColorStop(1,'rgba(200,175,255,0)');
+  c.save();poly();c.clip();c.fillStyle=lg;c.fill();
+  for(let k=0;k<3;k++){const u=((t*0.06+k/3)%1),cx=1536+(1365-1536)*u,cy=270+(590-270)*u,rg=c.createRadialGradient(cx,cy,0,cx,cy,70);rg.addColorStop(0,'rgba(220,200,255,0.05)');rg.addColorStop(1,'rgba(220,200,255,0)');c.fillStyle=rg;c.fillRect(cx-70,cy-70,140,140);}
+  c.restore();
+  /* dust in the beam: tiny motes drifting down it and twinkling */
+  for(const m of BG.motes){m.v+=0.0012;if(m.v>1){m.v=0;m.u=Math.random();}const L=[b0[0]+(b3[0]-b0[0])*m.v,b0[1]+(b3[1]-b0[1])*m.v],R=[b1[0]+(b2[0]-b1[0])*m.v,b1[1]+(b2[1]-b1[1])*m.v],x=L[0]+(R[0]-L[0])*m.u+Math.sin(t*0.7+m.p)*3,y=L[1]+(R[1]-L[1])*m.u;
+    const a=0.18+0.32*Math.abs(Math.sin(t*m.k+m.p));c.fillStyle=`rgba(240,232,255,${a.toFixed(2)})`;c.fillRect(Math.round(x),Math.round(y),1.5,1.5);}
+  /* a glint on the piano's gold now and then */
+  if(BG.gold.length&&t>BG.nextGlint){const p=BG.gold[(Math.random()*BG.gold.length)|0];BG.glints.push({x:p[0],y:p[1],t0:t});BG.nextGlint=t+1.1+Math.random()*1.6;}
+  BG.glints=BG.glints.filter(g=>{const l=(t-g.t0)/0.9;if(l>1)return false;const a=Math.sin(Math.PI*l),r=1+Math.round(2*a);c.fillStyle=`rgba(255,244,214,${(0.9*a).toFixed(2)})`;c.fillRect(g.x,g.y,1,1);c.fillStyle=`rgba(255,214,140,${(0.55*a).toFixed(2)})`;c.fillRect(g.x-r,g.y,r,1);c.fillRect(g.x+1,g.y,r,1);c.fillRect(g.x,g.y-r,1,r);c.fillRect(g.x,g.y+1,1,r);return true;});
+  /* candles: each breathes on its own slow, irregular rhythm: glow round the flame, a warm pool on the floor, the odd flicker at the tip */
+  C.flames.forEach(([x,y],i)=>{const p=i*1.91,f=Math.max(0,Math.min(1,0.55+0.2*Math.sin(t*7.3+p)+0.13*Math.sin(t*13.1+p*2.3)+0.12*Math.sin(t*2.1+p*3.7)));
+    let rg=c.createRadialGradient(x,y+7,0,x,y+7,34);rg.addColorStop(0,`rgba(255,160,70,${(0.1+0.09*f).toFixed(3)})`);rg.addColorStop(1,'rgba(255,120,40,0)');c.fillStyle=rg;c.fillRect(x-34,y-27,68,68);
+    c.save();c.translate(x+8,y+44);c.scale(1,0.32);rg=c.createRadialGradient(0,0,0,0,0,58);rg.addColorStop(0,`rgba(255,150,70,${(0.05+0.05*f).toFixed(3)})`);rg.addColorStop(1,'rgba(255,120,40,0)');c.fillStyle=rg;c.fillRect(-58,-58,116,116);c.restore();
+    rg=c.createRadialGradient(x,y+4,0,x,y+4,6);rg.addColorStop(0,`rgba(255,236,170,${(0.18+0.22*f).toFixed(3)})`);rg.addColorStop(1,'rgba(255,200,100,0)');c.fillStyle=rg;c.fillRect(x-6,y-2,12,12);
+    if(f>0.68){c.fillStyle=`rgba(255,214,110,${(f-0.55).toFixed(2)})`;c.fillRect(x+Math.round(Math.sin(t*5+p)),y-2,1,2);}});
+  c.globalCompositeOperation='source-over';
+  /* the centre behind the game: a soft dark band so text on the page reads */
+  c.setTransform(dpr,0,0,dpr,0,0);const r=document.getElementById('app').getBoundingClientRect(),l=Math.max(0,r.left),rr=Math.min(vw,r.right),pad=110;
+  if(rr>l){const g=c.createLinearGradient(l-pad,0,rr+pad,0),a=0.62,e=pad/(rr-l+2*pad);g.addColorStop(0,'rgba(7,6,22,0)');g.addColorStop(e,`rgba(7,6,22,${a})`);g.addColorStop(1-e,`rgba(7,6,22,${a})`);g.addColorStop(1,'rgba(7,6,22,0)');c.fillStyle=g;c.fillRect(l-pad,0,rr-l+2*pad,vh);}}
 /* ============ STREAK FIRE (Nov 2026) ============
    10 in a row: the round catches fire; 20: blue flame. Pixel fire in the Doom-fire manner: heat sources on the panel's edges, each cell passes its
    heat up a row with a random sideways step and a little cooling, coloured through a 37-shade palette (black → red → orange → yellow → white).

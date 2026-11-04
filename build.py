@@ -14,6 +14,9 @@ mj = json.loads((vend / 'model' / 'model.json').read_text())
 binb = b''.join((vend / 'model' / p).read_bytes() for g in mj['weightsManifest'] for p in g['paths'])
 bp = ('<script>' + (vend / 'bp.js').read_text().replace('</script', '<\\/script') + '</script>\n'
       '<script>window.FW_BP_MODEL=' + json.dumps({'json': mj, 'bin': base64.b64encode(binb).decode()}, separators=(',', ':')) + ';</script>\n')
+# the castle background image, inline too
+art = {os.path.basename(f)[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob(str(root / 'art' / '*.webp')))}
+bp += '<script>window.ART_DATA=' + json.dumps(art, separators=(',', ':')) + ';</script>\n'
 blk = (bp + '<script>/* Salamander grand piano samples (MIT, tonejs-instruments), embedded so the file also works offline */\n'
        'window.PIANO_DATA=' + json.dumps(data, separators=(',', ':')) + ';</script>\n<script>\n/* ============ MUSIC CORE ============ */')
 anchor = '<script>\n/* ============ MUSIC CORE ============ */'

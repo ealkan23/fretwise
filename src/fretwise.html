@@ -84,11 +84,12 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 .rung .lv small{display:block;font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600}
 .rung b{font-weight:700}
 .rung .d{color:var(--muted);font-size:13px;min-width:0}
-.meter2{display:grid;grid-template-columns:118px 118px 54px;gap:4px 14px;align-items:end;font-size:11px;color:var(--muted)}
+.meter2{display:grid;gap:7px;font-size:11px;color:var(--muted);justify-items:end}.mrow{display:grid;grid-template-columns:112px 112px 48px;gap:0 12px;align-items:end}.mrow.lab{grid-template-columns:44px 112px 112px 48px}
+.mlab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;align-self:center}.mrow.cur .mlab{color:var(--fg);font-weight:700}.mrow.off .moff{grid-column:2/-1;align-self:center;font-style:italic}
 .meter2 .ml{display:block;white-space:nowrap}.meter2 .ml b{color:var(--fg);font-weight:700}.meter2 .bar2{position:relative;display:block;height:6px;border-radius:3px;background:var(--sunk);margin-top:4px}
 .meter2 .bar2 i{display:block;height:100%;border-radius:3px;background:var(--brass)}.meter2 .bar2 i.good{background:var(--good)}
 .meter2 .bar2 u{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;background:var(--fg);opacity:.55;border-radius:1px}.meter2 .bar2 u.std{background:var(--good);opacity:1}
-.meter2 .mn{display:grid;justify-items:end;line-height:1.1}.meter2 .mn b{font-size:16px;color:var(--fg)}.meter2 .mcap{grid-column:1/-1;text-align:right}
+.meter2 .mn{display:grid;justify-items:end;line-height:1.1}.meter2 .mn b{font-size:16px;color:var(--fg)}.meter2 .mcap{text-align:right}
 .meter{width:110px;display:grid;gap:4px;justify-items:end;font-size:11px;color:var(--muted)}
 .meter .bar{width:100%;height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
 .meter .bar i{display:block;height:100%;background:var(--brass)}
@@ -307,7 +308,7 @@ svg.chart{width:100%;display:block}
 @media (max-width:560px){
   .setup{grid-template-columns:1fr}
   .rung{grid-template-columns:44px 1fr}
-  .rung .meter{grid-column:2;justify-items:start}.rung .meter2{grid-column:2;grid-template-columns:1fr 1fr 48px}.rung .meter2 .mcap{text-align:left}
+  .rung .meter{grid-column:2;justify-items:start}.rung .meter2{grid-column:2;justify-items:stretch}.rung .mrow{grid-template-columns:1fr 1fr 40px}.rung .mrow.lab{grid-template-columns:40px 1fr 1fr 40px}.rung .meter2 .mcap{text-align:left}
   .keys.pc{grid-template-columns:repeat(4,1fr)}
   .stage{padding:16px}
   .hud .sp{margin-left:0;width:100%}
@@ -2487,10 +2488,22 @@ function migrateReorder(id,g){const R=REORDERS[id],mp=L=>R.m[L]||L,n=GBY[id].lev
   g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
   g.mig={...(g.mig||{}),r26:1};}
+/* one-time backfill of answers per level and input (g.lc). Guitar answers come from the played-answer log (g.pl: each answer's own level);
+   played answers older than the log are spread over the levels of the guitar rounds. Screen answers come from the screen rounds' levels.
+   Rounds no longer listed (only the last 80 are kept) are spread over the stored questions' levels. */
+function countBackfill(id,g){const x=GBY[id],lc={},add=(L,md,n)=>{if(!L||L>x.levels.length||n<=0)return;const o=lc[L]||(lc[L]={s:0,g:0});o[md]+=n;},dual=dualMode(id);
+  const spread=(by,total,md)=>{const Ls=Object.keys(by).map(Number).filter(L=>by[L]>0),tot=Ls.reduce((p,L)=>p+by[L],0);if(!tot||total<=0)return;let left=total;Ls.sort((p,q)=>by[q]-by[p]).forEach((L,i)=>{const k=i===Ls.length-1?left:Math.min(left,Math.round(total*by[L]/tot));add(L,md,k);left-=k;});};
+  const sg={},ss={};let seen=0;(g.sessions||[]).forEach(r=>{const md=x.mic?'g':x.tap?'s':(r.mode==='play'?'g':'s');(md==='g'?sg:ss)[r.L]=((md==='g'?sg:ss)[r.L]||0)+(r.n||0);seen+=r.n||0;});
+  if(dual&&!x.tap){const pc={};let pt=0;(g.pl||[]).forEach(e=>{if(e.m===0)return;pc[e.lv]=(pc[e.lv]||0)+1;pt++;});Object.entries(pc).forEach(([L,n])=>add(+L,'g',n));
+    spread(sg,Object.values(sg).reduce((p,q)=>p+q,0)-pt,'g');}else Object.entries(sg).forEach(([L,n])=>add(+L,'g',n));
+  Object.entries(ss).forEach(([L,n])=>add(+L,'s',n));
+  const by={};Object.values(g.items||{}).forEach(it=>{if(it.lv)by[it.lv]=(by[it.lv]||0)+it.n;});spread(by,(g.n||0)-seen,x.mic?'g':'s');
+  g.lc=lc;}
 const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[id].mig.m25))migrateMerge(id);let g=STORE.games[id]||(STORE.games[id]=blank());if(id==='spelling'&&!g.v2){g=STORE.games[id]=blank();g.v2=1;}/* rebuilt game: the user chose a fresh start */if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
   if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
-  if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}return g;};
+  if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
+  if(!(g.mig&&g.mig.c26)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1};saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}
 let DB=null,UID=null;
@@ -2521,9 +2534,9 @@ function rootPick(list){const g=S?G(S.gid):null,seen=(g&&g.rk)||{};let best=list
 function guitarMode(gid){const x=GBY[gid],g=G(gid);if(x.mic)return true;if(x.tap)return !!(g.opts&&g.opts.tapMic);return PLAY_GAMES.includes(gid)&&g.mode==='play';}
 const isGuitarQ=(q,gid)=>q.ui==='mic'||(q.ui==='tap'&&!!(q.mic||GBY[gid].mic));
 /* a generated question as this game's current mode would ask it, or null when it cannot be asked in that mode */
-function fitQ(gid,q){if(!q)return null;const gm=guitarMode(gid);if(gm&&PLAY_GAMES.includes(gid)){const pq=toPlay(q);if(pq)q=pq;}if(gm&&q.ui==='tap'&&GBY[gid].tap)q.mic=true;return isGuitarQ(q,gid)===gm?q:null;}
-const AVAIL={};function levelAvail(gid,L){const k=gid+'|'+L+'|'+guitarMode(gid);if(AVAIL[k]!==undefined)return AVAIL[k];const lv=GBY[gid].levels[L-1];let y=false;
-  if(lv)for(const gen of lv.g){for(let t=0;t<8&&!y;t++){try{const keep=LAST_ROOT;y=!!fitQ(gid,gen());LAST_ROOT=keep;}catch(e){}}if(y)break;}return AVAIL[k]=y;}
+function fitQ(gid,q,gm=guitarMode(gid)){if(!q)return null;if(gm&&PLAY_GAMES.includes(gid)){const pq=toPlay(q);if(pq)q=pq;}if(gm&&q.ui==='tap'&&GBY[gid].tap)q.mic=true;return isGuitarQ(q,gid)===gm?q:null;}
+const AVAIL={};function levelAvail(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;if(AVAIL[k]!==undefined)return AVAIL[k];const lv=GBY[gid].levels[L-1];let y=false;
+  if(lv)for(const gen of lv.g){for(let t=0;t<8&&!y;t++){try{const keep=LAST_ROOT;y=!!fitQ(gid,gen(),gm);LAST_ROOT=keep;}catch(e){}}if(y)break;}return AVAIL[k]=y;}
 /* the frontier level cannot be passed in this mode: move past it (it stays unpassed, playable later in the other mode) */
 function modeSkip(gid){const g=G(gid),n=GBY[gid].levels.length;let moved=false;while(g.lvl<n&&!levelAvail(gid,g.lvl)){g.skip=[...new Set([...(g.skip||[]),g.lvl])];g.lvl++;moved=true;if(g.unl)g.unl=g.unl.filter(L=>L>g.lvl);}   /* stop at the first level this mode can ask: never jump an unpassed level */if(moved)saveGame(gid);return moved;}
 function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag='';
@@ -2562,12 +2575,13 @@ function givenText(q,given){if(q.ui==='tap'){const r=S.tapResult||tapGrade(q,giv
 function spellKey(v){if(!S||S.locked||S.q.ui!=='spell')return;S.spell.push(S.q.tokens||v.length>1?v:v+ACC[S.acc]);S.acc=0;if(S.spell.length>=S.q.need)answer(S.spell.slice());else render();}
 function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame(raf);const q=S.q,ms=Math.max(0,Math.round(performance.now()-S.qt)),ok=check(q,given),g=G(S.gid);
   const it=g.items[K(q.key)]||(g.items[K(q.key)]={l:q.label,lv:q.lv,c:0,w:0,h:0,n:0,ms:0});it.l=q.label;it.lv=q.lv;it.n++;it.ms+=Math.min(ms,S.untimed?60000:S.limit);
-  if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
+  if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play||isGuitarQ(q,S.gid)){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
   if(q.ui==='tap'&&S.tapResult)tapLearnLatency(q,S.tapResult,g);
   perfLog(g,q,it,ok&&!S.hinted);
   if(!ok&&q.ui!=='multi'&&q.ui!=='mic'&&q.ui!=='tap'){const k=`${q.answerText||q.answer} → ${givenText(q,given)}`;if(given!==null){let e=g.cf.find(x=>x.k===k);if(e)e.n++;else g.cf.push(e={k,n:1});if(e.n>=3)S.diag=`This is the ${e.n===3?'third':e.n+'th'} time <b>${q.answerText||q.answer}</b> has come out as <b>${givenText(q,given)}</b>. Slow down on this pair: it will come back more often until it is clean.`;if(g.cf.length>60){g.cf.sort((a,b)=>b.n-a.n);g.cf.length=50;}}}
   if(q.rootKey){const rk=g.rk[q.rootKey]||(g.rk[q.rootKey]={n:0,c:0});rk.n++;if(ok&&!S.hinted)rk.c++;}
   const h=g.hist[q.lv]||(g.hist[q.lv]=[]);h.push(ok&&!S.hinted?1:0);if(h.length>20)h.shift();
+  {const md=isGuitarQ(q,S.gid)?'g':'s';g.lc=g.lc||{};const lc=g.lc[q.lv]||(g.lc[q.lv]={s:0,g:0});lc[md]++;g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][q.lv]||(g.hm[md][q.lv]=[]);hm.push(ok&&!S.hinted?1:0);if(hm.length>20)hm.shift();}   /* the same window per input, for the lobby's two rows */
   const ft=fluTarget(S.gid,q);if(ft&&ok&&!S.hinted&&given!==null){g.ht=g.ht||{};const a=g.ht[q.lv]||(g.ht[q.lv]=[]);a.push(Math.round(ms/ft/10)/100);if(a.length>12)a.shift();}
   g.n++;if(ok)g.c++;g.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);const frac=S.untimed?0:Math.max(0,1-ms/S.limit);S.score+=Math.round((100+50*frac)*(S.hinted?.5:1));}else S.streak=0;
@@ -2588,7 +2602,7 @@ function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.
     const offs=per.filter(x=>x.off!=null&&x.ok).map(x=>x.off);
     e={rt:first?Math.round(first.t):null,gp:gaps.length?Math.round(med(gaps)):null,n:per.length};if(offs.length){e.dr=Math.round(mean(offs));e.ab=Math.round(mean(offs.map(Math.abs)));}}
   else if(q.ui==='tap'&&S.tapResult){const offs=S.tapResult.per.filter(x=>x.ok).map(x=>x.off);if(offs.length)e={n:offs.length,dr:Math.round(mean(offs)),ab:Math.round(mean(offs.map(Math.abs)))};}
-  if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
+  if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0,m:isGuitarQ(q,S.gid)?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
   if(e.rt!=null&&e.rt<30000){it.rt=(it.rt||0)+e.rt;it.rn=(it.rn||0)+1;}if(e.gp!=null){it.gp=(it.gp||0)+e.gp;it.gn=(it.gn||0)+1;}}
 function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.filter(a=>a.ok).length,ms=Math.round(S.answers.reduce((a,b)=>a+b.ms,0)/n),wall=Date.now()-S.t0,dur=activeMs(wall,n);
   g.sessions.push({t:Date.now(),L:S.L,n,c,ms,dur,wall,sc:S.score,mode:G(S.gid).mode||'mark'});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;saveGame(S.gid);}
@@ -2934,16 +2948,27 @@ const LOBBY_NOTES={
  rhythmtap:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Read levels show the bar before the count-in; tap-back levels play it once.'};
 /* the level's own success measure, sampled once per mode: time against the fluency target (recall), timing against the click
    (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */
-const LVK={};function lvKind(gid,L){const k=gid+'|'+L+'|'+guitarMode(gid);if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];
-  for(const gen of lv.g){for(let t=0;t<6&&!kind;t++){try{const keep=LAST_ROOT,q=fitQ(gid,gen());LAST_ROOT=keep;if(!q)continue;
+const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];
+  for(const gen of lv.g){for(let t=0;t<6&&!kind;t++){try{const keep=LAST_ROOT,q=fitQ(gid,gen(),gm);LAST_ROOT=keep;if(!q)continue;
     kind=fluTarget(gid,q)?'time':q.ui==='tap'||(q.ui==='mic'&&q.metro)?'timing':q.ui==='mic'&&STD[gid]&&STD[gid].gp?'gp':'none';}catch(e){}}if(kind)break;}
   return LVK[k]=kind==='none'?'':kind;}
-/* lobby rung: accuracy bar (ticks: unlock line, green = master standard), the level's speed or timing bar, answers played */
-function lvMeter(x,g,L,locked,other){if(other)return `<div class="meter2"><span class="mcap">Not in this mode</span></div>`;if(locked)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;
-  const sd=STD[x.id]||{acc:PASS},m=mastery(g,L),M=lvMetrics(x.id,L),kind=lvKind(x.id,L),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
+/* games answered both ways get one row per input in the lobby */
+const dualMode=gid=>PLAY_GAMES.includes(gid)||(GBY[gid].tap&&!GBY[gid].mic);
+/* a level's numbers for one input. Answers logged since the per-input window began (g.hm) give the recent accuracy; older answers are split by
+   what was stored: played answers (it.pn/pc) are guitar, a level that exists in one input only belongs to it; timed logs carry m (1 = guitar),
+   older ones count as guitar except in Time & Groove, where they were taps */
+function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=levelAvail(gid,L,true),dual=dualMode(gid),both=dual&&aS&&aG;
+  const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
+  const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);
+  let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
+  if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}else if(!gm&&!plL.some(isG)&&!o.g){win=g.hist[L]||[];fb='';}}
+  const rc=win.reduce((p,q)=>p+q,0);
+  return {n,rn:win.length,rc,fb,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp)};}
+function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
   const bar=(lab,val,fill,ticks,good,tip)=>`<div class="mb" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
-  const acc=bar('Accuracy',m.n?Math.round(m.p*100)+'%':'—',m.n?m.p:0,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],m.n>=STD_N&&m.p>=sd.acc,
-    m.n?`${m.c} of your last ${m.n} answers clean. Unlocks the next level at ${PASS*100}% over ${NEED}+; master standard ${Math.round(sd.acc*100)}%.`:'Not played yet');
+  const an=M.rn,ac=M.rc,p=an?ac/an:0;
+  const acc=bar('Accuracy',an?Math.round(p*100)+'%':'—',p,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],an>=STD_N&&p>=sd.acc,
+    an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet');
   let sp='<div class="mb"></div>';
   if(kind==='time'){const n=M.flu.length,r=n?med(M.flu):null,top=1/(sd.flu||1)*1.15,pc=r?Math.round((r-1)*100):0;
     sp=bar('Speed',n<FLU_N?`${n}/${FLU_N} timed`:`${pc>0?'+':pc<0?'−':'±'}${Math.abs(pc)}%`,r&&n>=FLU_N?(1/r)/top:0,[[1/top,'','unlock: the target time'],[(1/(sd.flu||1))/top,'std',`master standard: ${Math.round((sd.flu||1)*100)}% of the target time`]],r&&n>=FLU_N&&r<=(sd.flu||1),
@@ -2952,8 +2977,12 @@ function lvMeter(x,g,L,locked,other){if(other)return `<div class="meter2"><span 
     sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click; master standard ${sd.ab||35} ms.`);}
   else if(kind==='gp'){const v=M.gp.length?med(M.gp)/1000:null,S0=Math.max(4,sd.gp*3);
     sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s/note`,v===null?0:1-v/S0,[[1-sd.gp/S0,'std',`master standard ${sd.gp} s per note`]],v!==null&&v<=sd.gp,v===null?'Time from one played note to the next: shows after your first round.':`Median ${v.toFixed(1)} s from one played note to the next; master standard ${sd.gp} s.`);}
-  let cap='';if(L===g.lvl&&L<x.levels.length){const fl=fluency(g,x.id,L);cap=m.n<NEED?`${NEED-m.n} more answers to unlock`:m.p<PASS?`Unlocks at ${PASS*100}%`:!fl.ok?(fl.n<FLU_N?`${FLU_N-fl.n} more timed answers to unlock`:'Faster to unlock'):'';}
-  return `<div class="meter2">${acc}${sp}<div class="mn"><b>${M.n}</b><span>played</span></div>${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
+  return `<div class="mrow${label?' lab':''}${label&&gm===guitarMode(x.id)?' cur':''}">${label?`<span class="mlab">${label}</span>`:''}${acc}${sp}<div class="mn"><b>${M.n}</b><span>played</span></div></div>`;}
+/* lobby rung: one row per input the game is answered with (accuracy, the level's speed or timing, answers played), and one caption on the frontier level */
+function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&!(g.unl||[]).includes(L);if(ladder)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;
+  const dual=dualMode(x.id),rows=dual?[[false,'Screen'],[true,'Guitar']].map(([gm,lab])=>levelAvail(x.id,L,gm)?lvRow(x,L,gm,lab):`<div class="mrow lab off${gm===guitarMode(x.id)?' cur':''}"><span class="mlab">${lab}</span><span class="moff">not in this input</span></div>`).join(''):lvRow(x,L,guitarMode(x.id),'');
+  let cap='';if(L===g.lvl&&L<x.levels.length&&!other){const m=mastery(g,L),fl=fluency(g,x.id,L);cap=m.n<NEED?`${NEED-m.n} more answers to unlock`:m.p<PASS?`Unlocks at ${PASS*100}%`:!fl.ok?(fl.n<FLU_N?`${FLU_N-fl.n} more timed answers to unlock`:'Faster to unlock'):'';}
+  return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
   ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}

@@ -105,9 +105,15 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 .hud .stat{font-size:12px;color:var(--muted);display:grid;line-height:1.2}
 .hud .stat b{font-family:var(--f-mono);color:var(--fg);font-size:17px;font-weight:500}
 .hud .sp{margin-left:auto;display:flex;gap:18px;align-items:center}
-.clockbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
-.clockbar i{display:block;height:100%;width:100%;background:var(--brass);transform-origin:left}
-.clockbar.low i{background:var(--bad)}
+.clockbar{display:flex;align-items:center;height:40px;margin:2px 0 6px}.clockbar[hidden]{display:none}
+.hp-heart{width:42px;height:38px;flex:none;margin-right:-9px;position:relative;z-index:2;filter:drop-shadow(0 0 1px #000)}
+.hp-track{flex:1;position:relative;height:20px;background:#ececec;box-shadow:0 0 0 3px #000,0 0 0 7px rgba(0,0,0,.72);margin:0 16px 0 0}
+.hp-track::after{content:'';position:absolute;right:-14px;top:-3px;width:14px;height:26px;background:#000;clip-path:polygon(0 0,34% 0,34% 18%,67% 18%,67% 36%,100% 36%,100% 64%,67% 64%,67% 82%,34% 82%,34% 100%,0 100%)}
+.hp-track::before{content:'';position:absolute;inset:0;z-index:2;background:repeating-linear-gradient(90deg,transparent 0 30px,rgba(0,0,0,.85) 30px 33px)}
+.clockbar i{display:block;height:100%;width:100%;position:relative;background:#3ecf2f;box-shadow:inset 0 -3px 0 rgba(0,0,0,.22)}
+.clockbar i::before{content:'';position:absolute;left:4px;right:4px;top:3px;height:3px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.8) 0 18px,transparent 18px 33px)}
+.clockbar[data-hp="y"] i{background:#ffd21f}.clockbar[data-hp="o"] i{background:#ff7a1a}.clockbar[data-hp="r"] i{background:#e8261f}
+
 .stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-top:12px;display:grid;gap:18px;position:relative;z-index:1}
 .hud,.clockbar{position:relative;z-index:2}body.onfire .hud{text-shadow:0 0 3px #000,0 1px 2px #000,0 0 8px #000}
 .firecv{position:absolute;z-index:0;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges}
@@ -2567,8 +2573,10 @@ function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S
     if(Piano.ready)go();else{S.loading=true;render();Piano.load().then(go);}}
   tick();}
 function replayAudio(){if(!S||!S.q.audio||S.locked||!Piano.ready||S.listening||S.playing)return;if(S.q.ui==='mic'){const q=S.q,d=q.audio();S.replays++;S.playing=true;render();setTimeout(()=>{if(S&&S.q===q&&!S.locked){S.playing=false;render();if(micOpt().auto)micListen();}},d*1000);return;}S.replays++;if(S.replays>=3)S.hinted=true;const d=S.q.audio();const left=S.untimed?0:Math.max(0,S.limit-(performance.now()-S.qt));S.qt=performance.now()+d*1000-(S.untimed?0:(S.limit-left));render();tick();}
+/* the round timer as a pixel health bar: black pixel outline, segments, a highlight stripe, a pointed end, a pixel heart; green → yellow → orange → red */
+const HP_HEART=(()=>{const P=['..bb.bb..','.brrbrrb.','brwrrrrdb','brrrrrrdb','.brrrrdb.','..brrdb..','...bdb...','....b....'],C={b:'#000',r:'#e8261f',w:'#fff',d:'#a3110c'};let h='<svg class="hp-heart" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true">';P.forEach((row,y)=>[...row].forEach((c,x)=>{if(C[c])h+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${C[c]}"/>`;}));return h+'</svg>';})();
 function tick(){cancelAnimationFrame(raf);const loop=()=>{if(!S||S.locked||view.name!=='play')return;const el=performance.now()-S.qt,f=Math.max(0,Math.min(1,1-el/S.limit));
-  const bar=document.getElementById('cbar');if(bar){bar.firstElementChild.style.transform=`scaleX(${f})`;bar.classList.toggle('low',f<.25);}
+  const bar=document.getElementById('cbar');if(bar){bar.querySelector('i').style.width=(f*100).toFixed(2)+'%';bar.dataset.hp=f>.6?'g':f>.35?'y':f>.15?'o':'r';}
   const ck=document.getElementById('clock');if(ck)ck.textContent=fmtClock(Date.now()-S.t0);
   if(f<=0){answer(S.q.ui==='multi'?selArr():null);return;}raf=requestAnimationFrame(loop);};raf=requestAnimationFrame(loop);}
 const fmtClock=ms=>{const s=Math.floor(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
@@ -2761,20 +2769,25 @@ function fireStop(){document.body.classList.remove('onfire');if(!FIRE)return;can
 function fireSpread(buf,W,H,step,wind,edge){for(let x=0;x<W;x++)for(let y=1;y<H;y++){const src=y*W+x,p=buf[src];if(!p){buf[src-W]=0;continue;}const r=Math.random()*4|0,dx=(r&2?1:-1)*(r&1)+(Math.random()<Math.abs(wind)?Math.sign(wind):0),dst=src-W+dx;   /* one random number drives drift and cooling together: smooth tongues, clean colour bands */
     if(dst>=0&&dst<buf.length)buf[dst]=Math.max(0,p-(r&1)*step-(edge?edge[x]:0));}}
 function firePaint(ctx,buf,W,H,pal){const img=ctx.createImageData(W,H),d=img.data;for(let i=0;i<buf.length;i++){const v=buf[i];if(!v)continue;const c=pal[Math.min(FMAX,v)],o=i*4;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=v<4?v*60:255;}return img;}
-function fireFrame(){const st=document.querySelector('.stage');if(!st){fireStop();return;}const F=FIRE,pal=F.blue?FIRE_BLUE:FIRE_RED,PX=5,MX=50,MT=96,MB=34,r=st.getBoundingClientRect(),now=performance.now();
-  const W=Math.ceil((r.width+2*MX)/PX),H=Math.ceil((r.height+MT+MB)/PX);if(W!==F.W||H!==F.H){F.W=W;F.H=H;F.buf=new Uint8Array(W*H);F.cv.width=W;F.cv.height=H;}
-  Object.assign(F.cv.style,{left:(r.left+scrollX-MX)+'px',top:(r.top+scrollY-MT)+'px',width:W*PX+'px',height:H*PX+'px'});
-  const x0=Math.round(MX/PX),y0=Math.round(MT/PX),x1=x0+Math.round(r.width/PX)-1,y1=y0+Math.round(r.height/PX)-1,buf=F.buf,burst=F.burst>0;if(burst)F.burst--;
-  /* source heat in moving clusters: two slow waves make tall tongues and low gaps travel round the panel */
-  const lv=F.lv||0,cut=Math.round((1-lv)*10);   /* smaller, cooler flames early in the streak */
+/* one step of an edge strip: heat moves from depth d to d+1 (away from the panel), drifting along the edge; bias curls it (sides: upward) */
+function stripSpread(buf,L,D,step,bias){for(let d=D-2;d>=0;d--)for(let i=0;i<L;i++){const p=buf[d*L+i];if(!p){buf[(d+1)*L+i]=0;continue;}const r=Math.random()*4|0,di=(r&2?1:-1)*(r&1)+(Math.random()<Math.abs(bias)?Math.sign(bias):0),j=i+di;if(j>=0&&j<L)buf[(d+1)*L+j]=Math.max(0,p-(r&1)*step);}}
+function fireFrame(){const st=document.querySelector('.stage');if(!st){fireStop();return;}const F=FIRE,pal=F.blue?FIRE_BLUE:FIRE_RED,PX=5,M=70,D=Math.round(M/PX),r=st.getBoundingClientRect(),now=performance.now();
+  const pw=Math.round(r.width/PX),ph=Math.round(r.height/PX),W=pw+2*D,H=ph+2*D;
+  if(W!==F.W||H!==F.H){F.W=W;F.H=H;F.cv.width=W;F.cv.height=H;F.strips={top:new Uint8Array(W*D),bot:new Uint8Array(W*D),lft:new Uint8Array(ph*D),rgt:new Uint8Array(ph*D)};}
+  Object.assign(F.cv.style,{left:(r.left+scrollX-D*PX)+'px',top:(r.top+scrollY-D*PX)+'px',width:W*PX+'px',height:H*PX+'px'});
+  const burst=F.burst>0;if(burst)F.burst--;const lv=F.lv||0,cut=Math.round((1-lv)*10),ST=F.strips;
+  /* source heat in moving clusters along each edge: tall tongues and low gaps travel round the panel */
   const heat=(k)=>{const w=Math.sin(k*.47+now*.0042)+.8*Math.sin(k*.17-now*.0027)+.4*Math.sin(k*1.1+now*.009)+(burst?1.4:0)-(1-lv)*.5;return w>.7?(burst?FMAX:FMAX-2-cut):w>.05?FMAX-4-cut:w>-.55?FMAX-13-cut:0;};
-  const yb=Math.min(H-1,y1+Math.round(MB/PX)-1);for(let x=x0-1;x<=x1+1;x++){buf[(y0-1)*W+x]=heat(x);buf[yb*W+x]=Math.max(0,heat(x+90)-8);if(burst)buf[(y0-2)*W+x]=heat(x+7);}   /* the bottom source sits below the panel so its short flames show */
-  for(let y=y0;y<=yb;y++){buf[y*W+x0-1]=heat(y+40);buf[y*W+x1+1]=heat(y+140);if(burst&&y<=y1){buf[y*W+x0-2]=heat(y+41);buf[y*W+x1+2]=heat(y+141);}}
-  fireSpread(buf,W,H,burst?2:3+Math.round((1-lv)*1),Math.sin(now*.0007)*.3);
-  for(let y=y0;y<y1;y++)buf.fill(0,y*W+x0,y*W+x1+1);                                       // the panel's inside stays clear
-  /* embers: single sparks that rise from the top edge, drift and fade */
-  if(Math.random()<(burst?.9:.35))F.embers.push({x:x0+Math.random()*(x1-x0),y:y0-6-Math.random()*6,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.6,h:FMAX-Math.random()*8});
-  const img=firePaint(F.ctx,buf,W,H,pal),d=img.data;F.embers=F.embers.filter(e=>{e.x+=e.vx+Math.sin(now*.003+e.y)*.25;e.y+=e.vy;e.h-=.7;if(e.h<10||e.y<0)return false;const i=((e.y|0)*W+(e.x|0))*4,c=pal[Math.min(FMAX,e.h|0)];if(i>=0&&i<d.length){d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;}return true;});
+  for(let i=0;i<W;i++){const on=i>=D-1&&i<=D+pw;ST.top[i]=on?heat(i):0;ST.bot[i]=on?heat(i+90):0;}
+  for(let i=0;i<ph;i++){ST.lft[i]=heat(i+40);ST.rgt[i]=heat(i+140);}
+  const step=burst?2:3+Math.round(1-lv),wind=Math.sin(now*.0007)*.3;
+  stripSpread(ST.top,W,D,step,wind);stripSpread(ST.bot,W,D,step,wind);stripSpread(ST.lft,ph,D,step,-.3);stripSpread(ST.rgt,ph,D,step,-.3);
+  /* compose: each strip mapped onto its side, depth growing away from the panel */
+  const cb=new Uint8Array(W*H),put=(x,y,v)=>{if(v&&x>=0&&y>=0&&x<W&&y<H){const k=y*W+x;if(v>cb[k])cb[k]=v;}};
+  for(let d=0;d<D;d++){for(let i=0;i<W;i++){put(i,D-1-d,ST.top[d*W+i]);put(i,D+ph+d,ST.bot[d*W+i]);}for(let i=0;i<ph;i++){put(D-1-d,D+i,ST.lft[d*ph+i]);put(D+pw+d,D+i,ST.rgt[d*ph+i]);}}
+  /* embers: sparks leaving every edge outward, fading */
+  if(Math.random()<(burst?.9:.25+.4*lv)){const e=Math.random()*4|0,u=Math.random();F.embers.push(e===0?{x:D+u*pw,y:D-4,vx:(Math.random()-.5)*.5,vy:-.6}:e===1?{x:D+u*pw,y:D+ph+3,vx:(Math.random()-.5)*.5,vy:.6}:e===2?{x:D-4,y:D+u*ph,vx:-.6,vy:-.2}:{x:D+pw+3,y:D+u*ph,vx:.6,vy:-.2});F.embers.at(-1).h=FMAX-Math.random()*8;}
+  const img=firePaint(F.ctx,cb,W,H,pal),dd=img.data;F.embers=F.embers.filter(e=>{e.x+=e.vx+Math.sin(now*.003+e.y)*.15;e.y+=e.vy;e.h-=.8;if(e.h<10||e.x<0||e.y<0||e.x>=W||e.y>=H)return false;const i=((e.y|0)*W+(e.x|0))*4,c=pal[Math.min(FMAX,e.h|0)];dd[i]=c[0];dd[i+1]=c[1];dd[i+2]=c[2];dd[i+3]=255;return true;});
   F.ctx.putImageData(img,0,0);
   /* the badge: a fire of its own in the empty space beside the panel (or over the panel's top corner when there is no room) */
   const BW=28,BH=39,room=innerWidth-r.right>200,left=room?r.right+scrollX+28:r.right+scrollX-176,top=r.top+scrollY+(room?0:-150);
@@ -3089,7 +3102,7 @@ function vPlay(){const q=S.q,g=G(S.gid),x=GBY[S.gid],done=S.locked,last=done?S.a
     ${fixBox('fixq',last.ok?'Something wrong with this question? Tell Claude… (Enter to send)':`${q.ui==='mic'?'Played it right? ':''}What went wrong? Tell Claude… (Enter to send)`)}</div>`:'';
   return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${S.L}</span>
    <div class="sp"><div class="stat">Question<b>${Math.min(S.i+(done?0:1),S.round)}/${S.round}</b></div><div class="stat">Clock<b id="clock">${fmtClock(Date.now()-S.t0)}</b></div><div class="stat">Score<b>${S.score}</b></div><div class="stat">Streak<b>${S.streak}</b></div></div></div>
-  <div class="clockbar" id="cbar" ${S.untimed?'hidden':''}><i style="transform:scaleX(${done?0:1})"></i></div>
+  <div class="clockbar hp" id="cbar" data-hp="g" ${S.untimed?'hidden':''}>${HP_HEART}<span class="hp-track"><i style="width:${done?0:100}%"></i></span></div>
   <section class="stage"><div class="qtop">${q.tag?`<span class="chip ${q.tag}">${q.tag==='review'?'Review · L'+q.lv:'Stretch · L'+q.lv}</span>`:''}<span class="muted" style="font-size:13px">${S.untimed?'No time limit':Math.round(S.limit/1000)+'s limit'}${q.audio&&q.ui!=='mic'?' · timer starts after the sound':q.ui==='mic'?' · listening stops by itself':''}</span>${S.loading?'<span class="chip">Loading piano…</span>':''}</div>
    <div class="prompt">${q.prompt}</div>${vis?`<div class="visual">${vis}</div>`:''}
    ${answerUI(q,done)}

@@ -108,7 +108,12 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 .clockbar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
 .clockbar i{display:block;height:100%;width:100%;background:var(--brass);transform-origin:left}
 .clockbar.low i{background:var(--bad)}
-.stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-top:12px;display:grid;gap:18px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-top:12px;display:grid;gap:18px;position:relative;z-index:1}
+.hud,.clockbar{position:relative;z-index:2}body.onfire .hud{text-shadow:0 0 3px #000,0 1px 2px #000,0 0 8px #000}
+.firecv{position:absolute;z-index:0;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges}
+.firebadge{position:absolute;z-index:2;pointer-events:none;width:168px;height:234px}.firebadge canvas{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.fb-txt{position:absolute;left:0;right:0;bottom:30px;display:grid;justify-items:center;line-height:.9;color:#fff;text-shadow:0 0 2px #000,2px 2px 0 #000,-2px 2px 0 #000,2px -2px 0 #000,-2px -2px 0 #000}
+.fb-txt b{font-family:var(--f-display);font-weight:800;font-size:64px;letter-spacing:.02em}.fb-txt span{font-family:var(--f-display);font-weight:800;font-size:17px;letter-spacing:.24em;text-transform:uppercase;margin-top:4px}
 .qtop{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .chip{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--sunk);color:var(--muted)}
 .chip.review{background:var(--brass-soft);color:var(--brass-ink)}
@@ -2736,12 +2741,52 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
   if(s.flu){const sec=stdSeconds(gid);p.push(`median clean answer at most ${Math.round(s.flu*100)}% of the unlock target time${s.ex?` (${s.ex})`:sec?` (about ${sec.toFixed(1)} s for a typical question)`:''}`);}
   if(s.gp)p.push(`under ${s.gp.toFixed(1)} s from one played note to the next`);if(s.ab)p.push(`within ${s.ab} ms of the click on timed levels`);return p.join('; ')+': '+s.why+'.';}
 /* ============ VIEWS ============ */
+/* ============ STREAK FIRE (Nov 2026) ============
+   10 in a row: the round catches fire; 20: blue flame. Pixel fire in the Doom-fire manner: heat sources on the panel's edges, each cell passes its
+   heat up a row with a random sideways step and a little cooling, coloured through a 37-shade palette (black → red → orange → yellow → white).
+   Source heat comes in moving clusters so tongues grow and die; embers drift up; a flare at 10 and 20. A flame badge beside the panel shows the streak.
+   Prefers-reduced-motion: drawn, then held still. */
+const FIRE_RED=[[0,0,0],[31,7,7],[47,15,7],[71,15,7],[87,23,7],[103,31,7],[119,31,7],[143,39,7],[159,47,7],[175,63,7],[191,71,7],[199,71,7],[223,79,7],[223,87,7],[223,87,7],[215,95,7],[215,95,7],[215,103,15],[207,111,15],[207,119,15],[207,127,15],[207,135,23],[199,135,23],[199,143,23],[199,151,31],[191,159,31],[191,159,31],[191,167,39],[191,167,39],[191,175,47],[183,175,47],[183,183,47],[183,183,55],[207,207,111],[223,223,159],[239,239,199],[255,255,255]];
+const FIRE_BLUE=FIRE_RED.map(([r,g,b],i)=>i>=33?[Math.round(r*.85),Math.round(g*.95),255]:[Math.min(255,b+Math.round(r*.15)),Math.round(g*.9),Math.min(255,r+20)]);
+const FMAX=FIRE_RED.length-1;let FIRE=null;
+function fireSync(){const on=view.name==='play'&&S&&S.streak>=10;if(!on){fireStop();return;}if(!FIRE)fireStart();document.body.classList.add('onfire');
+  if(FIRE.n!==S.streak){if(S.streak===10||S.streak===20)FIRE.burst=45;FIRE.n=S.streak;}FIRE.blue=S.streak>=20;FIRE.bd.querySelector('b').textContent=S.streak;FIRE.bd.classList.toggle('blue',FIRE.blue);}
+function fireStart(){const cv=document.createElement('canvas');cv.className='firecv';cv.setAttribute('aria-hidden','true');
+  const bd=document.createElement('div');bd.className='firebadge';bd.setAttribute('role','status');bd.innerHTML='<canvas aria-hidden="true"></canvas><div class="fb-txt"><b></b><span>streak</span></div>';
+  document.body.append(cv,bd);FIRE={cv,ctx:cv.getContext('2d'),bd,bcv:bd.querySelector('canvas'),buf:null,W:0,H:0,bbuf:null,t:0,ft:0,raf:0,blue:false,burst:0,n:0,embers:[],still:matchMedia('(prefers-reduced-motion: reduce)').matches,frames:0};
+  FIRE.bctx=FIRE.bcv.getContext('2d');const loop=ts=>{if(!FIRE)return;FIRE.raf=requestAnimationFrame(loop);if(ts-FIRE.t<34)return;FIRE.t=ts;if(FIRE.still&&FIRE.frames>60)return;fireFrame();FIRE.frames++;};FIRE.raf=requestAnimationFrame(loop);}
+function fireStop(){document.body.classList.remove('onfire');if(!FIRE)return;cancelAnimationFrame(FIRE.raf);FIRE.cv.remove();FIRE.bd.remove();FIRE=null;}
+/* one step of heat: every cell hands its heat to the cell above, nudged sideways by chance and by a slow wind, cooled by 0–2 (or by `cool`) */
+function fireSpread(buf,W,H,step,wind,edge){for(let x=0;x<W;x++)for(let y=1;y<H;y++){const src=y*W+x,p=buf[src];if(!p){buf[src-W]=0;continue;}const r=Math.random()*4|0,dx=(r&2?1:-1)*(r&1)+(Math.random()<Math.abs(wind)?Math.sign(wind):0),dst=src-W+dx;   /* one random number drives drift and cooling together: smooth tongues, clean colour bands */
+    if(dst>=0&&dst<buf.length)buf[dst]=Math.max(0,p-(r&1)*step-(edge?edge[x]:0));}}
+function firePaint(ctx,buf,W,H,pal){const img=ctx.createImageData(W,H),d=img.data;for(let i=0;i<buf.length;i++){const v=buf[i];if(!v)continue;const c=pal[Math.min(FMAX,v)],o=i*4;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=v<4?v*60:255;}return img;}
+function fireFrame(){const st=document.querySelector('.stage');if(!st){fireStop();return;}const F=FIRE,pal=F.blue?FIRE_BLUE:FIRE_RED,PX=5,MX=50,MT=96,MB=34,r=st.getBoundingClientRect(),now=performance.now();
+  const W=Math.ceil((r.width+2*MX)/PX),H=Math.ceil((r.height+MT+MB)/PX);if(W!==F.W||H!==F.H){F.W=W;F.H=H;F.buf=new Uint8Array(W*H);F.cv.width=W;F.cv.height=H;}
+  Object.assign(F.cv.style,{left:(r.left+scrollX-MX)+'px',top:(r.top+scrollY-MT)+'px',width:W*PX+'px',height:H*PX+'px'});
+  const x0=Math.round(MX/PX),y0=Math.round(MT/PX),x1=x0+Math.round(r.width/PX)-1,y1=y0+Math.round(r.height/PX)-1,buf=F.buf,burst=F.burst>0;if(burst)F.burst--;
+  /* source heat in moving clusters: two slow waves make tall tongues and low gaps travel round the panel */
+  const heat=(k)=>{const w=Math.sin(k*.47+now*.0042)+.8*Math.sin(k*.17-now*.0027)+.4*Math.sin(k*1.1+now*.009)+(burst?1.4:0);return w>.7?(burst?FMAX:FMAX-2):w>.05?FMAX-4:w>-.55?FMAX-13:0;};
+  const yb=Math.min(H-1,y1+Math.round(MB/PX)-1);for(let x=x0-1;x<=x1+1;x++){buf[(y0-1)*W+x]=heat(x);buf[yb*W+x]=Math.max(0,heat(x+90)-8);if(burst)buf[(y0-2)*W+x]=heat(x+7);}   /* the bottom source sits below the panel so its short flames show */
+  for(let y=y0;y<=yb;y++){buf[y*W+x0-1]=heat(y+40);buf[y*W+x1+1]=heat(y+140);if(burst&&y<=y1){buf[y*W+x0-2]=heat(y+41);buf[y*W+x1+2]=heat(y+141);}}
+  fireSpread(buf,W,H,burst?2:3,Math.sin(now*.0007)*.3);
+  for(let y=y0;y<y1;y++)buf.fill(0,y*W+x0,y*W+x1+1);                                       // the panel's inside stays clear
+  /* embers: single sparks that rise from the top edge, drift and fade */
+  if(Math.random()<(burst?.9:.35))F.embers.push({x:x0+Math.random()*(x1-x0),y:y0-6-Math.random()*6,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.6,h:FMAX-Math.random()*8});
+  const img=firePaint(F.ctx,buf,W,H,pal),d=img.data;F.embers=F.embers.filter(e=>{e.x+=e.vx+Math.sin(now*.003+e.y)*.25;e.y+=e.vy;e.h-=.7;if(e.h<10||e.y<0)return false;const i=((e.y|0)*W+(e.x|0))*4,c=pal[Math.min(FMAX,e.h|0)];if(i>=0&&i<d.length){d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;}return true;});
+  F.ctx.putImageData(img,0,0);
+  /* the badge: a fire of its own in the empty space beside the panel (or over the panel's top corner when there is no room) */
+  const BW=28,BH=39,room=innerWidth-r.right>200,left=room?r.right+scrollX+28:r.right+scrollX-176,top=r.top+scrollY+(room?0:-150);
+  Object.assign(F.bd.style,{left:left+'px',top:top+'px'});if(!F.bbuf){F.bbuf=new Uint8Array(BW*BH);F.bcv.width=BW;F.bcv.height=BH;}
+  const bb=F.bbuf;if(!F.edge)F.edge=Array.from({length:BW},(_,x)=>{const c=Math.abs(x-(BW-1)/2)/(BW/2);return c<.3?0:c<.55?.2:c<.75?.6:1.2;});
+  for(let x=0;x<BW;x++){const c=Math.abs(x-(BW-1)/2)/(BW/2),w=Math.sin(x*.9+now*.007)+Math.cos(x*.37-now*.005);const v=c>.9?0:w>-.5||burst?FMAX:FMAX-10;bb[(BH-1)*BW+x]=v;bb[(BH-2)*BW+x]=c>.75?0:v;}
+  fireSpread(bb,BW,BH,2,Math.sin(now*.0011)*.25,F.edge);F.bctx.putImageData(firePaint(F.bctx,bb,BW,BH,pal),0,0);}
+
 const app=document.getElementById('app');
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
+function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();fireSync();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 /* a level counts as passed once the ladder has moved past it, or (your own level, the top level, a level opened out of order) once its own record meets the unlock rule */
 function lvPassed(gid,L){const g=G(gid);if(L<g.lvl&&!(g.skip||[]).includes(L))return true;const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}

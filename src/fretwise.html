@@ -1512,14 +1512,14 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
    A sequence (double stops): every voicing in order, and no wrong pitched strum between the first and the last match. */
 function strumGrade(q,res){const st=(res&&res.strums)||[],seq=q.strumSeq;
   if(seq.length===1){const cands=q.strumAlts||seq;let best=null;
-    for(const x of st)for(let i=0;i<cands.length;i++){const c=chordCheck(x.act,cands[i]),sc=c.ok?1000:-(c.miss.length+c.extra.length);if(!best||sc>best.sc)best={sc,c,i};}
+    for(const x of st)for(let i=0;i<cands.length;i++){const c=chordCheck(x.act,cands[i]),sc=c.ok?1000:-(c.miss.length+c.extra.length);if(!best||sc>best.sc)best={sc,c,i,t:x.t};}
     if(best&&q.targets&&q.targets[best.i]){const a=q.targets[best.i];q.target=a.t;q.names=a.names;q.degs=a.degs;if(a.answer!==undefined)q.answer=a.answer;}
     const t=q.target,c=best?best.c:{ok:false,miss:t.slice(),extra:[],unchecked:[]};
-    return {ok:c.ok,notesOk:c.ok,timeOk:true,per:t.map(m=>({m,got:c.miss.includes(m)?null:m,ok:!c.miss.includes(m),unchecked:c.unchecked.includes(m)})),extra:c.extra,unchecked:c.unchecked,strums:st.length,firstAt:res&&res.firstAt};}
-  let i=0,wrong=0;const hit=[],uncheck=new Set();
-  for(const x of st){if(i<seq.length){const c=chordCheck(x.act,seq[i]);if(c.ok){hit.push(i);c.unchecked.forEach(m=>uncheck.add(m));i++;continue;}}if(i>0&&i<seq.length)wrong++;}
+    return {ok:c.ok,notesOk:c.ok,timeOk:true,per:t.map(m=>({m,got:c.miss.includes(m)?null:m,ok:!c.miss.includes(m),unchecked:c.unchecked.includes(m),t:best&&!c.miss.includes(m)?best.t:null})),extra:c.extra,unchecked:c.unchecked,strums:st.length,firstAt:res&&res.firstAt};}
+  let i=0,wrong=0;const hit=[],hitT={},uncheck=new Set();
+  for(const x of st){if(i<seq.length){const c=chordCheck(x.act,seq[i]);if(c.ok){hit.push(i);hitT[i]=x.t;c.unchecked.forEach(m=>uncheck.add(m));i++;continue;}}if(i>0&&i<seq.length)wrong++;}
   const ok=i===seq.length&&wrong===0;
-  return {ok,notesOk:ok,timeOk:true,per:seq.map((v,k)=>({m:q.target[k],got:hit.includes(k)?q.target[k]:null,ok:hit.includes(k)})),extra:[],wrong,unchecked:[...uncheck],strums:st.length,firstAt:res&&res.firstAt};}
+  return {ok,notesOk:ok,timeOk:true,per:seq.map((v,k)=>({m:q.target[k],got:hit.includes(k)?q.target[k]:null,ok:hit.includes(k),t:hit.includes(k)?hitT[k]:null})),extra:[],wrong,unchecked:[...uncheck],strums:st.length,firstAt:res&&res.firstAt};}
 function micGrade(q,res){if(q.walk)return walkGrade(q,res);if(q.bend)return bendGrade(q,res);if(q.strumSeq)return strumGrade(q,res);if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
     /* target m heard as g; Note Hunt: below F3 (low frets of strings 6 and 5) the octave above also counts: a laptop mic barely hears a low string's fundamental */
@@ -2961,19 +2961,26 @@ const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;
 function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=levelAvail(gid,L,true),dual=dualMode(gid),both=dual&&aS&&aG;
   const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L&&!(e.ab>1000)),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
   const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);
+  /* the stored questions at this level, split by input: played answers (pn/pc) are guitar, the rest screen */
+  const its=Object.values(g.items).filter(i=>i.lv===L);let iN=0,iC=0,iMs=0,iMsN=0;its.forEach(it=>{const gn=both?(it.pn||0):(gm?it.n:it.n),gc=both?Math.min(it.c,it.pc||0):it.c;
+    const nn=both?(gm?gn:it.n-gn):gn,cc=both?(gm?gc:it.c-gc):gc;iN+=nn;iC+=cc;if(!gm&&(!both||!it.pn)&&nn){iMs+=it.ms||0;iMsN+=it.n;}});
   let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
-  if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}else if(!gm&&!plL.some(isG)&&!o.g){win=g.hist[L]||[];fb='';}}
-  const rc=win.reduce((p,q)=>p+q,0);
-  return {n,rn:win.length,rc,fb,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
+  if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}}
+  let rn=win.length,rc=win.reduce((p,q)=>p+q,0);
+  if(!rn){const x=GBY[gid],rs=(g.sessions||[]).filter(r=>r.L===L&&(x.mic?gm:x.tap?!gm:((r.mode==='play')===!!gm))).reverse();let k=0;for(const r of rs){if(k>=20)break;rn+=r.n||0;rc+=r.c||0;k+=r.n||0;}if(rn)fb='your recent rounds on this input';}   // rounds carry level, input and score
+  if(!rn&&iN){rn=iN;rc=iC;fb='all your answers on this input';}                       // older answers, split by input
+  if(!rn&&(g.hist[L]||[]).length&&(!both||!gm)){const h=g.hist[L];rn=h.length;rc=h.reduce((p,q)=>p+q,0);fb='recent answers, both inputs';}
+  if(!n)n=fb==='all your answers on this input'?iN:rn&&!fb?rn:n;if(!n&&rn)n=rn;
+  return {n,rn,rc,fb,avg:iMsN?iMs/iMsN/1000:null,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
 function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
   const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
   const an=M.rn,ac=M.rc,p=an?ac/an:0;
   const acc=bar('Accuracy',an?Math.round(p*100)+'%':'—',p,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],an>=STD_N&&p>=sd.acc,
     an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet',`unlock ${PASS*100}% · master ${Math.round(sd.acc*100)}%`);
   let sp='<div class="mb"></div>';
-  if(kind==='time'){const n=M.flu.length,T=lvTargetSec(x.id,L),f=sd.flu||1,t=n?med(M.flu)*T:null,full=n>=FLU_N;
+  if(kind==='time'){const n=M.flu.length,T=lvTargetSec(x.id,L),f=sd.flu||1,avg=!n&&M.avg?M.avg:null,t=n?med(M.flu)*T:avg,full=n>=FLU_N;
     sp=bar('Speed',t===null?'—':t.toFixed(1)+' s',t===null?0:1-t/(2*T),[[0.5,'',`unlock: ${T.toFixed(1)} s`],[1-f/2,'std',`master: ${(f*T).toFixed(1)} s`]],full&&t<=f*T,
-      t===null?`Your typical time for a clean answer at this level shows after your first timed answers. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:`Your typical clean answer takes ${t.toFixed(1)} s${full?'':` (only ${n} timed so far; ${FLU_N} are needed before speed counts)`}. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s. The bar fills as you get faster.`,
+      t===null?`Your typical time for a clean answer at this level shows after your first timed answers. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:avg!==null?`Your average answer time so far: ${t.toFixed(1)} s (all answers; clean answers are timed from your next round on). Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:`Your typical clean answer takes ${t.toFixed(1)} s${full?'':` (only ${n} timed so far; ${FLU_N} are needed before speed counts)`}. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s. The bar fills as you get faster.`,
       `unlock ${T.toFixed(1)} s · master ${(f*T).toFixed(1)} s`,t!==null&&!full);}
   else if(kind==='timing'){const a=M.ab.length?Math.round(M.ab.reduce((p,q)=>p+q,0)/M.ab.length):null,S0=Math.max(100,(sd.ab||35)*3);
     sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click; master standard ${sd.ab||35} ms. The bar fills as you get tighter.`,`master ±${sd.ab||35} ms from the click`);}

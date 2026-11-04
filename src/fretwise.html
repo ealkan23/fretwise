@@ -2601,7 +2601,7 @@ function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.
   if(q.ui==='mic'&&S.micResult&&S.micResult.per){const per=S.micResult.per,first=per.find(x=>x.got!==null&&x.t!=null),gaps=[];
     for(let i=1;i<per.length;i++){const a=per[i-1],b=per[i];if(b.held||!a.ok||!b.ok||a.t==null||b.t==null||b.t<=a.t)continue;const gp=b.t-a.t;gaps.push(gp);
       const lab=q.degs&&q.degs[i];if(lab&&gp<20000){g.sp=g.sp||{};const s2=g.sp[lab]||(g.sp[lab]={n:0,ms:0});s2.n++;s2.ms+=Math.round(gp);}}
-    const offs=per.filter(x=>x.off!=null&&x.ok).map(x=>x.off);
+    const offs=per.filter(x=>x.off!=null&&x.ok&&x.onTime).map(x=>x.off);   /* timing = how tight the notes that landed on their click were; a missed entry (a beat or more away) is an accuracy miss, not a timing value */
     e={rt:first?Math.round(first.t):null,gp:gaps.length?Math.round(med(gaps)):null,n:per.length};if(offs.length){e.dr=Math.round(mean(offs));e.ab=Math.round(mean(offs.map(Math.abs)));}}
   else if(q.ui==='tap'&&S.tapResult){const offs=S.tapResult.per.filter(x=>x.ok).map(x=>x.off);if(offs.length)e={n:offs.length,dr:Math.round(mean(offs)),ab:Math.round(mean(offs.map(Math.abs)))};}
   if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0,m:isGuitarQ(q,S.gid)?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
@@ -2960,14 +2960,14 @@ const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;
    what was stored: played answers (it.pn/pc) are guitar, a level that exists in one input only belongs to it; timed logs carry m (1 = guitar),
    older ones count as guitar except in Time & Groove, where they were taps */
 function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=levelAvail(gid,L,true),dual=dualMode(gid),both=dual&&aS&&aG;
-  const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
+  const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L&&!(e.ab>1000)),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
   const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);
   let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
   if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}else if(!gm&&!plL.some(isG)&&!o.g){win=g.hist[L]||[];fb='';}}
   const rc=win.reduce((p,q)=>p+q,0);
   return {n,rn:win.length,rc,fb,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp)};}
 function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
-  const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span><span class="mg">${goal||''}</span></div>`;
+  const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
   const an=M.rn,ac=M.rc,p=an?ac/an:0;
   const acc=bar('Accuracy',an?Math.round(p*100)+'%':'—',p,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],an>=STD_N&&p>=sd.acc,
     an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet',`unlock ${PASS*100}% · master ${Math.round(sd.acc*100)}%`);
@@ -2983,7 +2983,7 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
   return `<div class="mrow${label?' lab':''}${label&&gm===guitarMode(x.id)?' cur':''}">${label?`<span class="mlab">${label}</span>`:''}${acc}${sp}<div class="mn"><b>${M.n}</b><span>played</span></div></div>`;}
 /* lobby rung: one row per input the game is answered with (accuracy, the level's speed or timing, answers played), and one caption on the frontier level */
 function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&!(g.unl||[]).includes(L);if(ladder)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;
-  const dual=dualMode(x.id),rows=dual?[[false,'Screen'],[true,'Guitar']].map(([gm,lab])=>levelAvail(x.id,L,gm)?lvRow(x,L,gm,lab):`<div class="mrow lab off${gm===guitarMode(x.id)?' cur':''}"><span class="mlab">${lab}</span><span class="moff">not in this input</span></div>`).join(''):lvRow(x,L,guitarMode(x.id),'');
+  const dual=dualMode(x.id),rows=dual?[[false,'Screen'],[true,'Guitar']].filter(([gm])=>levelAvail(x.id,L,gm)).map(([gm,lab])=>lvRow(x,L,gm,lab)).join(''):lvRow(x,L,guitarMode(x.id),'');   /* only the inputs the level has */
   let cap='';if(L===g.lvl&&L<x.levels.length&&!other){const m=mastery(g,L),fl=fluency(g,x.id,L);cap=m.n<NEED?`${NEED-m.n} more answers to unlock`:m.p<PASS?`Unlocks at ${PASS*100}%`:!fl.ok?(fl.n<FLU_N?`${FLU_N-fl.n} more timed answers to unlock`:'Faster to unlock'):'';}
   return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();

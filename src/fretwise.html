@@ -38,6 +38,8 @@ h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.0
 /* top bar */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px}
+.topnav{display:flex;gap:4px;margin-right:auto}.topnav button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;padding:6px 10px;color:var(--muted);cursor:pointer}
+.topnav button[aria-current="page"]{color:var(--fg);border-bottom-color:var(--fg)}.topnav button:focus-visible{outline:2px solid var(--fg)}
 .brand{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase;background:none;border:0;padding:0}
 .brand span{color:var(--brass)}
 .sync{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
@@ -238,6 +240,9 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .sk-legend{display:flex;flex-wrap:wrap;gap:8px}.sk-legend .sk-node{position:static;display:inline-flex;font-size:12px;padding:4px 10px;cursor:default}
 .sk-chip{font:inherit;font-size:12.5px;padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}.sk-chip.sk-lock{opacity:.6}
 .sk-lvok{color:var(--good)}
+.mt.good{color:var(--good);font-weight:600}.mt.bad{color:var(--bad);font-weight:600}.mts{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sk-node .lvrow{display:flex;align-items:center;gap:6px}.sk-node .lvrow .bar{flex:1}.sk-node .lvrow small{font-size:10px}
+.sk-lvtab td,.sk-lvtab th{padding-block:5px}.sk-game td{font-weight:700;padding-top:12px;border-bottom:1px solid var(--line)}
 .pathsec{margin:8px 0 26px}.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
 .stg{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);min-width:0}
 .stg b{font-family:var(--f-display);font-size:15px}.stg small{font-size:11px;color:var(--muted);letter-spacing:.04em}.stg.cur{border-color:var(--fg)}.stg.sel{box-shadow:0 0 0 2px var(--fg) inset}.stg.done b{color:var(--good)}
@@ -338,6 +343,7 @@ svg.rhy{width:100%;max-width:640px;display:block}.rh-line,.rh-bar{stroke:var(--f
 
 <header class="top"><div class="wrap">
   <button class="brand" data-act="home">Fret<span>wise</span></button>
+  <nav class="topnav" aria-label="Pages"><button data-act="home" id="nav-games">Games</button><button data-act="path" id="nav-path">Path</button></nav>
   <div class="sync" id="sync"><i></i><span>Saved on this device</span></div><div class="mic" id="mic" hidden><i></i><span>Mic off</span></div>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -2626,7 +2632,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='tree')app.innerHTML=vTree();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
+function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 /* a level counts as passed once the ladder has moved past it, or (your own level, the top level, a level opened out of order) once its own record meets the unlock rule */
 function lvPassed(gid,L){const g=G(gid);if(L<g.lvl)return true;const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}
@@ -2640,16 +2646,30 @@ function pathNext(s){const c=s.steps.filter(x=>x.done<x.n).sort((p,q)=>(q.starte
   for(const x of c){const cat=GBY[x.gid].cat;if(!cats.has(cat)){cats.add(cat);out.push(x);}if(out.length===3)break;}for(const x of c){if(out.length>=3)break;if(!out.includes(x))out.push(x);}return out;}
 function vPath(){const P=pathState(),sel=view.stage!=null?view.stage:P.cur,s=P.st[sel],nx=pathNext(s);
   const lvName=(gid,L)=>GBY[gid].levels[L-1].n;
-  return `<section class="pathsec"><div class="cathead"><div><div class="eyebrow">Your path · stage ${P.cur+1} of ${PATH.length}</div><h2>${sel===P.cur?'Now':'Stage '+(sel+1)}: ${s.n}</h2><p>${s.d}</p></div><div class="kv"><button class="btn small primary" data-act="tree">Skill tree</button></div></div>
+  return `<section class="pathsec"><div class="cathead"><div><div class="eyebrow">Your path · stage ${P.cur+1} of ${PATH.length}</div><h2>${sel===P.cur?'Now':'Stage '+(sel+1)}: ${s.n}</h2><p>${s.d}</p></div></div>
   <div class="stages">${P.st.map((x,i)=>`<button class="stg${i===sel?' sel':''}${i===P.cur?' cur':''}${x.done>=x.tot?' done':''}" data-act="stage" data-s="${i}" aria-pressed="${i===sel}"><small>Stage ${i+1}${x.done>=x.tot?' ✓':i===P.cur?' · now':''}</small><b>${x.n}</b><span class="bar"><i style="width:${Math.round(x.done/x.tot*100)}%"></i></span><small>${x.done}/${x.tot} levels</small></button>`).join('')}</div>
   ${nx.length?`<div class="eyebrow" style="margin-top:14px">${sel===P.cur?'Work on next':'Next in this stage'}</div><div class="grid nextgrid">${nx.map(x=>`<article class="card"><div class="eyebrow">${GBY[x.gid].area}</div><h3>${GBY[x.gid].name}</h3><p><b>Level ${x.go}</b> · ${lvName(x.gid,x.go)}${x.go<x.a?` <span class="muted">(opens the stage’s levels ${x.a}–${x.b})</span>`:''}</p><span class="bar"><i style="width:${Math.round(x.frac*100)}%"></i></span><div class="row"><button class="btn primary" data-act="lobby" data-g="${x.gid}" data-l="${x.go}">Play level ${x.go}</button></div></article>`).join('')}</div>`:'<p class="note">Every level of this stage is passed. Keep its games in review; move on to the next stage.</p>'}
   <details class="pathall"><summary>All of stage ${sel+1}: ${s.steps.length} games, ${s.tot} levels</summary><div class="panel tablewrap"><table><thead><tr><th>Game</th><th>Levels</th><th class="n">Passed</th><th></th></tr></thead><tbody>${s.steps.map(x=>`<tr><td>${GBY[x.gid].name}</td><td>${x.a===x.b?x.a:x.a+'–'+x.b}: ${lvName(x.gid,x.a)}${x.b>x.a?' → '+lvName(x.gid,x.b):''}</td><td class="n">${x.done}/${x.n}</td><td><button class="btn small" data-act="lobby" data-g="${x.gid}" data-l="${x.done<x.n?x.go:x.b}">${x.done<x.n?'Play':'Review'}</button></td></tr>`).join('')}</tbody></table>
   <p class="note">Nothing is locked by the path: it is the order a teacher would take you through the material, so each game prepares the next. A game’s own ladder still unlocks level by level.</p></div></details></section>`;}
+/* what success means in each game, per level: clean answers (recent window), speed vs the fluency target (recall games),
+   distance from the click (tapped and strummed games), time to find each next note (played games), and how much was played */
+function lvMetrics(gid,L){const g=G(gid),its=Object.values(g.items).filter(i=>i.lv===L),n=its.reduce((a,i)=>a+i.n,0),m=mastery(g,L),pl=(g.pl||[]).filter(e=>e.lv===L).slice(-20),fl=levelFlu(gid,L);
+  return {n,rn:m.n,rc:m.c,flu:((g.ht||{})[L]||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),an:fl?n:0,ams:fl?its.reduce((a,i)=>a+(i.ms||0),0):0};}
+function sumMetrics(ms){return ms.reduce((a,m)=>({n:a.n+m.n,rn:a.rn+m.rn,rc:a.rc+m.rc,flu:a.flu.concat(m.flu),ab:a.ab.concat(m.ab),gp:a.gp.concat(m.gp),an:a.an+m.an,ams:a.ams+m.ams}),{n:0,rn:0,rc:0,flu:[],ab:[],gp:[],an:0,ams:0});}
+function metricBits(m){const med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];},out=[];if(!m.n&&!m.rn)return [{t:'not played yet',c:'muted'}];
+  if(m.rn){const p=m.rc/m.rn;out.push({t:Math.round(p*100)+'%',c:m.rn<5?'muted':p>=PASS?'good':p<0.6?'bad':'',tip:`${m.rc} of your last ${m.rn} answers clean (target ${PASS*100}%)`});}
+  if(m.flu.length){const r=med(m.flu),p=Math.round((r-1)*100);out.push({t:`${p>0?'+':p<0?'−':'±'}${Math.abs(p)}% time`,c:r<=1?'good':r>1.4?'bad':'',tip:`median time of your clean answers ${p<=0?Math.abs(p)+'% under':p+'% over'} the target (− is faster)`});}
+  else if(m.ab.length){const a=Math.round(m.ab.reduce((x,y)=>x+y,0)/m.ab.length);out.push({t:`±${a} ms`,c:a<=35?'good':a>80?'bad':'',tip:'mean distance of your notes or taps from the click'});}
+  else if(m.gp.length){const s=med(m.gp)/1000;out.push({t:`${s.toFixed(1)} s/note`,c:s<=1.5?'good':s>4?'bad':'',tip:'median time from one played note to the next'});}
+  else if(m.an){out.push({t:`${(m.ams/m.an/1000).toFixed(1)} s avg`,c:'muted',tip:'average answer time, all answers so far; the timed target starts counting from your next clean answers'});}
+  out.push({t:`${m.n} played`,tip:'answers, all time'});return out;}
+const bitsHTML=(bs,sep=' · ')=>bs.map(b=>`<span class="mt ${b.c||''}"${b.tip?` title="${b.tip}"`:''}>${b.t}</span>`).join(sep);
 function skState(n){if(n.goal){const r=n.pre.every(p=>skState(SKBY[p]).st==='done');return {st:r?'ready':'goal',done:0,tot:0};}
   const inf=n.req.map(stepInfo),done=inf.reduce((a,x)=>a+x.done,0),tot=inf.reduce((a,x)=>a+x.n,0),started=inf.some(x=>x.started||x.done);
-  return {st:done>=tot?'done':started?'prog':n.pre.every(p=>skState(SKBY[p]).st==='done')?'avail':'lock',done,tot,inf};}
+  const met=sumMetrics(n.req.flatMap(([g,a,b])=>Array.from({length:b-a+1},(_,i)=>lvMetrics(g,a+i))));
+  return {st:done>=tot?'done':started?'prog':n.pre.every(p=>skState(SKBY[p]).st==='done')?'avail':'lock',done,tot,inf,met};}
 function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
-  const CW=200,NW=176,NH=54,RH=64,HD=30,cols=PATH.length+1,pos={};let y=0,bands='';
+  const CW=204,NW=184,NH=64,RH=74,HD=30,cols=PATH.length+1,pos={};let y=0,bands='';
   for(const [tr,tn] of SK_TRACKS){const ns=SKILLS.filter(n=>n.tr===tr),per={};ns.forEach(n=>{const c=skCol(n);per[c]=(per[c]||0)+1;});const rows=Math.max(...Object.values(per)),cnt={};
     bands+=`<div class="sk-band" style="top:${y}px;height:${HD+rows*RH+6}px"><span>${tn}</span></div>`;
     ns.forEach(n=>{const c=skCol(n),r=cnt[c]=(cnt[c]||0)+1;pos[n.id]={x:c*CW+14,y:y+HD+(r-1)*RH};});y+=HD+rows*RH+14;}
@@ -2660,19 +2680,21 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
     edges+=`<path class="sk-edge${on?' on':''}${hl?' hl':''}" d="${d}"/>`;}));
   const heads=Array.from({length:cols},(_,c)=>`<div class="sk-colhead" style="left:${c*CW+14}px;width:${NW}px" title="${c<PATH.length?PATH[c].n:'Goals'}">${c<PATH.length?'Stage '+(c+1)+' · '+PATH[c].n:'Goals'}</div>`).join('');
   const nodes=SKILLS.map(n=>{const p=pos[n.id],s=ST[n.id];return `<button class="sk-node sk-${s.st}${sel===n.id?' sel':''}" style="left:${p.x}px;top:${p.y}px;width:${NW}px;height:${NH}px" data-act="skill" data-k="${n.id}" aria-pressed="${sel===n.id}">
-    <b>${n.goal?'★ ':''}${n.n}</b><small>${n.goal?(s.st==='ready'?'ready · coming':'goal · coming'):s.st==='done'?'mastered ✓':`${s.done}/${s.tot} levels${s.st==='lock'?' · locked':''}`}</small>${n.goal?'':`<span class="bar"><i style="width:${Math.round(s.done/s.tot*100)}%"></i></span>`}</button>`;}).join('');
-  let det='<p class="note">Click a skill to see what it needs, what it opens, and to play its levels. Locked skills still open: locks only show the order.</p>';
+    <b>${n.goal?'★ ':''}${n.n}</b>${n.goal?`<small>${s.st==='ready'?'ready · coming':'goal · coming'}</small>`:`<small class="mts">${bitsHTML(metricBits(s.met))}</small><span class="lvrow"><span class="bar"><i style="width:${Math.round(s.done/s.tot*100)}%"></i></span><small>${s.done}/${s.tot} lv</small></span>`}</button>`;}).join('');
+  let det='';
   if(sel){const n=SKBY[sel],s=ST[sel],kids=SKILLS.filter(k=>k.pre.includes(sel)),chip=k=>`<button class="sk-chip sk-${ST[k.id].st}" data-act="skill" data-k="${k.id}">${k.goal?'★ ':''}${k.n}</button>`;
     det=`<div class="panel"><div class="eyebrow">${SK_TRACKS.find(t=>t[0]===n.tr)[1]} · ${n.goal?'goal':'stage '+(skCol(n)+1)}</div><h2 style="margin:4px 0 6px">${n.goal?'★ ':''}${n.n}</h2><p style="margin:0 0 10px">${n.d}</p>
      <div class="kv" style="flex-wrap:wrap;gap:6px 10px"><span>Builds on</span>${n.pre.length?n.pre.map(p=>chip(SKBY[p])).join(''):'<span class="muted">nothing: start here</span>'}</div>
      <div class="kv" style="flex-wrap:wrap;gap:6px 10px;margin-top:6px"><span>Opens</span>${kids.length?kids.map(chip).join(''):'<span class="muted">—</span>'}</div>
-     ${n.goal?`<p class="note" style="margin-top:12px">Not playable yet: this is where the tracks lead. ${s.st==='ready'?'You have every skill it needs.':''}</p>`:`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Game</th><th>Levels</th><th class="n">Passed</th><th></th></tr></thead><tbody>${s.inf.map(x=>`<tr><td>${GBY[x.gid].name}</td><td>${Array.from({length:x.n},(_,i)=>x.a+i).map(L=>`<span class="${lvPassed(x.gid,L)?'sk-lvok':'muted'}">${lvPassed(x.gid,L)?'✓':'○'} ${L} ${GBY[x.gid].levels[L-1].n}</span>`).join('<br>')}</td><td class="n">${x.done}/${x.n}</td><td><button class="btn small${x.done<x.n?' primary':''}" data-act="lobby" data-g="${x.gid}" data-l="${x.done<x.n?x.go:x.b}">${x.done<x.n?'Play level '+x.go:'Review'}</button></td></tr>`).join('')}</tbody></table></div>`}</div>`;}
-  const cnt=k=>SKILLS.filter(n=>!n.goal&&ST[n.id].st===k).length;
-  return `<div class="head"><div><div class="eyebrow">The path, as skills</div><h1>Skill tree</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button></div></div>
-  <p class="lobbynote">Every level of every game sits in one skill. A skill is mastered when all its levels are passed; the lines show what each skill builds on inside its track, and a selected skill also shows its links to the other tracks. Mastered <b>${cnt('done')}</b> · in progress <b>${cnt('prog')}</b> · ready to start <b>${cnt('avail')}</b> · locked <b>${cnt('lock')}</b>.</p>
-  <div class="sk-legend"><span class="sk-node sk-done">mastered</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready</span><span class="sk-node sk-lock">locked (still opens)</span><span class="sk-node sk-goal">goal · coming</span></div>
+     ${n.goal?`<p class="note" style="margin-top:12px">Not playable yet: this is where the tracks lead. ${s.st==='ready'?'You have every skill it needs.':''}</p>`:`<div class="tablewrap" style="margin-top:12px"><table class="sk-lvtab"><thead><tr><th>Level</th><th class="n">Played</th><th class="n">Clean</th><th class="n">Speed / timing</th><th></th></tr></thead><tbody>${s.inf.map(x=>`<tr class="sk-game"><td colspan="5">${GBY[x.gid].name}</td></tr>`+Array.from({length:x.n},(_,i)=>x.a+i).map(L=>{const m=lvMetrics(x.gid,L),bs=metricBits(m),ps=lvPassed(x.gid,L),op=lvOpen(x.gid,L),cur=L===G(x.gid).lvl;const acc=m.rn?bs[0]:null,sp=bs.find(b=>/time|ms|note|avg/.test(b.t));
+       return `<tr><td><span class="${ps?'sk-lvok':cur?'':'muted'}">${ps?'✓':cur?'●':'○'} ${L} ${GBY[x.gid].levels[L-1].n}</span></td><td class="n">${m.n||'—'}</td><td class="n">${acc?bitsHTML([acc]):'—'}</td><td class="n">${sp?bitsHTML([sp]):'—'}</td><td>${op?`<button class="btn small${cur?' primary':''}" data-act="lobby" data-g="${x.gid}" data-l="${L}">Play</button>`:'<span class="muted">locked</span>'}</td></tr>`;}).join('')).join('')}</tbody></table></div>`}</div>`;}
+  return `<div class="section"><h2 style="margin:0 0 4px">Skill tree</h2>
+  <p class="lobbynote">Every level of every game sits in one skill; lines show what each skill builds on (click a skill to see its links to the other tracks and play its levels).</p>
+  <p class="note sk-key">On each skill: <b>%</b> clean answers lately (target ${PASS*100}%) · <b>time</b> your median answer time against the target, − is faster · <b>± ms</b> how far your notes or taps land from the click · <b>s/note</b> time to find each next note · <b>s avg</b> average answer time (shown until the timed target has data) · <b>played</b> answers so far · the bar is levels passed. Green is on target, red needs work.</p>
+  <div class="sk-legend"><span class="sk-node sk-done">all levels passed</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready to start</span><span class="sk-node sk-lock">not yet (still opens)</span><span class="sk-node sk-goal">goal · coming</span></div>
   <div class="sk-wrap"><div class="sk-canvas" style="width:${W}px;height:${H+24}px">${heads}<div class="sk-inner" style="top:24px">${bands}<svg class="sk-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${edges}</svg>${nodes}</div></div></div>
-  <div class="section" id="skdet">${det}</div>`;}
+  <div class="section" id="skdet">${det}</div></div>`;}
+function vPathPage(){return `<div class="head"><div><div class="eyebrow">Progress across all games</div><h1>Your path</h1></div></div>${vPath()}${vTree()}`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 4–14 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>
@@ -2680,7 +2702,7 @@ function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.
   ${CK_TAKES!==null&&ckDays()>=CK_DUE_DAYS?`<div class="panel ckdue"><b>${ckDays()===Infinity?'Record your first musical checkup':'A musical checkup is due'}</b> · ${ckDays()===Infinity?'six short recordings, so in a month you can hear what changed.':`your last one was ${Math.floor(ckDays())} days ago.`} <button class="btn small primary" data-act="checkups">Open checkups</button></div>`:''}
   ${micErr?`<div class="warn">${micErr}</div>`:''}${CLOUD_MSG?`<div class="warn">${CLOUD_MSG} Your cloud progress is untouched; click the sync label at the top to retry, or reload the page.</div>`:''}
   <nav class="catnav"><button class="${only?'':'on'}" data-act="cat" data-c="">All areas</button>${CATS.map(c=>`<button class="${only===c.id?'on':''}" data-act="cat" data-c="${c.id}">${c.name}</button>`).join('')}</nav></section>
-  ${only?'':vPath()}
+
   ${CATS.filter(c=>!only||c.id===only).map(c=>{const cs=catStats(c.id);return `<section class="catsec"><div class="cathead"><div><h2>${c.name}</h2><p>${c.desc}</p></div><div class="kv"><span>Accuracy <b>${cs.n?pct(cs.c,cs.n)+'%':'—'}</b></span><span>Answered <b>${cs.n}</b></span><span>Avg level <b>${cs.n?cs.lv.toFixed(1):'—'}</b></span></div></div>
    <div class="grid">${gamesIn(c.id).map(x=>{const g=G(x.id);return `<article class="card"><div class="eyebrow">${x.area}${x.mic?' · microphone':x.tap?' · tap':g.mode==='play'?' · playing':x.cat==='ear'?' · sound':''}</div><h2>${x.name}</h2><p>${x.desc}</p>${pips(g.lvl,x.levels.length)}
    <div class="kv"><span>Accuracy <b>${g.n?pct(g.c,g.n)+'%':'—'}</b></span><span>Answered <b>${g.n}</b></span><span>Best streak <b>${g.best||0}</b></span></div>
@@ -2813,14 +2835,11 @@ const LOBBY_NOTES={
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
  rhythmtap:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Read levels show the bar before the count-in; tap-back levels play it once.'};
-function lobbyPath(x,g){const P=pathState(),si=stageOf(x.id,Math.min(g.lvl,x.levels.length));if(si<0)return '';const mates=PATH[si].steps.filter(s=>s[0]!==x.id);
-  return `<p class="lobbynote pathnote"><b>Path:</b> your level ${g.lvl} here is in stage ${si+1}, <i>${PATH[si].n}</i>${si>P.cur?` (you are in stage ${P.cur+1}: finishing it first makes this easier)`:''}. Works together with: ${mates.slice(0,8).map(s=>`<button class="linkbtn" data-act="lobby" data-g="${s[0]}">${GBY[s[0]].name} ${s[1]===s[2]?s[1]:s[1]+'–'+s[2]}</button>`).join(' · ')}</p>`;}
-let pathCur=0;
-function vLobby(){const x=GBY[view.gid],g=G(x.id);pathCur=pathState().cur;const sel=view.sel||Math.min(g.last||g.lvl,g.lvl);view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
+function vLobby(){const x=GBY[view.gid],g=G(x.id);const sel=view.sel||Math.min(g.last||g.lvl,g.lvl);view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
-  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${lobbyPath(x,g)}
+  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
-    <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${locked?' · <i>locked</i>':''}${(si=>si>=0?` <span class="stgtag${si>pathCur?' later':''}" title="${PATH[si].n}">Stage ${si+1}</span>`:'')(stageOf(x.id,L))}</div>
+    <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${locked?' · <i>locked</i>':''}</div>
     <div class="meter"><span>${locked?'Reach '+PASS*100+'% on level '+(L-1):m.n?`Last ${m.n}: ${Math.round(m.p*100)}%${L===g.lvl&&L<x.levels.length?(m.n<NEED?` · ${NEED-m.n} more to unlock`:m.p<PASS?` · need ${PASS*100}%`:''):''}${(fl=>fl.need&&(L===g.lvl||fl.n)?' · '+fluTxt(fl):'')(fluency(g,x.id,L))}`:'Not played'}</span><div class="bar"><i style="width:${locked?0:Math.round(Math.min(1,m.n/NEED)*m.p*100)}%"></i></div></div></button>`;}).join('')}</div>
   <div class="setup"><div><div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
    <div class="eyebrow" style="margin-top:12px">Round length</div><div class="seg" role="group">${[6,12,24].map(n=>`<button class="${g.round===n?'on':''}" data-act="round" data-k="${n}">${n} questions</button>`).join('')}</div>
@@ -3115,8 +3134,8 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
   if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
-  else if(a==='stage'){view.stage=+b.dataset.s;render();}
-  else if(a==='tree'){view={name:'tree'};render();window.scrollTo(0,0);}
+  else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}
+  else if(a==='tree'||a==='path'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}
   else if(a==='skill'){const sx=document.querySelector('.sk-wrap')?.scrollLeft||0;view.skill=b.dataset.k;render();const w=document.querySelector('.sk-wrap');if(w)w.scrollLeft=sx;document.getElementById('skdet')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='sel'){view.sel=+b.dataset.l;render();}

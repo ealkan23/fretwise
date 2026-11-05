@@ -79,6 +79,7 @@ html.castle{background:#07061a}html.castle body{background:transparent}html.cast
 .head h1{font-size:clamp(30px,5vw,44px);font-weight:800}
 .head .sp{margin-left:auto;display:flex;gap:8px}
 .ladder{display:grid;gap:8px}
+.formchart{display:flex;flex-wrap:wrap;gap:6px}.formchart .fbar{border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-weight:600;min-width:52px;text-align:center}.formchart .fbar small{display:block;font-weight:400;color:var(--muted);font-size:10px}
 .rhylines svg{display:block}.tok.music,.spellslots.music .slot .n{font-family:var(--f-music),serif;font-size:21px;letter-spacing:.04em}.st-dotd{fill:var(--fg)}.st-flag{fill:var(--fg)}
 .rung{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
 .rung.sel{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
@@ -1393,7 +1394,11 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(done)return stopListening(false,!any);requestAnimationFrame(step);};requestAnimationFrame(step);}
 /* silent: stopped on its own without hearing anything; the question is not graded.
    With Basic Pitch the whole take is read once more before grading (a fraction of a second). */
-function stopListening(cancel,silent){if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const L=LS;LS=null;
+let CLK=null;
+/* a slow click under untimed played questions (option, not graded) */
+function clickRun(bpm,beats){clickStop();const c=Piano.ac(),beat=60/bpm,t0=c.currentTime+0.1,nodes=[];for(let i=0;i<beats;i++){const o=c.createOscillator(),g=c.createGain(),t=t0+i*beat;o.type='sine';o.frequency.setValueAtTime(i%4===0?1760:1320,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(i%4===0?0.35:0.22,t+0.002);g.gain.exponentialRampToValueAtTime(0.0001,t+0.06);o.connect(g).connect(c.destination);o.start(t);o.stop(t+0.08);nodes.push(o);}CLK={nodes};}
+function clickStop(){if(!CLK)return;CLK.nodes.forEach(o=>{try{o.stop();}catch(e){}});CLK=null;}
+function stopListening(cancel,silent){clickStop();if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const L=LS;LS=null;
   const fin=notes=>{if(cancel)return;L.onDone({curve:L.curve?L.frames.filter(f=>f.m!=null&&f.t>=300).map(f=>({t:f.t,m:f.m})):null,notes:notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:n.t,dur:n.dur})),onsets:L.ons,firstAt:L.firstAt,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!L.ons.length&&!notes.length});};
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
@@ -1518,7 +1523,8 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   const got=res=>{if(res.silent){S.micMsg='Nothing heard. Check that the level bar moves when you play, then press Listen (Space) again.';render();return;}answer(res);};
   const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,pcs:q.playAll?new Set(t.map(m=>mod(m,12))):null,hold:voice?600:400,limit:S.untimed?0:S.limit};
   if(q.bend){startListening(got,1,{...o,bp:false,curve:true,hold:{release:4500,prebend:4500,bendvib:4000}[q.bend]||3000,wait:15000,cap:12000});return;}
-  if(q.strumSeq){startListening(got,q.strumSeq.length,{...o,chord:q.strumSeq.length,wait:15000,cap:q.strumSeq.length>1?40000:20000});return;}
+  if(!q.metro&&!q.bend&&guitar&&(G(S.gid).opts||{}).click)clickRun((G(S.gid).opts||{}).bpm||80,96);
+  if(q.strumSeq){startListening(got,q.strumSeq.length,{...o,chord:q.strumSeq.length,wait:15000,cap:q.strumSeq.length>1?Math.max(40000,q.strumSeq.length*4000):20000});return;}
   if(q.metro){const beat=60/q.metro,t0=0.1,last=q.grid?q.grid.at(-1):t.length-1;for(let i=0;i<4+Math.ceil(last)+2;i++)Piano.tick(t0+i*beat,i%4===0);const beatStart=(4*beat+t0)*1000;
     startListening(got,n,{...o,beat:beat*1000,beatStart,endAt:beatStart+(last+2)*beat*1000,gap:4000,wait:beatStart+(last+2)*beat*1000});}
   else startListening(got,n,{...o,isDone:n>1?(notes=>micGrade(q,{notes}).ok):null,gap:n>1?7000:2500,cap:n>1?Math.max(60000,n*7000):25000});});}
@@ -1531,7 +1537,7 @@ function strumGrade(q,res){const st=(res&&res.strums)||[],seq=q.strumSeq;
     const t=q.target,c=best?best.c:{ok:false,miss:t.slice(),extra:[],unchecked:[]};
     return {ok:c.ok,notesOk:c.ok,timeOk:true,per:t.map(m=>({m,got:c.miss.includes(m)?null:m,ok:!c.miss.includes(m),unchecked:c.unchecked.includes(m),t:best&&!c.miss.includes(m)?best.t:null})),extra:c.extra,unchecked:c.unchecked,strums:st.length,firstAt:res&&res.firstAt};}
   let i=0,wrong=0;const hit=[],hitT={},uncheck=new Set();
-  for(const x of st){if(i<seq.length){const c=chordCheck(x.act,seq[i]);if(c.ok){hit.push(i);hitT[i]=x.t;c.unchecked.forEach(m=>uncheck.add(m));i++;continue;}}if(i>0&&i<seq.length)wrong++;}
+  for(const x of st){if(i<seq.length){const cands=q.strumAltSeq?q.strumAltSeq[i]:[seq[i]];let c=null;for(const cd of cands){const cc=chordCheck(x.act,cd);if(cc.ok){c=cc;break;}}if(c){hit.push(i);hitT[i]=x.t;c.unchecked.forEach(m=>uncheck.add(m));i++;continue;}}if(i>0&&i<seq.length)wrong++;}
   const ok=i===seq.length&&wrong===0;
   return {ok,notesOk:ok,timeOk:true,per:seq.map((v,k)=>({m:q.target[k],got:hit.includes(k)?q.target[k]:null,ok:hit.includes(k),t:hit.includes(k)?hitT[k]:null})),extra:[],wrong,unchecked:[...uncheck],strums:st.length,firstAt:res&&res.firstAt};}
 function micGrade(q,res){if(q.walk)return walkGrade(q,res);if(q.bend)return bendGrade(q,res);if(q.strumSeq)return strumGrade(q,res);if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
@@ -1832,12 +1838,12 @@ function walkGrade(q,res){const W=q.walk,notes=(res&&res.notes)||[],beat=res.bea
     per.push({m:q.target[i],got,ok,onTime:got!==null});}
   const ok=per.every(x=>x.ok);return {ok,notesOk:ok,timeOk:true,per,extra:[],firstAt:res&&res.firstAt,walkWhy:why};}
 function playOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{}),play=g.mode==='play';return `<div class="eyebrow" style="margin-top:12px">Answer by</div><div class="seg" role="group"><button class="${play?'':'on'}" data-act="mode" data-k="mark">On screen (no microphone)</button><button class="${play?'on':''}" data-act="mode" data-k="play">Playing it on the guitar (microphone)</button></div><p class="note">One input for the whole game: on screen nothing is recorded; playing it, every question is played on the guitar. Levels that have no question for the chosen input are marked and skipped.</p>
-  ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label><label class="check"><input type="checkbox" data-act="micopt" data-k="strum" ${o.strum!==false?'checked':''}> Strum chords: the mic hears the whole grip (beta)</label></div></div><p class="note">Exact pitches count. Single notes and lines: one at a time, muting as you go. Chord grips: strum them once and let them ring (or switch “Strum chords” off to play them one note at a time, low to high). Bass notes below C3 are not checked: a laptop mic barely hears them. Check your tuning on the Mic check page first. Questions that would need more than 8 notes are left out in this mode. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
+  ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label><label class="check"><input type="checkbox" data-act="micopt" data-k="strum" ${o.strum!==false?'checked':''}> Strum chords: the mic hears the whole grip (beta)</label></div><div class="field"><span class="muted">Click (not graded)</span><label class="check"><input type="checkbox" data-act="micopt" data-k="click" ${o.click?'checked':''}> A slow click under every played question</label><select data-act="micopt" data-k="bpm">${[50,60,70,80,90,100,120].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></div></div><p class="note">Exact pitches count. Single notes and lines: one at a time, muting as you go. Chord grips: strum them once and let them ring (or switch “Strum chords” off to play them one note at a time, low to high). Bass notes below C3 are not checked: a laptop mic barely hears them. Check your tuning on the Mic check page first. Questions that would need more than 8 notes are left out in this mode. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
 function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[50,60,70,80,90,100,110,120,130,140,150,160,180,200,220,240].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div>${x.mic?'':`<div class="field"><span class="muted">Answer by</span><label class="check"><input type="checkbox" data-act="micopt" data-k="tapMic" ${o.tapMic?'checked':''}> Strumming muted strings into the mic instead of tapping (the whole game then uses the mic)</label></div>`}<p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
 function micOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});const sel=(k,opts,fmt)=>`<select data-act="micopt" data-k="${k}">${opts.map(v=>`<option value="${v}" ${String(o[k])===String(v)?'selected':''}>${fmt(v)}</option>`).join('')}</select>`;
   return `<div class="eyebrow" style="margin-top:12px">Microphone game</div><div class="micopts">${x.id==='cr'?`<label class="field"><span class="muted">Key</span>${sel('key',[...MKEYLIST,'random'],v=>v==='random'?'Random each phrase':nm(P(v))+' major')}</label>`:''}
    <label class="field"><span class="muted">Tempo (timed levels)</span>${sel('bpm',[60,70,80,100,120],v=>v+' bpm')}</label>
-   <div class="field"><span class="muted">Options</span>${x.id!=='sing'?`<label class="check"><input type="checkbox" data-act="micopt" data-k="octave" ${o.octave?'checked':''}> Exact octave required</label>`:''}${x.id==='cr'?`<label class="check"><input type="checkbox" data-act="micopt" data-k="cadence" ${o.cadence?'checked':''}> Play the key chord first</label>`:''}<label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the call ends</label></div></div>
+   <div class="field"><span class="muted">Options</span>${x.id!=='sing'?`<label class="check"><input type="checkbox" data-act="micopt" data-k="octave" ${o.octave?'checked':''}> Exact octave required</label>`:''}${x.id==='cr'?`<label class="check"><input type="checkbox" data-act="micopt" data-k="cadence" ${o.cadence?'checked':''}> Play the key chord first</label>`:''}<label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the call ends</label>${x.id!=='sing'?`<label class="check"><input type="checkbox" data-act="micopt" data-k="click" ${o.click?'checked':''}> A click under the untimed levels too (not graded)</label>`:''}</div></div>
   <p class="note">Mic questions have no clock: listening stops on its own when the notes are in or after a pause. Use headphones so the mic hears only you. ${micErr?'':'If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`;}
 
 /* ============ RHYTHM: notation, tap engine, click games ============ */
@@ -2072,6 +2078,61 @@ function anProgNumQ(){return ()=>{const k=rootPick(AN_KEYS),dv=R(DEVICES.filter(
   const d=DEVICES.filter(x=>x.k!==dv.k).map(x=>x.seq(k).map(([dd,qq])=>bnum(dd,qq)).join(' – '));
   return C({snd:{prog:chs.map(voiceUpperMidis)},key:`an-pn-${dv.k}`,label:ans,prompt:`Key of <b>${kname(k)} major</b>: <b>${chs.map(c=>c.sym).join(' – ')}</b>. Write it in numerals.`,answer:ans,choices:mc(ans,shuffle(d),4),factor:1.8,explain:`<b>${ans}</b> (${dv.n}). ${dv.why(k)}`,hint:'Root distance from the tonic gives the numeral; the symbol gives the quality.'});};}
 
+/* ============ PLAYED VERSIONS (Nov 2026, the musician's review): play the changes, play the scale, melody on top, hear and play ============ */
+const Q4={'13':'7','9':'7','7♭9':'7','7♯9':'7','maj9':'maj7','m9':'m7','11':'7','6':'6',m6:'m6'};
+/* every common voicing of a chord as midi sets: shells on 6 and 5, drop-2 on three sets; triads on all sets */
+function chordVoicings(r,q){const q4=CH[q]&&CH[q].length===4?q:CH[q]&&CH[q].length>4?(Q4[q]||'7'):null,out=[],tabMid=a=>a.map((f,i)=>f===null?null:OPEN[6-i]+f).filter(v=>v!==null).sort((x,y)=>x-y);
+  if(q4){for(const rs of [6,5])shellGrip(r,q4,rs).forEach(a=>out.push(tabMid(a)));for(const set of ALLS){if(D2C[set]&&D2C[set][q4])for(let k=0;k<4;k++)out.push(tabMid(d2Transpose(D2C[set][q4][k],pc(r))));else genDrop2(r,q4,set).forEach(g=>out.push(tabMid(g.a)));}}   /* the user's own drop-2 sheet for maj7/m7/7 */
+  else if(CH[q]&&CH[q].length===3){for(const set of Object.keys(TRI_SETS))for(let k=0;k<3;k++)triadGrips(r,q,k,set).forEach(a=>out.push(tabMid(a)));}
+  const seen=new Set();return out.filter(v=>v.length>=3&&!seen.has(v.join(','))&&seen.add(v.join(',')));}
+function repPlayQ(forms){return ()=>{const f=R(FORMS.filter(x=>forms.includes(x.n))),cs=formChords(f).map(c=>({...c,p:symParse(c.sym)})).filter(c=>c.p),seq=[],alts=[],names=[],degs=[];
+  for(const c of cs){const v=chordVoicings(c.p.r,c.p.q);if(!v.length)continue;seq.push(v[0]);alts.push(v);names.push(c.sym);degs.push('bar '+c.bar);}
+  return M({key:`rp-play-${f.n}`,label:`play the changes: ${f.n}`,strumSeq:seq,strumAltSeq:alts,target:seq.map(v=>v[0]),names,degs,hideTarget:false,maxNotes:seq.length,
+    prompt:`<b>${f.n}</b>: strum every chord of the form once, in order (${seq.length} chords). Any common voicing counts: a shell, a drop-2, or a triad where the chart has one. Let it ring, mute, next.`,
+    visual:`<div class="formchart">${f.bars.map((b,i)=>`<span class="fbar"><small>${i+1}</small>${b}</span>`).join('')}</div>`,answerText:names.join(' – '),
+    explain:`${f.n}: ${names.join(' – ')}. ${f.note}`,hint:'Say the chord names ahead of the count: the next grip should be under the hand before its bar.'});};}
+/* Chord–Scale, guitar input: hear the chord, play the scale that fits, in one position */
+const CS_SOUND={'7alt':'7♭9','7♯11':'7','7♯5':'7','maj7♯5':'maj7','maj7♯11':'maj7','7 (V of minor)':'7♭9'};
+function csPlayQ(pool){return ()=>{for(let t=0;t<60;t++){const [cs,name,i,kind]=R(pool),r=P(rootPick(['C','F','G','D','A','E','Bb','Eb']));let ns;
+    if(kind==='maj'||kind==='mm')ns=modeNotes(r,i,kind);else if(kind==='sym')ns=symNotes(r,name);else{const k=trDown(r,5,7),sc=scale(k,'harmonic'),j=sc.findIndex(n=>pc(n)===pc(r));ns=sc.slice(j).concat(sc.slice(0,j));}
+    if(!ns||!okAcc(ns,2))continue;const labs=ns.map((n,k)=>String(k+1)),a=posSeq(ns.concat([ns[0]]),labs.concat(['8']),0,ns.length+1,false);if(!a)continue;const cq=CS_SOUND[cs]||(CH[cs]?cs:'7');
+    return M({key:`csp-${nm(r)}-${cs}-${name}`,label:`${nm(r)}${cs}: play ${name}`,target:a.seq.map(x=>x.m),octaveFree:false,maxNotes:a.seq.length,
+      prompt:`Hear <b>${nm(r)}${cs}</b>. Play the scale that fits it, <b>${nm(r)} ${name}</b>, one octave up from the root, inside the shaded position.`,visual:fretSeq(a.seq,a.win,0,true),
+      audio:()=>{Piano.chord(CH[cq].map(k=>52+IV[k][1]+mod(pc(r)-4,12)),0.05,1.6,0.6,0.02);return 1.2;},degs:a.seq.map(x=>x.d),names:a.seq.map(x=>x.n),answerText:a.seq.map(x=>x.n).join(' '),
+      explain:`${nm(r)}${cs} → ${nm(r)} ${name}: ${spell(ns)}.`,after:()=>fretSeq(a.seq,a.win,0,false),hint:'Chord tones first: the scale is the chord with its passing notes.'});}return modeRun()();};}
+/* Drop-2 with a chosen melody note on top: the seed of chord melody */
+function d2TopQ(){return ()=>{const set=R(ALLS),q=R(['maj7','m7','7']),inC=Math.random()<.4,root=inC?P('C'):P(R(D2ROOTS.filter(r=>r!=='C'))),t=inC?0:pc(root),k=ri(0,3),a=d2Transpose(D2C[set][q][k],t),notes=d2Notes(a,root,q),top=notes.at(-1);
+  const grips=[a],fr=a.filter(x=>x!==null);if(Math.max(...fr)-12>=0)grips.push(a.map(x=>x===null?null:x-12));if(Math.max(...fr)+12<=12)grips.push(a.map(x=>x===null?null:x+12));
+  return gripMulti({key:`d2top-${set}-${q}-${k}-${inC?'C':'T'}`,label:`${sym(root,q)} with ${top.n} on top · ${set}`,grips,root,q,prompt:`Chord melody: mark <b>${sym(root,q)}</b> (drop-2) on strings <b>${D2SETS[set].str}</b> with <b>${top.n}</b> as the top note.`,
+    explain:`${tabStr(a)}: ${D2INV[k]} from close puts ${top.n} (the ${top.d}) on top. Each inversion offers a different melody note: a chord-melody arrangement picks the grip whose top is the tune.`,hint:`Which chord tone is ${top.n}? The inversion with that tone highest is the one.`});};}
+/* hear a chord (root given), play its notes; hear two notes, play both; hear a progression, play the bass line */
+function earChordPlayQ(qs){return ()=>{const q=R(qs),root=P(rootPick(['C','D','E','F','G','A','Bb','Eb'])),rm=48+pc(root),mids=CH[q].map(k=>rm+IV[k][1]),ns=chord(root,q);
+  return M({key:`ecp-${q}`,label:`hear ${EARQ[q]}, play it`,target:mids,octaveFree:true,maxNotes:mids.length,hideTarget:true,prompt:`Root <b>${nm(root)}</b>. Listen to the chord, then <b>play its notes one at a time</b> from the root, any octave.`,visual:listenCard('One chord','root given'),
+    audio:()=>{Piano.chord(mids,0.05,1.8,0.65);return 2;},degs:CH[q].map(k=>DEGL[k]||k),names:ns.map(nm),answerText:spell(ns),explain:`${sym(root,q)} (${EARQ[q]}): ${spell(ns)}.`,hint:'Find the 3rd first: major or minor decides most of it.'});};}
+function earIvPlayQ(set,mode){return ()=>{const iv=R(set.map(k=>IVL.find(x=>x[0]===k))),dir=mode==='desc'?-1:1,a=55+ri(0,10),b=a+iv[2]*dir;
+  return M({key:`eip-${iv[0]}-${dir}`,label:`hear ${iv[1]} ${dir>0?'up':'down'}, play it`,target:[a,b],octaveFree:false,maxNotes:2,hideTarget:true,prompt:`The first note is <b>${midiName(a)}</b>. Listen to the two notes, then <b>play both</b> in that octave.`,visual:listenCard('Two notes',dir>0?'rising':'falling'),
+    audio:()=>{Piano.note(a,0.05,0.9,0.8);Piano.note(b,1.0,0.9,0.8);return 2.1;},degs:['1',iv[0]],names:[midiName(a),midiName(b)],answerText:`${midiName(a)} ${midiName(b)}`,explain:`${iv[1]} ${dir>0?'up':'down'} from ${midiName(a)} is ${midiName(b)}.`,hint:'Sing the second note before you look for it.'});};}
+function earProgPlayQ(names){return ()=>{const name=R(names),minor=PROG_MINOR.has(name),k=rootPick(minor?['A','E','D','G','C']:['C','F','G','Bb','D','Eb']),chs=progChords(k,name),mids=chs.map(c=>48+c.bass).filter((m,i,arr)=>!i||m!==arr[i-1]),keyTxt=`${kname(k)} ${minor?'minor':'major'}`,nmz=mids.map(m=>PCN[mod(m,12)].split('/')[0]);
+  return M({key:`epp-${name}`,label:`bass line of ${progName(name)}`,target:mids,octaveFree:true,maxNotes:mids.length,hideTarget:true,prompt:`<b>${keyTxt}</b>. Listen to the ${chs.length} chords, then <b>play the bass line</b>: the root of each chord as it changes, any octave.`,visual:listenCard(`${chs.length} chords in ${keyTxt}`,'play the roots'),
+    audio:()=>playChords(chs,0.9),degs:progTokens(name).filter((x,i,arr)=>!i||chs[i].bass!==chs[i-1].bass),names:nmz,answerText:nmz.join(' '),explain:`${progName(name)} in ${keyTxt}: roots ${nmz.join(' – ')}.`,hint:'The bass gives the numerals: hear each root against the tonic.'});};}
+/* Call & Response: two bars over II–V, one note per beat, with the click */
+function crLongQ(){return ()=>{const o=micOpt(),k=rootPick(MKEYLIST),x=iiVIof(k),t=MKEYS[k]+12,beat=60/o.bpm,bars=[[x.ii,'m7',1],[x.V,'7',4]],mids=[],labs=[],chords=[];
+  bars.forEach(([r,q,mi])=>{const sc=modeNotes(r,mi,'maj'),scM=sc.map(n=>t+mod(pc(n)-pc(r),12)).concat(sc.map(n=>t+12+mod(pc(n)-pc(r),12))).sort((a,b)=>a-b),ct=[0,2,4,6];let idx=[R(ct)],g=0;while(idx.length<4&&g++<200){const n=idx.at(-1)+R([-2,-1,1,1,2]);if(n<0||n>=scM.length)continue;if(idx.length===3&&!ct.includes(mod(n,7)))continue;idx.push(n);}
+    while(idx.length<4)idx.push(idx.at(-1));idx.forEach(i=>{mids.push(scM[i]);labs.push(String(mod(i,7)+1));});chords.push(CH[q].map(kk=>52+IV[kk][1]+mod(pc(r)-4,12)));});
+  const grid=[0,1,2,3,4,5,6,7],names=mids.map(midiName);
+  return M({key:`crl-${k}-${labs.join('')}`,label:`${labs.join(' ')} over II–V in ${nm(x.root)}`,target:mids,octaveFree:!o.octave,hideTarget:true,maxNotes:8,metro:o.bpm,grid,
+    prompt:`Two bars over <b>${sym(x.ii,'m7')} – ${sym(x.V,'7')}</b>, one note per beat. Hear it, then play it back with the click from beat 1 after the count-in.`,visual:listenCard('Two chords, eight notes',`${o.bpm} bpm`),
+    audio:()=>{Piano.chord(chords[0],1.15,beat*3.8,0.5,0.02);Piano.chord(chords[1],1.15+4*beat,beat*3.8,0.5,0.02);mids.forEach((m,i)=>Piano.note(m,1.2+i*beat,beat*0.6,0.85));return 1.2+8.7*beat;},
+    degs:labs,names,answerText:names.join(' '),explain:`${sym(x.ii,'m7')} (Dorian) then ${sym(x.V,'7')} (Mixolydian): degrees ${labs.join(' ')}, chord tones on 1 and 4 of each bar.`,after:()=>fretPhrase(mids,MKEYS[k]+12),hint:'Hear the chord change at bar 2: the line steps into the V7.'});};}
+/* Shells around the cycle of fourths: twelve keys, one strum each */
+function shellCycleQ(q){return ()=>{const start=R([5,6]);let prevF=null;const grips=[],syms=[];for(let i=0;i<12;i++){const r=P(CYCLE4[i]),rs=i%2===0?start:(start===6?5:6),gs=shellGrip(r,q,rs);if(!gs.length)return shellSeqQ()();const g=gs.slice().sort((a,b)=>prevF===null?a[6-rs]-b[6-rs]:Math.abs(a[6-rs]-prevF)-Math.abs(b[6-rs]-prevF))[0];prevF=g[6-rs];grips.push(g);syms.push(sym(r,q));}
+  const sets=grips.map(g=>g.map((f,i)=>f===null?null:OPEN[6-i]+f).filter(v=>v!==null).sort((a,b)=>a-b));
+  return M({key:`shc-${q}-${start}`,label:`${QNAME[q]} shells around the cycle`,strumSeq:sets,target:sets.map(v=>v[0]),names:syms,degs:syms.map(()=>''),hideTarget:false,maxNotes:12,prompt:`Around the cycle of fourths: strum the <b>${QNAME[q]}</b> shell for ${syms.join(', ')}, one strum each, root strings ${start} and ${start===6?5:6} alternating. Twelve keys without stopping.`,
+    visual:`<div class="gripwrap">${grips.slice(0,4).map((g,i)=>boxSVG(g,{labels:1,root:P(CYCLE4[i]),q,title:syms[i]})).join('')}<span class="muted" style="align-self:center">… and on round the cycle</span></div>`,answerText:syms.join(' – '),explain:`${syms.join(' – ')}: the same two shapes move down a fourth each time; the hand barely leaves the position.`,hint:'Down a 4th = the root string alternates and the fret moves by two or three.'});};}
+/* Sing It: sing the degree, then play it */
+function singPlayQ(){return ()=>{const k=rootPick(MKEYLIST),root=P(k),d=R(['1','2','3','4','5','6','7']),n=degNote(root,d),m=tonic4(root)+DEG_SEMI[d];
+  return M({key:`sgp-${d}`,label:`sing ${d}, then play it`,target:[m,m],octaveFree:true,repeats:true,maxNotes:2,prompt:`Cadence in <b>${nm(root)} major</b>. <b>Sing</b> degree <b>${d}</b>, hold it, then <b>play it</b> on the guitar (any octave): the same pitch twice.`,visual:degSlots([d,d]),audio:()=>playCadence(root,false),degs:[d,d],names:[nm(n),nm(n)],answerText:nm(n),
+    explain:`Degree ${d} of ${nm(root)} major is <b>${nm(n)}</b>. Voice first, then hands: the ear leads the fingers.`,hint:`Sing the tonic ${nm(root)}, walk up to ${d}, hold it, then find it on the neck.`});};}
 /* ============ REPERTOIRE (forms and standard changes, chords only) ============ */
 const FORMS=[
  {n:'Jazz blues in F',k:'F',bars:['F7','B♭7','F7','Cm7 F7','B♭7','B°7','F7','Am7 D7','Gm7','C7','F7 D7','Gm7 C7'],note:'The II–V in bars 9–10 and the VI7 in bar 8 are what make it a jazz blues.'},
@@ -2142,7 +2203,7 @@ function gtVLQ(kinds){return ()=>{for(let t=0;t<80;t++){const kind=R(kinds),k=ro
       hint:'Each string moves at most two frets. A 7th usually drops a half step; a 3rd usually stays.'};}return guideTonesQ(['maj7','7','m7'],'37',0,1)();};}
 
 /* ============ EXTENSIONS: generated drop-2 grips, upper structures, dictation, symbols ============ */
-function genDrop2(root,q,setName){const ns=chord(root,q);if(ns.length!==4)return [];const strs=D2SETS[setName].str.split('-').map(Number).reverse(); /* low→high e.g. 6,5,4,3 */const out=[];
+function genDrop2(root,q,setName){const ns=chord(root,q);if(ns.length!==4)return [];const strs=D2SETS[setName].str.split('-').map(Number); /* low→high e.g. 6,5,4,3 (the reverse() that used to be here made every set high→low and the function returned nothing) */const out=[];
   for(let k=0;k<4;k++){const v=rot(ns,k),order=[v[2],v[0],v[1],v[3]];/* drop-2: second from top (v[2]) goes to the bottom */
     for(let bf=0;bf<=12;bf++){if((OPEN[strs[0]]+bf)%12!==pc(order[0]))continue;const a=[null,null,null,null,null,null];a[6-strs[0]]=bf;let prevM=OPEN[strs[0]]+bf,ok=true;
       for(let i=1;i<4;i++){let f=null;for(let c=Math.max(0,bf-4);c<=bf+4;c++){const m=OPEN[strs[i]]+c;if(m%12===pc(order[i])&&m>prevM){f=c;break;}}if(f===null){ok=false;break;}prevM=OPEN[strs[i]]+f;a[6-strs[i]]=f;}
@@ -2240,7 +2301,7 @@ function dyadStaff(n1,m1,n2,m2){return noteStaff(n1,m1)+noteStaff(n2,m2);}
 
 /* ============ PLAY MODE: answer mark-on-neck questions with the guitar (strict: exact pitches, low to high) ============ */
 const spotMidi=sp=>OPEN[sp.s]+sp.f;
-const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','shells','voicelead','walking','eardeg'];
+const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','shells','voicelead','walking','eardeg','chordscale','repertoire','earchord','eariv','earprog'];
 function toPlay(q){let targets=null,how='',strum=false;
   /* every spot, string by string: the same pitch on another string is its own note, so re-attacks count (q.repeats) */
   if(q.ui==='multi'&&q.playAll){const fret=q.order==='fret',sp=q.answer.slice().sort(fret?(a,b)=>a.f-b.f||b.s-a.s:(a,b)=>b.s-a.s||a.f-b.f);
@@ -2266,31 +2327,30 @@ const GAMES=[
  {id:'fretboard',cat:'neck',name:'Fretboard',area:'Note locations',desc:'Name notes on the neck, find them on any string, and connect octave shapes.',levels:[
   {n:'Low strings, first position',d:'Strings 6 and 5, frets 0–5',g:[fbId([6,5],0,5)]},
   {n:'Low strings, full neck',d:'Strings 6 and 5, frets 0–12',g:[fbId([6,5],0,12)]},
+  {n:'Octave shapes',d:'Two strings up, two frets up (three across the B string): the map of the neck',g:[fbOct()]},
   {n:'Upper strings',d:'Strings 4 to 1, frets 0–7',g:[fbId([4,3,2,1],0,7)]},
   {n:'Upper strings, full neck',d:'Strings 4 to 1, frets 0–12',g:[fbId([4,3,2,1],0,12)]},
   {n:'Whole neck',d:'All strings, frets 0–12',g:[fbId([1,2,3,4,5,6],0,12)]},
   {n:'Find it',d:'Click a natural note on a given string',g:[fbLoc(true),fbId([1,2,3,4,5,6],0,12)]},
-  {n:'Octaves & accidentals',d:'Octave shapes; find sharps and flats',g:[fbOct(),fbLoc(false)]},
+  {n:'Sharps and flats',d:'Find accidentals on a given string; name any note',g:[fbLoc(false),fbId([1,2,3,4,5,6],0,12)]},
   {n:'Notes in time',d:'Four notes on one string, one per click (microphone)',g:[fbTimeQ()]}]},
  {id:'sight',cat:'neck',name:'Reading',area:'Staff and positions',desc:'Name notes on the treble staff, then read them in position on the neck: first position string by string, then positions II–IV, fifth and ninth. After each position you read whole lines in time, with rhythm.',levels:[
-  {n:'Lines and spaces',d:'E G B D F · F A C E',g:[trebleQ([0,2,4,6,8]),trebleQ([1,3,5,7]),trebleQ([0,2,4,6,8])]},
-  {n:'Whole staff and ledger lines',d:'D4 to G5, then down to A3 and up to C6',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9]),trebleQ([-4,-3,-2,10,11,12]),trebleQ([-1,9])]},
-  {n:'Accidentals and key signatures',d:'Sharps and flats; apply the key signature',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9],true),trebleSig()]},
-  {n:'First position, strings 1–3',d:'E F G · B C D · G A — frets 0–3',g:[sightQ([0,3],[1,2,3],0)]},
-  {n:'First position, strings 4–6',d:'D E F · A B C · E F G — ledger lines below',g:[sightQ([0,3],[4,5,6],0)]},
+  {n:'Strings 1–3 on the staff and the neck',d:'E F G · B C D · G A: read them on the staff, find them in first position',g:[sightQ([0,3],[1,2,3],0),trebleQ([0,2,4,6,8]),trebleQ([1,3,5,7])]},
+  {n:'The whole staff',d:'D4 to G5 by name',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9]),trebleQ([-1,9])]},
+  {n:'Strings 4–6, ledger lines below',d:'D E F · A B C · E F G',g:[sightQ([0,3],[4,5,6],0),trebleQ([-4,-3,-2,-1])]},
   {n:'All of first position',d:'Every natural from low E to high G',g:[sightQ([0,3],[1,2,3,4,5,6],0)]},
-  {n:'Sharps & flats',d:'Accidentals in first position, frets 0–4',g:[sightQ([0,4],[1,2,3,4,5,6],2),sightQ([0,3],[1,2,3,4,5,6],0)]},
+  {n:'Accidentals and key signatures',d:'Sharps and flats on the staff and in first position; apply the key signature',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9],true),trebleSig(),sightQ([0,4],[1,2,3,4,5,6],2)]},
   {n:'Read a line, first position',d:'4–6 notes on the staff, played in time (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6])]},
   {n:'Rhythm lines, first position',d:'Two bars of quarters, halves and eighths, read and played in time (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],1)]},
   {n:'Positions II, III, IV',d:'Reading in the low positions between open and fifth',g:[sightQ([2,5],[1,2,3,4,5,6],1),sightQ([3,6],[1,2,3,4,5,6],1),sightQ([4,7],[1,2,3,4,5,6],1)]},
   {n:'Read a line, positions II–IV',d:'Lines with rhythm in frets 2–7 (microphone)',g:[readLineQ([2,5],[1,2,3,4,5,6],1),readLineQ([4,7],[1,2,3,4,5,6],1)]},
+  {n:'Melodic rhythms, syncopated',d:'Lines in first and fifth position with dotted quarters, ties and off-beats (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h']),readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h'])]},
   {n:'Fifth position',d:'Frets 5–8, up to C above the staff',g:[sightQ([5,8],[1,2,3,4,5,6],1)]},
   {n:'Read a line, fifth position',d:'Even notes, then rhythm, in frets 5–8 (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6]),readLineQ([5,8],[1,2,3,4,5,6],1)]},
-  {n:'Ninth position & dyads',d:'Frets 9–12; two notes at once in first and fifth position',g:[sightQ([9,12],[1,2,3,4,5,6],1),sightDyadQ([0,4]),sightDyadQ([5,9])]},
+  {n:'Melodic rhythms, swing',d:'The jazz figures with pitches: pushes and swing eighths in fifth position (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eqe','qt','h'],true)]},
+  {n:'Ninth position, high ledger lines, dyads',d:'Frets 9–12 and the notes above the staff; two notes at once in first and fifth position',g:[sightQ([9,12],[1,2,3,4,5,6],1),trebleQ([10,11,12]),sightDyadQ([0,4]),sightDyadQ([5,9])]},
   {n:'Read a line, ninth position',d:'Lines with rhythm in frets 9–12 (microphone)',g:[readLineQ([9,12],[1,2,3,4,5,6],1)]},
-  {n:'Every place it lives',d:'Mark all spots for one exact pitch, frets 0–12',g:[sightQ([0,12],[1,2,3,4,5,6],1,1),sightQ([7,10],[1,2,3,4,5,6],1)]},
-  {n:'Melodic rhythms, syncopated',d:'Lines in first and fifth position with dotted quarters, ties and off-beats (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h']),readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h'])]},
-  {n:'Melodic rhythms, swing',d:'The jazz figures with pitches: pushes and swing eighths in fifth position (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eqe','qt','h'],true)]}]},
+  {n:'Every place it lives',d:'Mark all spots for one exact pitch, frets 0–12',g:[sightQ([0,12],[1,2,3,4,5,6],1,1),sightQ([7,10],[1,2,3,4,5,6],1)]}]},
  {id:'hunt',cat:'neck',name:'Note Hunt',area:'One note, whole neck',desc:'Mark every place a note lives on all six strings, frets 0–12. Builds the octave map behind every scale and chord shape.',levels:[
   {n:'Open-string notes',d:'E, A, D, G, B — count shown',g:[huntQ(OPEN_PC,1)]},
   {n:'All naturals',d:'C, D, E, F, G, A, B — count shown',g:[huntQ(NAT_PC,1)]},
@@ -2308,8 +2368,8 @@ const GAMES=[
   {n:'Major and minor, all sets',d:'Root position on all four string sets; name and mark',g:[triadShapeQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
   {n:'1st inversion',d:'Root position and 1st inversion; name and mark',g:[triadShapeQ(['','m'],[0,1],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['','m'],[1],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
   {n:'All three inversions',d:'Root, 1st and 2nd on the top three sets; name and mark',g:[triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
-  {n:'Every root, every set',d:'All twelve roots, all four sets',g:[triadShapeQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
   {n:'Voice leading',d:'From one chord to the nearest inversion of the next, same strings',g:[tvlQ()]},
+  {n:'Every root, every set',d:'All twelve roots, all four sets',g:[triadShapeQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
   {n:'Find the grip',d:'Mark a named triad and inversion on any set, every root',g:[triadShapeQ(['','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find'),triadShapeQ(['','m'],[0,1,2],['6-5-4','5-4-3','4-3-2','3-2-1'],D2ROOTS)]},
   {n:'Diminished & augmented',d:'All four triad qualities, every inversion',g:[triadShapeQ(['dim','aug','','m'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['dim','aug'],[0,1,2],['5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
   {n:'Spread triads',d:'Open voicings on 6-4-3, 5-3-2 and 4-2-1',g:[spreadQ(['','m']),spreadQ(['','m'],'find')]},
@@ -2336,18 +2396,18 @@ const GAMES=[
  {id:'drop2',cat:'voicings',name:'Drop-2 Grips',area:'Fingerings on the neck',desc:'Seventh-chord inversions and drop-2 on paper, then the grips from your sheet: name them, name the inversion from close, find them, in every key; finally name and place them on the neck, II–V–I combos included.',levels:[
   {n:'Seventh-chord inversions',d:'Including the 3rd inversion (7th in the bass)',g:[G_in.idSev]},
   {n:'Drop-2 on paper',d:'Build drop-2 from a close voicing; bass, top and string sets',g:[G_in.drop2,G_in.drop2Bass,G_in.stringSet]},
-  {n:'Set 2–5 in C',d:'Name Cmaj7 / Cm7 / C7 grips; read the stack',g:[...withCombo([d2Chord(['2–5'],1),d2Stack(['2–5'],1)],.06)]},
-  {n:'Inversions on set 2–5',d:'Which close voicing each grip comes from',g:[...withCombo([d2Inv(['2–5'],1),d2Full(['2–5'],1)],.12)]},
-  {n:'All string sets in C',d:'Sets 1–4, 2–5 and 3–6',g:[...withCombo([d2Full(ALLS,1),d2Inv(ALLS,1),d2Chord(ALLS,1)],.12)]},
+  {n:'Set 2–5 in C: mark it',d:'Place Cmaj7 / Cm7 / C7 drop-2 grips on strings 2–5; name them as review',g:[d2Find(['2–5'],1),d2Find(['2–5'],1),d2Chord(['2–5'],1)]},
+  {n:'Inversions on set 2–5',d:'Mark each inversion; say which close voicing it comes from',g:[d2Find(['2–5'],1),d2Inv(['2–5'],1),d2Full(['2–5'],1)]},
+  {n:'All string sets in C: mark it',d:'Sets 1–4, 2–5 and 3–6 under the hand',g:[d2Find(ALLS,1),d2Find(ALLS,1),d2Full(ALLS,1)]},
   {n:'Name it on the neck, in C',d:'Cmaj7, Cm7, C7 on every string set',g:[cnQ(['2–5'],['C']),cnQ(ALLS,['C'])]},
-  {n:'Find the grip',d:'Mark the grip for a named voicing',g:[...withCombo([d2Find(ALLS,1),d2Full(ALLS,1),d2Inv(ALLS,1)],.12)]},
-  {n:'Other keys',d:'The same grips moved to every root',g:[...withCombo([d2Full(ALLS,0),d2Chord(ALLS,0),d2Inv(ALLS,0)],.12)]},
+  {n:'Other keys: mark and name',d:'The same grips moved to every root',g:[d2Find(ALLS,0),d2Find(ALLS,0),d2Full(ALLS,0),d2Chord(ALLS,0)]},
   {n:'Name it on the neck, common keys',d:'C F G D A B♭ on every set',g:[cnQ(['2–5'],['C','F','G','D','A','Bb']),cnQ(ALLS,['C','F','G','D','A','Bb'])]},
   {n:'Everything',d:'Any key, any question, more II–V–I combos',g:[...withCombo([d2Full(ALLS,0),d2Find(ALLS,0),d2Inv(ALLS,0),d2Stack(ALLS,0),d2Full(ALLS,1)],.2)]},
   {n:'All keys and II–V–I grips',d:'Any root, any set; chords from the voice-led combos',g:[cnQ(ALLS,D2ROOTS),cnQ(ALLS,D2ROOTS,1),cnQ(ALLS,D2ROOTS)]},
-  {n:'Mark it on the neck',d:'A chord is named; you place the grip',g:[d2Find(ALLS,0),cnQ(ALLS,D2ROOTS)]},
+  {n:'Mark it everywhere',d:'Any chord, any set, any key',g:[d2Find(ALLS,0),cnQ(ALLS,D2ROOTS)]},
   {n:'m7♭5, °7, 6 and m6',d:'Generated drop-2 grips for the other qualities; name and mark them',g:[d2NewQ(),d2NewQ('find')]},
-  {n:'Extensions & minor II–V–I',d:'9 for the root, 13 for the 5th, ♭9; the minor cadence in grips',g:[d2SubQ(),d2NewQ(),comboMinorQ()]}]},
+  {n:'Extensions & minor II–V–I',d:'9 for the root, 13 for the 5th, ♭9; the minor cadence in grips',g:[d2SubQ(),d2NewQ(),comboMinorQ()]},
+  {n:'Melody on top',d:'The drop-2 inversion that puts a given note on top: chord melody begins here',g:[d2TopQ(),d2TopQ(),d2Find(ALLS,0)]}]},
  {id:'eardeg',cat:'ear',name:'Hear the Degree',area:'Functional ear training',desc:'A cadence sets the key, then a note sounds. Name its scale degree. The core solfège skill.',levels:[
   {n:'Tonic triad',d:'1 3 5 after a major cadence',g:[earDegree(['1','3','5'])]},
   {n:'Steps 1–5',d:'1 2 3 4 5',g:[earDegree(['1','2','3','4','5'])]},
@@ -2365,7 +2425,8 @@ const GAMES=[
   {n:'All simple intervals',d:'Adds the tritone: m2 to octave, rising',g:[earInterval(IVL.map(x=>x[0]))]},
   {n:'Falling',d:'All intervals, descending',g:[earInterval(IVL.map(x=>x[0]),'desc')]},
   {n:'Harmonic',d:'Both notes together',g:[earInterval(IVL.map(x=>x[0]),'harm')]},
-  {n:'Mixed',d:'Rising or falling, you decide which',g:[earInterval(IVL.map(x=>x[0]),'mixed'),earInterval(IVL.map(x=>x[0]),'harm')]}]},
+  {n:'Mixed',d:'Rising or falling, you decide which',g:[earInterval(IVL.map(x=>x[0]),'mixed'),earInterval(IVL.map(x=>x[0]),'harm')]},
+  {n:'Hear it, play it',d:'Two notes, the first one named; play both (guitar)',g:[earIvPlayQ(IVL.map(x=>x[0])),earIvPlayQ(IVL.map(x=>x[0]),'desc')]}]},
  {id:'earchord',cat:'ear',name:'Hear the Chord',area:'Chord quality',desc:'Name the quality of a chord from its sound: triads, sevenths, sixths, sus and extensions.',levels:[
   {n:'Major or minor',d:'Triads, block then broken',g:[earChord(['','m'],1)]},
   {n:'All four triads',d:'Adds diminished and augmented',g:[earChord(['','m','dim','aug'],1)]},
@@ -2374,7 +2435,8 @@ const GAMES=[
   {n:'Sixths and sus',d:'6 · m6 · sus2 · sus4 · add9 with the sevenths',g:[earChord(['maj7','7','m7','6','m6','sus2','sus4','add9'])]},
   {n:'Extensions',d:'9 · maj9 · m9 · 7♭9 · 7♯9 · 13',g:[earChord(['9','maj9','m9','7♭9','7♯9','13']),earChord(['maj7','7','m7','m7♭5','dim7','m(maj7)','6','m6'])]},
   {n:'Inversions & voicings',d:'Triad inversions by ear; drop-2 voicings in guitar range',g:[earInvQ(),earD2Q()]},
-  {n:'Quality in context',d:'Which qualities did the II–V–I have?',g:[earCtxQ(),earD2Q()]}]},
+  {n:'Quality in context',d:'Which qualities did the II–V–I have?',g:[earCtxQ(),earD2Q()]},
+  {n:'Hear it, play it',d:'Hear a chord with its root given; play its notes on the guitar',g:[earChordPlayQ(['','m','dim','aug','maj7','7','m7','m7♭5','dim7'])]}]},
  {id:'earprog',cat:'ear',name:'Hear the Progression',area:'Harmonic hearing',desc:'Chords on the piano: name the progression, the chord that moved or the blues form, and write it down in Berklee numerals. Diatonic first, then the blues, minor keys, substitutions and turnarounds.',levels:[
   {n:'Four classics',d:'I–IV–V–I · I–VIm–IV–V · I–V–VIm–IV · IIm7–V7–IMaj7; name them, then write them',g:[earProg(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I']),earProg(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I']),earDictProgQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I'])]},
   {n:'Which chord moved?',d:'I – ? – V – I: IIm, IV, VIm or IIIm',g:[earProg(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'],'second'),earProg(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'],'second'),earDictProgQ(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'])]},
@@ -2385,6 +2447,7 @@ const GAMES=[
   {n:'Turnarounds',d:'Two-bar turnarounds with passing and substitute chords',g:[earProg(['I – vi – ii – V | iii – vi – ii – V','I – VI7 – ii – V7 | I – VI7 – ii – V7','I – ♯i°7 – ii – ♯ii°7 | iii – VI7 – ii – V7','I – ♭III7 – ♭VI7 – ♭II7 (Dameron turnaround)'])]},
   {n:'Blues & rhythm changes',d:'All five forms: adds the minor blues and rhythm changes A',g:[earFormQ()]},
   {n:'Spot the substitute',d:'Which bar of the turnaround carries the sub?',g:[earWhichBarQ(),earFormQ()]},
+  {n:'Play the bass line',d:'Hear the chords, play the root of each on the guitar',g:[earProgPlayQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I','I – ii – V – I','I – vi – V – I','I – iii – V – I','i – iv – V7 – i','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)'])]},
   {n:'Write it down',d:'Enter the numerals in order, major and minor keys',g:[earDictProgQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I','I – ii – V – I','I – vi – V – I','I – iii – V – I']),earDictProgQ(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7'])]}]},
  {id:'guidetones',cat:'neck',name:'Guide Tones on the Neck',area:'Chord tones in position',desc:'Mark the 3rd and 7th (then every chord tone) of a chord inside one position, or across the whole neck.',levels:[
   {n:'Root and 3rd',d:'Major and minor, in a 5-fret position, count shown',g:[guideTonesQ(['','m'],'r3',0,1)]},
@@ -2401,13 +2464,13 @@ const GAMES=[
   {n:'Below',d:'All intervals, descending',g:[neckIntervalQ(['m2','M2','m3','M3','P4','TT','P5','m6','M6','m7','M7','P8'],'down')]},
   {n:'Any direction',d:'Up or down, any interval',g:[neckIntervalQ(NIV.map(x=>x[0]),'any')]},
   {n:'Double stops',d:'Diatonic 3rds and 6ths as two-note grips',g:[dsQ()]}]},
- {id:'chordscale',cat:'theory',name:'Chord–Scale Reflex',area:'Scale choice',desc:'See a chord, name the scale: modes, melodic minor, symmetric and bebop scales, and why.',levels:[
+ {id:'chordscale',cat:'theory',name:'Chord–Scale Reflex',area:'Scale choice',desc:'See a chord, name the scale, and (on the guitar) play it: modes, melodic minor, symmetric and bebop scales, and why.',levels:[
   {n:'Quality to scale',d:'maj7 · m7 · 7 · m7♭5: the first scale for each',g:[()=>G_cs2.quality(['maj7','m7','7','m7♭5'])]},
   {n:'Modes in a key',d:'Which mode fits each diatonic chord',g:[G_cs2.inKey,G_cs2.inKey,()=>G_cs2.quality(['maj7','m7','7','m7♭5'])]},
-  {n:'Spell the modes',d:'Dorian, Lydian, Mixolydian… from any root; each mode’s characteristic note',g:[G_cs2.spellMode,G_cs2.charNote,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11'])]},
-  {n:'Melodic minor modes',d:'Altered, Lydian dominant, Locrian ♮2',g:[G_cs2.mmUse,G_cs2.spellAlt,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11','m(maj7)'])]},
-  {n:'Symmetric scales',d:'Half-whole, whole-half, whole tone',g:[G_cs2.symUse,G_cs2.spellSym,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11','m(maj7)','dim7'])]},
-  {n:'Bebop and minor V',d:'Bebop scales; harmonic minor over V7 in minor',g:[G_cs2.bebop,G_cs2.minorV]},
+  {n:'Spell the modes',d:'Dorian, Lydian, Mixolydian… from any root; each mode’s characteristic note',g:[G_cs2.spellMode,G_cs2.charNote,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11']),csPlayQ([['maj7','Ionian',0,'maj'],['m7','Dorian',1,'maj'],['7','Mixolydian',4,'maj'],['m7♭5','Locrian',6,'maj'],['maj7♯11','Lydian',3,'maj']])]},
+  {n:'Melodic minor modes',d:'Altered, Lydian dominant, Locrian ♮2',g:[G_cs2.mmUse,G_cs2.spellAlt,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11','m(maj7)']),csPlayQ([['7alt','altered',6,'mm'],['7♯11','Lydian dominant',3,'mm'],['m7♭5','Locrian ♮2',5,'mm'],['m(maj7)','melodic minor',0,'mm'],['maj7♯5','Lydian augmented',2,'mm']])]},
+  {n:'Symmetric scales',d:'Half-whole, whole-half, whole tone',g:[G_cs2.symUse,G_cs2.spellSym,()=>G_cs2.quality(['maj7','m7','7','m7♭5','maj7♯11','m(maj7)','dim7']),csPlayQ([['dim7','whole-half diminished',0,'sym'],['7♭9','half-whole diminished',0,'sym'],['7♯5','whole tone',0,'sym']])]},
+  {n:'Bebop and minor V',d:'Bebop scales; harmonic minor over V7 in minor',g:[G_cs2.bebop,G_cs2.minorV,csPlayQ([['7','dominant bebop',0,'sym'],['7 (V of minor)','harmonic minor of the key, from the 5th',0,'harm']])]},
   {n:'Avoid notes & progressions',d:'The note to pass through, and one parent scale for a diatonic II–V–I',g:[avoidQ(),csProgQ()]}]},
  {id:'shells',cat:'voicings',name:'Shell Voicings & Drop-3',area:'Comping grips',desc:'Root–7–3 shells for fast comping, bare guide tones, then drop-3 voicings on both string sets.',levels:[
   {n:'Shells, root on 6',d:'maj7 m7 7 in common keys',g:[shellQ([6],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'])]},
@@ -2416,7 +2479,8 @@ const GAMES=[
   {n:'Shells through II–V–I',d:'Comp the cadence, strummed and checked as chords (microphone)',g:[shellSeqQ()]},
   {n:'Drop-3 on 6-4-3-2',d:'Name the chord',g:[drop3Q(['6-4-3-2'],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'],'name'),drop3Q(['6-4-3-2'],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'],'inv')]},
   {n:'Drop-3 on 5-3-2-1',d:'Name chord and close-voicing origin, both sets',g:[drop3Q(['5-3-2-1','6-4-3-2'],['maj7','m7','7','m7♭5'],['C','F','G','D','A','Bb','Eb','E'],'name'),drop3Q(['5-3-2-1'],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'],'inv')]},
-  {n:'Find the grip',d:'Mark the drop-3 grip; drop-2 vs drop-3',g:[drop3Q(['5-3-2-1','6-4-3-2'],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'],'find'),d2vsd3Q()]}]},
+  {n:'Find the grip',d:'Mark the drop-3 grip; drop-2 vs drop-3',g:[drop3Q(['5-3-2-1','6-4-3-2'],['maj7','m7','7'],['C','F','G','D','A','Bb','Eb','E'],'find'),d2vsd3Q()]},
+  {n:'Around the cycle',d:'One shell quality through all twelve keys, strummed without stopping (microphone)',g:[shellCycleQ('maj7'),shellCycleQ('7'),shellCycleQ('m7')]}]},
  {id:'sing',cat:'ear',mic:true,name:'Sing It',area:'Solfège · voice',desc:'Hear a cadence or a note, then sing what is asked: a degree, an interval, a chord tone, a short line. The mic checks your pitch.',levels:[
   {n:'Tonic triad',d:'Sing 1, 3 or 5 after a major cadence',g:[singDeg(['1','3','5'])]},
   {n:'Any degree',d:'Sing any of the seven degrees',g:[singDeg(['1','2','3','4','5','6','7'])]},
@@ -2425,7 +2489,8 @@ const GAMES=[
   {n:'Minor key',d:'Any degree after a minor cadence',g:[singDeg(['1','2','♭3','4','5','♭6','♭7','7'],true)]},
   {n:'Chromatic degrees',d:'♭2 ♭3 ♯4 ♭6 ♭7 against a major cadence',g:[singDeg(['1','♭2','♭3','3','♯4','5','♭6','♭7','7'])]},
   {n:'Short lines',d:'Sing a 3–4 note degree pattern from the cadence alone',g:[singSeq(3),singSeq(4)]},
-  {n:'Bass & guide tones',d:'Sing the bass line or the 3rds and 7ths of a II–V–I',g:[singBassLine(),singGuideLine()]}]},
+  {n:'Bass & guide tones',d:'Sing the bass line or the 3rds and 7ths of a II–V–I',g:[singBassLine(),singGuideLine()]},
+  {n:'Sing it, then play it',d:'Sing the degree, then find it on the guitar',g:[singPlayQ()]}]},
  {id:'cr',cat:'ear',mic:true,name:'Call & Response',area:'Play-back · guitar',desc:'A phrase is played; you play it straight back. Starts with two notes in the major scale, ends with chromatic approach notes in any key and phrases over a chord.',levels:[
   {n:'Two notes',d:'Steps between 1 2 3 4 5',g:[crTask(1)]},
   {n:'Three-note steps',d:'Stepwise lines inside 1–6',g:[crTask(2)]},
@@ -2435,12 +2500,13 @@ const GAMES=[
   {n:'Blues phrases in time',d:'Minor pentatonic and blues-scale phrases over a dominant chord: notes, swing and rests',g:[crBlues()]},
   {n:'Chromatic approach',d:'Half-step approach notes; the key changes every phrase',g:[crTask(6)]},
   {n:'Over a chord, in time',d:'Phrase over a 7th chord, played back with the click (swing eighths)',g:[crTask(7)]},
-  {n:'Double stops',d:'Diatonic 3rds and 6ths, picked together and graded as chords (beta)',g:[crDoubles()]}]},
+  {n:'Double stops',d:'Diatonic 3rds and 6ths, picked together and graded as chords (beta)',g:[crDoubles()]},
+  {n:'Two bars over II–V',d:'Eight notes, one per beat, through the change, with the click',g:[crLongQ()]}]},
  {id:'bends',cat:'applied',mic:true,name:'Bends & Vibrato',area:'Phrasing · guitar',desc:'Bend to pitch, release, pre-bend, vibrato and the blues curl. The mic follows your pitch and draws it against the target, in cents.',levels:[
   {n:'Half-step bends',d:'Bend up a fret’s worth and hold it in tune',g:[bendQ('half')]},
+  {n:'Vibrato',d:'Even width and speed on a held note',g:[bendQ('vibrato')]},
   {n:'Whole-step bends',d:'Up two frets’ worth: the rock and blues bend',g:[bendQ('whole')]},
   {n:'Bend and release',d:'Up in tune, hold, back down clean',g:[bendQ('release')]},
-  {n:'Vibrato',d:'Even width and speed on a held note',g:[bendQ('vibrato')]},
   {n:'Bend with vibrato',d:'Whole-step bend held with vibrato on top',g:[bendQ('bendvib')]},
   {n:'Quarter-tone curl',d:'The blues in-between note: about half a fret sharp',g:[bendQ('curl')]},
   {n:'Pre-bend and release',d:'Bend silently, pick, let it down',g:[bendQ('prebend')]}]},
@@ -2468,13 +2534,15 @@ const GAMES=[
   {n:'Borrowed & passing chords',d:'Modal interchange, ♯I°7, with everything so far',g:[anDeviceQ(['mi','dp','sd','pl','tt']),anNumeralQ([[1,'7'],[10,'7'],[5,'m7'],[1,'dim7'],[3,'dim7'],[8,'maj7'],[10,'maj7']]),anWriteQ(['mi','dp'])]},
   {n:'Full analysis',d:'Write a progression in numerals; name the device, major and minor',g:[anProgNumQ(),anDeviceQ(['tt','bd','sd','mi','dp','pl','mn']),anNumeralQ([[0,'maj7'],[2,'m7'],[7,'7'],[9,'7'],[1,'7'],[10,'7'],[5,'m7'],[1,'dim7'],[11,'m7♭5']])]},
   {n:'Write the numerals',d:'Enter a progression in Berklee numerals yourself',g:[anWriteQ()]}]},
- {id:'repertoire',cat:'applied',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Chords only, with the piano.',levels:[
+ {id:'repertoire',cat:'applied',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Know them on paper, then play them chord by chord on the guitar.',levels:[
   {n:'Blues in F and B♭',d:'Basic and jazz blues, bar by bar',g:[repBarQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F']),repNextQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F'])]},
   {n:'Minor & Bird blues',d:'Cm blues and Parker’s descending II–Vs',g:[repBarQ(['Minor blues in C','Bird blues in F']),repNextQ(['Minor blues in C','Bird blues in F','Jazz blues in F'])]},
   {n:'Rhythm changes',d:'A section in B♭ and the bridge',g:[repBarQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNextQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNumQ(['Rhythm changes A (B♭)','Rhythm changes bridge'])]},
   {n:'Standards I',d:'Autumn Leaves, Fly Me to the Moon, Blue Bossa',g:[repNextQ(['Autumn Leaves (first 8, G minor)','Fly Me to the Moon (first 8)','Blue Bossa (first 8)']),repBarQ(['Autumn Leaves (first 8, G minor)','Fly Me to the Moon (first 8)','Blue Bossa (first 8)'])]},
   {n:'Standards II',d:'All The Things You Are, Take the A Train, Satin Doll',g:[repNextQ(['All The Things You Are (first 8)','Take the A Train (A section)','Satin Doll (first 8)']),repBarQ(['All The Things You Are (first 8)','Take the A Train (A section)','Satin Doll (first 8)'])]},
-  {n:'Everything',d:'Which form is this? What comes next? Numerals in the key',g:[repWhichQ(FORMS.map(f=>f.n)),repNextQ(FORMS.map(f=>f.n)),repNumQ(FORMS.map(f=>f.n))]}]},
+  {n:'Everything',d:'Which form is this? What comes next? Numerals in the key',g:[repWhichQ(FORMS.map(f=>f.n)),repNextQ(FORMS.map(f=>f.n)),repNumQ(FORMS.map(f=>f.n))]},
+  {n:'Play the changes: blues',d:'Strum every chord of a blues form in order, any common voicing (guitar)',g:[repPlayQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F','Minor blues in C','Bird blues in F'])]},
+  {n:'Play the changes: rhythm changes and standards',d:'The whole form or first eight, chord by chord (guitar)',g:[repPlayQ(FORMS.map(f=>f.n).filter(n=>!n.includes('blues')))]}]},
  {id:'walking',cat:'applied',name:'Walking Line',area:'Bass lines over II–V',desc:'Root on 1, chord tones, and an approach note into the next root: name it, pick the bar that works, then place it on the bass strings.',levels:[
   {n:'Approach notes',d:'Chromatic from below or above, scale step, dominant approach',g:[walkQ('approach')]},
   {n:'Pick the bar',d:'Which four notes walk from II to V and from V to I?',g:[walkQ('pick'),walkQ('approach')]},
@@ -2609,6 +2677,7 @@ function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
   g.mig={...(g.mig||{}),[flag]:1};}
 const REORDERS2={comping:{n:6,m:{1:1,2:2,3:2,4:3,5:4,6:4}}};   /* Nov 2026 comping rebuild */
+const REORDERS4={fretboard:{n:8,m:{3:4,4:5,5:6,6:7,7:8,8:9}},sight:{n:18,m:{1:1,2:2,3:5,4:1,5:3,6:4,7:5,8:6,9:7,10:8,11:9,12:11,13:12,14:14,15:15,16:16,17:10,18:13}},triads:{n:13,m:{8:9,9:8}},bends:{n:7,m:{2:3,3:4,4:2}},drop2:{n:14,m:{7:5,8:7,9:8,10:9,11:10,12:11,13:12,14:13}}};   /* the musician's review (6 Nov 2026) */
 const REORDERS3={rhyread:{n:17,m:{6:5,7:6,8:7,9:8,10:9,11:9,12:9,13:10,14:11,15:12,16:13,17:14}},jazzrhy:{n:12,m:{10:9,11:10,12:11}}};   /* paper levels moved out to Rhythm Theory (6 Nov 2026) */
 /* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
    played counts (it.pn) give the total, the play log (g.pl, each answer's own level) places them, older played answers go to the levels of the
@@ -2634,6 +2703,7 @@ const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[
   if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
   if(REORDERS2[id]&&!(g.mig&&g.mig.r27)){migrateReorder(id,g,REORDERS2[id],'r27');saveLocal();}
   if(REORDERS3[id]&&!(g.mig&&g.mig.r28)){migrateReorder(id,g,REORDERS3[id],'r28');saveLocal();}
+  if(REORDERS4[id]&&!(g.mig&&g.mig.r29)){migrateReorder(id,g,REORDERS4[id],'r29');saveLocal();}
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2749,15 +2819,15 @@ function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)s
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,8],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
+  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
   steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,7],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,8],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['sight',17,18],['jazzrhy',7,9],['comping',6,8]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
-  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6],['jazzrhy',10,11]]}];
+  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,8],['drop2',13,14],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
    Four tracks; each node bundles level ranges from one or more games, all in one PATH stage (its column). pre = skills it builds on.
    Locks are soft: a locked skill still opens. Goals are the payoff skills that still need a feature (shown as “coming”).
@@ -2780,21 +2850,20 @@ const SKILLS=[
  {id:'k2',tr:'time',n:'Comping patterns',d:'Pushes, mixed patterns, strum-back, bossa and samba.',req:[['comping',3,5]],pre:['k1','j1']},
  {id:'j2',tr:'time',n:'Advanced jazz rhythm',d:'Hemiola, bebop cells, jazz waltz and 5/4.',req:[['jazzrhy',7,9]],pre:['j1']},
  {id:'k3',tr:'time',n:'Comp a chorus',d:'Ballads, a whole form over a bass line, trading fours.',req:[['comping',6,8]],pre:['k2']},
- {id:'s17',tr:'solo',n:'Melodic rhythms',d:'Syncopated and swung lines in position, pitch and time graded together.',req:[['sight',17,18]],pre:['s15','j1']},
  {id:'j3',tr:'time',n:'Rhythm etudes & standards',d:'Eight-bar swing etudes and the rhythms of your own tunes.',req:[['jazzrhy',10,11]],pre:['j2']},
  {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['k3','t5','j3']},
- {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,8]],pre:[]},
+ {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,9]],pre:[]},
  {id:'s2',tr:'solo',n:'Every place a note lives',d:'All the spots of one note across the neck, played.',req:[['hunt',1,5]],pre:['s1']},
- {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces, ledger lines, accidentals and key signatures.',req:[['sight',1,3]],pre:[]},
+ {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces and ledger lines, on paper and in first position.',req:[['sight',1,3]],pre:['s1']},
  {id:'s4',tr:'solo',n:'First bends & vibrato',d:'Half and whole-step bends in tune, release, even vibrato.',req:[['bends',1,4]],pre:[]},
  {id:'s5',tr:'solo',n:'Notes in time',d:'Fret by fret, two notes at once, every spot with the click.',req:[['hunt',6,8]],pre:['s2']},
- {id:'s6',tr:'solo',n:'Read in first position',d:'Staff to fret in position, then lines with rhythm, in time.',req:[['sight',4,9]],pre:['s3','s1']},
+ {id:'s6',tr:'solo',n:'Read in first position',d:'All of first position, accidentals and key signatures, lines with rhythm, positions II–IV.',req:[['sight',4,9]],pre:['s3']},
  {id:'s7',tr:'solo',n:'Play it back',d:'Hear a phrase and play it: steps, skips, the major scale, pentatonic and blues in time.',req:[['cr',1,6]],pre:['s1','h2']},
  {id:'s8',tr:'solo',n:'Interval shapes',d:'3rds, 5ths, 4ths, 6ths, 7ths and 2nds as shapes under the hand.',req:[['neckiv',1,3]],pre:['s1','h3']},
  {id:'s9',tr:'solo',n:'Expressive bends',d:'Bend with vibrato, the blues curl, pre-bends.',req:[['bends',5,7]],pre:['s4']},
  {id:'s10',tr:'solo',n:'Arpeggios',d:'Seventh-chord arpeggios in position, in time, through II–V–I and as guide-tone lines.',req:[['arp',1,8]],pre:['s8','c3']},
- {id:'s11',tr:'solo',n:'Read in positions II–V',d:'The low positions and fifth position, lines in time.',req:[['sight',10,13]],pre:['s6']},
- {id:'s12',tr:'solo',n:'Phrasing over changes',d:'Chromatic approach notes, phrases over a chord in time, double stops.',req:[['cr',7,9]],pre:['s7','s10']},
+ {id:'s11',tr:'solo',n:'Read melodic rhythms, fifth position',d:'Syncopated and swung lines in position, pitch and time together; fifth position.',req:[['sight',10,13]],pre:['s6','r2']},
+ {id:'s12',tr:'solo',n:'Phrasing over changes',d:'Chromatic approach notes, phrases over a chord in time, double stops.',req:[['cr',7,10]],pre:['s7','s10']},
  {id:'s13',tr:'solo',n:'Modes in position',d:'A mode of the major scale from its root, in one position.',req:[['arp',9,9]],pre:['s10','h14']},
  {id:'s14',tr:'solo',n:'Tensions & double stops',d:'9, 11, 13 and altered tensions; intervals below; 3rds and 6ths as grips.',req:[['neckiv',4,7]],pre:['s8']},
  {id:'s15',tr:'solo',n:'Read high & everywhere',d:'Ninth position, dyads, and every place one written pitch lives.',req:[['sight',14,16]],pre:['s11']},
@@ -2811,7 +2880,7 @@ const SKILLS=[
  {id:'c9',tr:'chords',n:'Spread triads & upper structures',d:'Open triads and triads over a dominant shell.',req:[['triads',12,13]],pre:['c7','c4']},
  {id:'c10',tr:'chords',n:'Full arpeggios on the neck',d:'Every chord tone in position, every seventh quality.',req:[['guidetones',5,6]],pre:['c4','s10']},
  {id:'c11',tr:'chords',n:'Extensions & symbols',d:'9, 11, 13 and altered chords; every chord-symbol style.',req:[['spelling',9,10]],pre:['c3']},
- {id:'c12',tr:'chords',n:'Drop-3',d:'Drop-3 on both string sets; drop-2 or drop-3?',req:[['shells',5,7]],pre:['c8','c4']},
+ {id:'c12',tr:'chords',n:'Drop-3',d:'Drop-3 on both string sets; drop-2 or drop-3?',req:[['shells',5,8]],pre:['c8','c4']},
  {id:'c13',tr:'chords',n:'Drop-2 colours',d:'m7♭5, °7, sixths, extensions and the minor II–V–I in grips.',req:[['drop2',13,14]],pre:['c8','c11']},
  {id:'cg',tr:'chords',goal:true,n:'Chord melody',d:'A melody on top of drop-2 and triad voicings, played through a tune. Needs the chord-melody track.',pre:['c13','c9','c5']},
  {id:'h1',tr:'harm',n:'Major scales & keys',d:'Every major scale, key signatures, major intervals, minor keys.',req:[['intervals',1,4]],pre:[]},
@@ -2822,18 +2891,18 @@ const SKILLS=[
  {id:'h6',tr:'harm',n:'Minor key & dictation',d:'Degrees in minor, two notes, three- and four-note dictation.',req:[['eardeg',5,7]],pre:['h2']},
  {id:'h7',tr:'harm',n:'All intervals by ear',d:'Every interval rising, then falling.',req:[['eariv',4,5]],pre:['h3']},
  {id:'h8',tr:'harm',n:'Hear triads & progressions',d:'Major or minor, the four triads, the classic progressions and the 12-bar blues.',req:[['earchord',1,2],['earprog',1,3]],pre:['h2']},
- {id:'h9',tr:'harm',n:'Harmonic intervals',d:'Both notes together; rising or falling, you decide.',req:[['eariv',6,7]],pre:['h7']},
+ {id:'h9',tr:'harm',n:'Harmonic intervals',d:'Both notes together; rising or falling, you decide.',req:[['eariv',6,8]],pre:['h7']},
  {id:'h10',tr:'harm',n:'Sing intervals & chord tones',d:'Intervals above a note, the 3rd, 5th or 7th of a chord, degrees in minor.',req:[['sing',3,5]],pre:['h4','h7']},
  {id:'h11',tr:'harm',n:'Numerals & function',d:'Diatonic triads and sevenths, IIm7–V7–IMaj7, function, minor keys, finding the key.',req:[['analysis',1,7]],pre:['h5','c3']},
  {id:'h12',tr:'harm',n:'Hear sevenths & cadences',d:'The seventh qualities by ear; minor progressions and II–V–I substitutes.',req:[['earchord',3,4],['earprog',4,5]],pre:['h8','c3']},
  {id:'h13',tr:'harm',n:'Substitutions',d:'Secondary dominants, tritone subs, backdoor, borrowed and passing chords; full analysis.',req:[['analysis',8,12]],pre:['h11']},
  {id:'h14',tr:'harm',n:'Chord–scale',d:'The scale for each chord, modes in a key, melodic-minor modes.',req:[['chordscale',1,4]],pre:['h11','h5']},
- {id:'h15',tr:'harm',n:'Hear everything',d:'Sixths, sus, extensions, voicings by ear; turnarounds, forms and dictation of changes.',req:[['earchord',5,8],['earprog',6,10]],pre:['h12']},
+ {id:'h15',tr:'harm',n:'Hear everything',d:'Sixths, sus, extensions, voicings by ear; turnarounds, forms and dictation of changes.',req:[['earchord',5,9],['earprog',6,11]],pre:['h12']},
  {id:'h16',tr:'harm',n:'Long dictation',d:'Chromatic degrees, bass lines and five-note lines.',req:[['eardeg',8,9]],pre:['h6']},
  {id:'h17',tr:'harm',n:'First tunes',d:'Blues in F and B♭, minor and Bird blues, rhythm changes.',req:[['repertoire',1,3]],pre:['h11']},
- {id:'h18',tr:'harm',n:'Sing lines',d:'Chromatic degrees, short lines, bass and guide-tone lines.',req:[['sing',6,8]],pre:['h10']},
+ {id:'h18',tr:'harm',n:'Sing lines',d:'Chromatic degrees, short lines, bass and guide-tone lines.',req:[['sing',6,9]],pre:['h10']},
  {id:'h19',tr:'harm',n:'Advanced scales',d:'Symmetric and bebop scales, harmonic minor over V, avoid notes.',req:[['chordscale',5,7]],pre:['h14']},
- {id:'h20',tr:'harm',n:'Standards',d:'The first eight bars of six standards; which form, what comes next, numerals.',req:[['repertoire',4,6]],pre:['h17','h13']},
+ {id:'h20',tr:'harm',n:'Standards',d:'The first eight bars of six standards; which form, what comes next, numerals.',req:[['repertoire',4,8]],pre:['h17','h13']},
  {id:'hg',tr:'harm',goal:true,n:'Learn a standard by ear',d:'Hear a tune’s changes and melody and write them down. Needs the tune-learning workflow.',pre:['h20','h15']}];
 const SKBY=Object.fromEntries(SKILLS.map(n=>[n.id,n]));
 const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
@@ -2843,7 +2912,7 @@ const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
    A level is at standard when its accuracy and its game's speed measure (when the level has one) both meet it; a skill is green when all its levels are. */
 const STD_N=12;
 /* guitar speed standards (seconds) where the game has no own: rt = from listening to your first right note or strum, gp = from one played note to the next */
-const GSTD={fretboard:{rt:2},sight:{rt:3,gp:1.5},hunt:{rt:2.5},triads:{rt:4},drop2:{rt:5},shells:{rt:4,gp:2.5},guidetones:{rt:2.5,gp:1.5},neckiv:{rt:2.5,gp:1.5},voicelead:{rt:3,gp:1.5},walking:{gp:1.2},eardeg:{rt:3},cr:{rt:3,gp:1.2},arp:{rt:2.5}};
+const GSTD={chordscale:{gp:1.2},repertoire:{rt:4,gp:3},earchord:{gp:1.5},eariv:{gp:1.5},earprog:{gp:2},fretboard:{rt:2},sight:{rt:3,gp:1.5},hunt:{rt:2.5},triads:{rt:4},drop2:{rt:5},shells:{rt:4,gp:2.5},guidetones:{rt:2.5,gp:1.5},neckiv:{rt:2.5,gp:1.5},voicelead:{rt:3,gp:1.5},walking:{gp:1.2},eardeg:{rt:3},cr:{rt:3,gp:1.2},arp:{rt:2.5}};
 const gStd=gid=>({rt:(GSTD[gid]||{}).rt||3,gp:(STD[gid]&&STD[gid].gp)||(GSTD[gid]||{}).gp||1.5});
 const STD={
  fretboard:{acc:.95,flu:.6,why:'name any note on the neck instantly'},

@@ -13,7 +13,7 @@ try:
     b=p.chromium.launch(channel='chrome',args=['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--autoplay-policy=no-user-gesture-required'])
     ctx=b.new_context(viewport={'width':1000,'height':900},permissions=['microphone']);pg=ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto('http://127.0.0.1:8765/');pg.wait_for_timeout(800);pg.screenshot(path=str(out/'home.png'),full_page=True)
-    for gid,lvl in [('fretboard',5),('drop2',4),('rhythmtap',3),('analysis',4),('cr',2)]:
+    for gid,lvl in [('fretboard',5),('drop2',4),('pulse',3),('analysis',4),('cr',2)]:
         pg.evaluate(f"G('{gid}').lvl={lvl};view={{name:'lobby',gid:'{gid}',sel:{lvl}}};render()");pg.wait_for_timeout(200);pg.screenshot(path=str(out/f'{gid}_lobby.png'),full_page=True)
         pg.click('[data-act=start]');pg.wait_for_timeout(1200);pg.screenshot(path=str(out/f'{gid}_play.png'),full_page=True)
     print('page errors:',errs);b.close()

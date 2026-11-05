@@ -79,6 +79,7 @@ html.castle{background:#07061a}html.castle body{background:transparent}html.cast
 .head h1{font-size:clamp(30px,5vw,44px);font-weight:800}
 .head .sp{margin-left:auto;display:flex;gap:8px}
 .ladder{display:grid;gap:8px}
+.rhylines svg{display:block}.tok.music,.spellslots.music .slot .n{font-family:var(--f-music),serif;font-size:21px;letter-spacing:.04em}.st-dotd{fill:var(--fg)}.st-flag{fill:var(--fg)}
 .rung{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
 .rung.sel{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
 .rung.locked{opacity:.55}
@@ -1723,21 +1724,22 @@ function staffRhySVG(ws,ok,dur){const S7=7,BL=104,y=st=>BL-st*S7,PB=42,BW=4*PB+2
   for(let k=1;k<=bars;k++){const bx=X0+k*BW;h+=k<bars?`<line class="st-line" x1="${bx}" x2="${bx}" y1="${y(8)}" y2="${y(0)}"/>`:`<line class="st-line" x1="${bx-5}" x2="${bx-5}" y1="${y(8)}" y2="${y(0)}"/><line class="st-line" x1="${bx}" x2="${bx}" y1="${y(8)}" y2="${y(0)}" style="stroke-width:4"/>`;}
   ws.forEach((w,i)=>{const nx=xs[i],st=w.step;if(st<=-2)for(let s2=-2;s2>=st;s2-=2)h+=`<line class="st-line" x1="${nx-14}" x2="${nx+14}" y1="${y(s2)}" y2="${y(s2)}"/>`;
     if(st>=10)for(let s2=10;s2<=st;s2+=2)h+=`<line class="st-line" x1="${nx-14}" x2="${nx+14}" y1="${y(s2)}" y2="${y(s2)}"/>`;if(w.a)h+=accSVG(ACC[w.a],nx-22,y(st));
-    h+=`<ellipse class="st-head${dur[i]<2?' fill':''}${ok?' ok':''}" cx="${nx}" cy="${y(st)}" rx="8" ry="5.6" transform="rotate(-22 ${nx} ${y(st)})"/>`;
+    h+=`<ellipse class="st-head${dur[i]<2?' fill':''}${ok?' ok':''}" cx="${nx}" cy="${y(st)}" rx="8" ry="5.6" transform="rotate(-22 ${nx} ${y(st)})"/>`;if(dur[i]===1.5)h+=`<circle class="st-dotd" cx="${nx+13}" cy="${y(st)-(st%2?0:3.5)}" r="2.1"/>`;
     const sx=up[i]?nx+7.4:nx-7.4;h+=`<line class="st-stem" x1="${sx}" x2="${sx}" y1="${y(st)+(up[i]?-1.5:1.5)}" y2="${end[i]}"/>`;});
   for(const i of pair){const x1=up[i]?xs[i]+7.4:xs[i]-7.4,x2=up[i]?xs[i+1]+7.4:xs[i+1]-7.4,yb=end[i]+(up[i]?2.5:-2.5);h+=`<line class="st-beam" x1="${x1-0.75}" x2="${x2+0.75}" y1="${yb}" y2="${yb}"/>`;}
+  dur.forEach((d,i)=>{if(d!==0.5||pair.includes(i)||pair.includes(i-1))return;const sx=up[i]?xs[i]+7.4:xs[i]-7.4,ey=end[i],k=up[i]?1:-1;h+=`<path class="st-flag" d="M${sx} ${ey} c 7 ${5*k} 10 ${12*k} 5 ${20*k} c 2 ${-8*k} -1 ${-13*k} -5 ${-15*k} z"/>`;});
   return h+'</svg>';}
 /* two bars of 4/4 for a reading line: quarters, halves and beamed eighth pairs (q=1 h=2 e=two eighths) */
 const READ_BARS=[['q','q','q','q'],['h','q','q'],['q','q','h'],['h','h'],['e','q','q','q'],['q','e','q','q'],['q','q','e','q'],['q','q','q','e'],['e','e','q','q'],['q','e','h']];
-const readRhythm=()=>{const out=[];for(let b=0;b<2;b++){let p=R(READ_BARS);if(b===1&&p.at(-1)!=='h'&&Math.random()<.6)p=R(READ_BARS.filter(x=>x.at(-1)==='h'));p.forEach(t=>t==='e'?out.push(.5,.5):out.push(t==='h'?2:1));}return out;};
+const readRhythm=(cells)=>{if(cells){const {ev}=rhyBar(cells,2);return ev.map(e=>e.d);}const out=[];for(let b=0;b<2;b++){let p=R(READ_BARS);if(b===1&&p.at(-1)!=='h'&&Math.random()<.6)p=R(READ_BARS.filter(x=>x.at(-1)==='h'));p.forEach(t=>t==='e'?out.push(.5,.5):out.push(t==='h'?2:1));}return out;};
 /* Reading: a 4–6 note line of naturals in one position, read and played in time */
-function readLineQ(win,strings,rhy){return ()=>{const cand=[];for(const s of strings)for(let f=win[0];f<=win[1];f++){const m=OPEN[s]+f;if(NAT.includes(m%12)&&!cand.includes(m))cand.push(m);}cand.sort((a,b)=>a-b);
-  for(let t=0;t<60;t++){const dur=rhy?readRhythm():null,len=dur?dur.length:ri(4,6),idx=[ri(0,cand.length-1)];let g=0;while(idx.length<len&&g++<200){const j=idx.at(-1)+R([-2,-1,1,1,2,-1]);if(j>=0&&j<cand.length)idx.push(j);}
+function readLineQ(win,strings,rhy,swing){return ()=>{const cand=[];for(const s of strings)for(let f=win[0];f<=win[1];f++){const m=OPEN[s]+f;if(NAT.includes(m%12)&&!cand.includes(m))cand.push(m);}cand.sort((a,b)=>a-b);
+  for(let t=0;t<60;t++){const dur=rhy?readRhythm(Array.isArray(rhy)?rhy:null):null,len=dur?dur.length:ri(4,6),idx=[ri(0,cand.length-1)];let g=0;while(idx.length<len&&g++<200){const j=idx.at(-1)+R([-2,-1,1,1,2,-1]);if(j>=0&&j<cand.length)idx.push(j);}
     const mids=idx.map(j=>cand[j]);if(mids.length<len||!noDup(mids))continue;
     const ws=mids.map(m=>writtenOf(m,1)),names=ws.map(wName),spots=mids.map(m=>posOf(m).filter(x=>x.f>=win[0]&&x.f<=win[1]).sort((a,b)=>b.s-a.s)[0]),pos=win[0]===0?'first position':`position ${win[0]}`;
-    const grid=dur?dur.reduce((a,d,k)=>(a.push(k?a[k-1]+dur[k-1]:0),a),[]):mids.map((_,k)=>k);
-    return M({key:`rl-${win[0]}-${rhy?'r-':''}${mids.join('_')}`,label:`Line in ${pos}${rhy?' with rhythm':''}: ${names.join(' ')}`,target:mids,octaveFree:false,maxNotes:len,metro:60,grid,degs:names.map(n=>n.replace(/\d+$/,'')),names,hideTarget:true,
-      prompt:rhy?`Read the line, rhythm included, and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}) after the count-in: quarter = one click, half = two, eighths = two per click.`:`Read the line and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}), one note per click after the count-in.`,visual:`<div class="staffwrap">${staffLineSVG(ws,0,dur)}</div>`+fretSVG({dots:[],win}),answerText:names.join(' '),
+    let grid=dur?dur.reduce((a,d,k)=>(a.push(k?a[k-1]+dur[k-1]:0),a),[]):mids.map((_,k)=>k);if(swing)grid=grid.map(g=>Math.abs(g%1-.5)<1e-6?Math.floor(g)+.67:g);
+    return M({key:`rl-${win[0]}-${rhy?(Array.isArray(rhy)?(swing?'s-':'j-'):'r-'):''}${mids.join('_')}`,label:`Line in ${pos}${rhy?(swing?' (swing)':' with rhythm'):''}: ${names.join(' ')}`,target:mids,octaveFree:false,maxNotes:len,metro:swing?90:60,grid,degs:names.map(n=>n.replace(/\d+$/,'')),names,hideTarget:true,
+      prompt:rhy?`Read the line, rhythm included, and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}) after the count-in: quarter = one click, half = two, eighths = two per click${swing?'; <b>swing</b> the eighths':''}.`:`Read the line and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}), one note per click after the count-in.`,visual:`<div class="staffwrap">${staffLineSVG(ws,0,dur)}</div>`+fretSVG({dots:[],win}),answerText:names.join(' '),
       explain:`${names.join(' – ')}: ${spots.map((p,k)=>`${names[k]} on string ${p.s}, fret ${p.f}`).join('; ')}.`,
       after:()=>`<div class="staffwrap">${staffLineSVG(ws,1,dur)}</div>`+fretSVG({dots:spots.map((p,k)=>({s:p.s,f:p.f,cls:'fb-mark',t:String(k+1)})),win}),hint:'Name every note during the count-in; keep the hand in position.'});}
   return sightQ(win,strings,0)();};}
@@ -1831,7 +1833,7 @@ function walkGrade(q,res){const W=q.walk,notes=(res&&res.notes)||[],beat=res.bea
   const ok=per.every(x=>x.ok);return {ok,notesOk:ok,timeOk:true,per,extra:[],firstAt:res&&res.firstAt,walkWhy:why};}
 function playOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{}),play=g.mode==='play';return `<div class="eyebrow" style="margin-top:12px">Answer by</div><div class="seg" role="group"><button class="${play?'':'on'}" data-act="mode" data-k="mark">On screen (no microphone)</button><button class="${play?'on':''}" data-act="mode" data-k="play">Playing it on the guitar (microphone)</button></div><p class="note">One input for the whole game: on screen nothing is recorded; playing it, every question is played on the guitar. Levels that have no question for the chosen input are marked and skipped.</p>
   ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label><label class="check"><input type="checkbox" data-act="micopt" data-k="strum" ${o.strum!==false?'checked':''}> Strum chords: the mic hears the whole grip (beta)</label></div></div><p class="note">Exact pitches count. Single notes and lines: one at a time, muting as you go. Chord grips: strum them once and let them ring (or switch “Strum chords” off to play them one note at a time, low to high). Bass notes below C3 are not checked: a laptop mic barely hears them. Check your tuning on the Mic check page first. Questions that would need more than 8 notes are left out in this mode. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
-function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[60,70,80,90,100,120,140,160].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div>${x.mic?'':`<div class="field"><span class="muted">Answer by</span><label class="check"><input type="checkbox" data-act="micopt" data-k="tapMic" ${o.tapMic?'checked':''}> Strumming muted strings into the mic instead of tapping (the whole game then uses the mic: reading and counting questions are left out)</label></div>`}<p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
+function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[50,60,70,80,90,100,110,120,130,140,150,160,180,200,220,240].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div>${x.mic?'':`<div class="field"><span class="muted">Answer by</span><label class="check"><input type="checkbox" data-act="micopt" data-k="tapMic" ${o.tapMic?'checked':''}> Strumming muted strings into the mic instead of tapping (the whole game then uses the mic: reading and counting questions are left out)</label></div>`}<p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
 function micOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});const sel=(k,opts,fmt)=>`<select data-act="micopt" data-k="${k}">${opts.map(v=>`<option value="${v}" ${String(o[k])===String(v)?'selected':''}>${fmt(v)}</option>`).join('')}</select>`;
   return `<div class="eyebrow" style="margin-top:12px">Microphone game</div><div class="micopts">${x.id==='cr'?`<label class="field"><span class="muted">Key</span>${sel('key',[...MKEYLIST,'random'],v=>v==='random'?'Random each phrase':nm(P(v))+' major')}</label>`:''}
    <label class="field"><span class="muted">Tempo (timed levels)</span>${sel('bpm',[60,70,80,100,120],v=>v+' bpm')}</label>
@@ -1840,12 +1842,12 @@ function micOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});const sel=(
 
 /* ============ RHYTHM: notation, tap engine, click games ============ */
 /* events: [{t,d,rest,tup}] in beats; renders one or two bars of 4/4 on a single line */
-function rhySVG(ev,bars=1,o={}){const BW=76,X0=44,Y=46,W=X0+bars*4*BW+12,H=96;let h=`<svg class="rhy" viewBox="0 0 ${W} ${H}" role="img" aria-label="Rhythm notation">`;
-  h+=`<line class="rh-line" x1="8" x2="${W-6}" y1="${Y}" y2="${Y}"/>`;for(let b=0;b<=bars;b++){const x=X0-14+b*4*BW;h+=`<line class="rh-bar" x1="${x}" x2="${x}" y1="${Y-22}" y2="${Y+22}"/>`;}
-  h+=`<text class="rh-ts" x="14" y="${Y-3}">4</text><text class="rh-ts" x="14" y="${Y+17}">4</text>`;if(o.swing)h+=`<text class="rh-sw" x="${X0}" y="12">swing eighths</text>`;
+function rhySVG(ev,bars=1,o={}){const M=o.meter||4,BW=76,X0=44,Y=46,W=X0+bars*M*BW+12,H=96,ts=(o.ts||`${M}/4`).split('/');let h=`<svg class="rhy" viewBox="0 0 ${W} ${H}" role="img" aria-label="Rhythm notation">`;
+  h+=`<line class="rh-line" x1="8" x2="${W-6}" y1="${Y}" y2="${Y}"/>`;for(let b=0;b<=bars;b++){const x=X0-14+b*M*BW;h+=`<line class="rh-bar" x1="${x}" x2="${x}" y1="${Y-22}" y2="${Y+22}"/>`;}
+  h+=`<text class="rh-ts" x="14" y="${Y-3}">${ts[0]}</text><text class="rh-ts" x="14" y="${Y+17}">${ts[1]}</text>`;if(o.swing)h+=`<text class="rh-sw" x="${X0}" y="12">swing eighths</text>`;
   const X=t=>X0+t*BW;const heads=[];
   /* split notes that cross a beat boundary into tied pieces, except halves and whole notes on the beat */
-  const pieces=[];ev.forEach(e=>{if(e.rest){pieces.push({...e});return;}let t=e.t,d=e.d,first=true;while(d>1e-6){const inBeat=Math.floor(t+1e-6),room=inBeat+1-t;let take;
+  const pieces=[];ev.forEach(e=>{if(e.rest||e.tup){pieces.push({...e});return;}let t=e.t,d=e.d,first=true;while(d>1e-6){const inBeat=Math.floor(t+1e-6),room=inBeat+1-t;let take;
       if(Math.abs(t-Math.round(t))<1e-6&&(d===2||d===4||(d===3&&t%4<=1)))take=d;else if(d===1.5&&Math.abs(t-Math.round(t))<1e-6)take=1.5;else take=Math.min(d,room);
       pieces.push({t,d:take,tup:e.tup,tieTo:d-take>1e-6,tieFrom:!first});t+=take;d-=take;first=false;}});
   const stems=[];
@@ -1856,32 +1858,54 @@ function rhySVG(ev,bars=1,o={}){const BW=76,X0=44,Y=46,W=X0+bars*4*BW+12,H=96;le
     if(p.d<4)h+=`<line class="rh-stem" x1="${x+5.5}" x2="${x+5.5}" y1="${Y-1}" y2="${Y-30}"/>`;
     heads.push({x,t:p.t,tieTo:p.tieTo});if(p.d<1&&!p.tup)stems.push({x:x+5.5,t:p.t,d:p.d,beat:Math.floor(p.t+1e-6)});if(p.tup)stems.push({x:x+5.5,t:p.t,d:p.d,beat:Math.floor(p.t+1e-6),tup:p.tup});});
   /* beams: group short notes by beat */
-  const groups={};stems.forEach(s=>{(groups[s.beat]=groups[s.beat]||[]).push(s);});
+  const groups={};stems.forEach(s=>{const k=s.tup?'t'+s.tup:s.beat;(groups[k]=groups[k]||[]).push(s);});
   Object.values(groups).forEach(g=>{g.sort((a,b)=>a.t-b.t);if(g.length===1){const s=g[0];if(s.d<1)h+=`<path class="rh-flag" d="M${s.x} ${Y-30} c 6 4 9 10 5 18 c 2 -7 -1 -11 -5 -13 z"/>`;if(s.d<=0.25)h+=`<path class="rh-flag" d="M${s.x} ${Y-23} c 6 4 9 10 5 18 c 2 -7 -1 -11 -5 -13 z"/>`;return;}
     const x1=g[0].x,x2=g.at(-1).x;h+=`<line class="rh-beam" x1="${x1}" x2="${x2}" y1="${Y-30}" y2="${Y-30}"/>`;
     g.forEach((s,i)=>{if(s.d<=0.25){const nx=g[i+1],px=g[i-1];const a=nx&&nx.d<=0.25?nx.x:px&&px.d<=0.25?s.x:s.x+(nx?8:-8),b=s.x;h+=`<line class="rh-beam" x1="${Math.min(a,b)}" x2="${Math.max(a,b)}" y1="${Y-25}" y2="${Y-25}"/>`;}});
-    if(g[0].tup)h+=`<text class="rh-tup" x="${(x1+x2)/2}" y="${Y-35}">3</text>`;});
+    if(g[0].tup&&!o.noTup)h+=`<text class="rh-tup" x="${(x1+x2)/2}" y="${Y-35}">3</text>`;});
   heads.forEach((hd,i)=>{if(hd.tieTo&&heads[i+1]){const a=hd.x+4,b=heads[i+1].x-4;h+=`<path class="rh-tie" d="M${a} ${Y+7} Q ${(a+b)/2} ${Y+16} ${b} ${Y+7}"/>`;}});
-  for(let b=0;b<bars*4;b++)h+=`<text class="rh-cnt" x="${X(b)}" y="${Y+36}">${b%4+1}</text>`;
+  for(let b=0;b<bars*M;b++)h+=`<text class="rh-cnt" x="${X(b)}" y="${Y+36}">${b%M+1}</text>`;
   return h+'</svg>';}
+/* several bars on several lines (two bars a line) */
+function rhyLines(ev,bars,o={}){const M=o.meter||4,per=o.perLine||2;let h='<div class="rhylines">';for(let b0=0;b0<bars;b0+=per){const nb=Math.min(per,bars-b0),chunk=ev.filter(e=>e.t>=b0*M-1e-6&&e.t<(b0+nb)*M-1e-6).map(e=>({...e,t:e.t-b0*M}));h+=rhySVG(chunk,nb,o);}return h+'</div>';}
 /* rhythm cells per beat: onsets and notation events */
+/* rhythm cells: b = beats, ev = notation events (t,d in beats; rest; tup = tuplet group). Onsets are the non-rest events. */
 const RCELL={
  q:{b:1,ev:[{t:0,d:1}]},ee:{b:1,ev:[{t:0,d:.5},{t:.5,d:.5}]},r:{b:1,ev:[{t:0,d:1,rest:1}]},re:{b:1,ev:[{t:0,d:.5,rest:1},{t:.5,d:.5}]},er:{b:1,ev:[{t:0,d:.5},{t:.5,d:.5,rest:1}]},
- h:{b:2,ev:[{t:0,d:2}]},qe:{b:2,ev:[{t:0,d:1.5},{t:1.5,d:.5}]},eq:{b:2,ev:[{t:0,d:.5},{t:.5,d:1.5}]},eqe:{b:2,ev:[{t:0,d:.5},{t:.5,d:1},{t:1.5,d:.5}]},tie:{b:2,ev:[{t:0,d:.5},{t:.5,d:1.5}]},
- trip:{b:1,ev:[{t:0,d:1/3,tup:1},{t:1/3,d:1/3,tup:1},{t:2/3,d:1/3,tup:1}]},ess:{b:1,ev:[{t:0,d:.5},{t:.5,d:.25},{t:.75,d:.25}]},sse:{b:1,ev:[{t:0,d:.25},{t:.25,d:.25},{t:.5,d:.5}]},ssss:{b:1,ev:[{t:0,d:.25},{t:.25,d:.25},{t:.5,d:.25},{t:.75,d:.25}]},
- ant:{b:2,ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:.5}]} /* quarter, then an eighth pushed into the next beat written as a tie: handled by eqe/tie */};
-function rhyBar(cells,bars=1,swing){const ev=[];let t=0,tup=0;const total=bars*4;let guard=0;
-  while(t<total&&guard++<200){const pool=cells.filter(c=>t+RCELL[c].b<=total&&!(RCELL[c].b===2&&t%4===3));if(!pool.length)break;const c=R(pool);RCELL[c].ev.forEach(e=>{const x={...e,t:t+e.t};if(e.tup)x.tup=++tup;ev.push(x);});t+=RCELL[c].b;}
+ h:{b:2,ev:[{t:0,d:2}]},hr:{b:2,ev:[{t:0,d:2,rest:1}]},w:{b:4,ev:[{t:0,d:4}]},dh:{b:3,ev:[{t:0,d:3}]},
+ qe:{b:2,ev:[{t:0,d:1.5},{t:1.5,d:.5}]},eq:{b:2,ev:[{t:0,d:.5},{t:.5,d:1.5}]},eqe:{b:2,ev:[{t:0,d:.5},{t:.5,d:1},{t:1.5,d:.5}]},tie:{b:2,ev:[{t:0,d:.5},{t:.5,d:1.5}]},
+ qt:{b:2,ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:.5}]},ant:{b:2,ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:.5}]},
+ trip:{b:1,ev:[{t:0,d:1/3,tup:1},{t:1/3,d:1/3,tup:1},{t:2/3,d:1/3,tup:1}]},tqe:{b:1,ev:[{t:0,d:2/3,tup:1},{t:2/3,d:1/3,tup:1}]},teq:{b:1,ev:[{t:0,d:1/3,tup:1},{t:1/3,d:2/3,tup:1}]},
+ qtrip:{b:2,ev:[{t:0,d:2/3,tup:1},{t:2/3,d:2/3,tup:1},{t:4/3,d:2/3,tup:1}]},pick:{b:2,ev:[{t:0,d:1,rest:1},{t:1,d:1/3,tup:1},{t:4/3,d:1/3,tup:1},{t:5/3,d:1/3,tup:1}]},
+ ess:{b:1,ev:[{t:0,d:.5},{t:.5,d:.25},{t:.75,d:.25}]},sse:{b:1,ev:[{t:0,d:.25},{t:.25,d:.25},{t:.5,d:.5}]},ssss:{b:1,ev:[{t:0,d:.25},{t:.25,d:.25},{t:.5,d:.25},{t:.75,d:.25}]},
+ ses:{b:1,ev:[{t:0,d:.25},{t:.25,d:.5},{t:.75,d:.25}]},des:{b:1,ev:[{t:0,d:.75},{t:.75,d:.25}]},sde:{b:1,ev:[{t:0,d:.25},{t:.25,d:.75}]},
+ /* jazz figures, whole bars of 4/4 */
+ charl:{b:4,ev:[{t:0,d:1.5},{t:1.5,d:.5},{t:2,d:2,rest:1}]},charl2:{b:4,ev:[{t:0,d:1,rest:1},{t:1,d:.5,rest:1},{t:1.5,d:1},{t:2.5,d:1.5}]},charl3:{b:4,ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:2}]},
+ push1:{b:4,ev:[{t:0,d:2},{t:2,d:1.5},{t:3.5,d:.5}]},push3:{b:4,ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:2.5}]},dots3:{b:4,ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}]},
+ phrA:{b:4,ev:[{t:0,d:.5,rest:1},{t:.5,d:.5},{t:1,d:.5},{t:1.5,d:.5},{t:2,d:.5},{t:2.5,d:.5},{t:3,d:.5},{t:3.5,d:.5}]},phrB:{b:4,ev:[{t:0,d:1,rest:1},{t:1,d:.5},{t:1.5,d:.5},{t:2,d:.5},{t:2.5,d:.5},{t:3,d:.5},{t:3.5,d:.5}]},
+ bop:{b:2,ev:[{t:0,d:.5},{t:.5,d:.5},{t:1,d:.5},{t:1.5,d:.5}]},bopA:{b:2,ev:[{t:0,d:.5},{t:.5,d:.5},{t:1,d:.5},{t:1.5,d:.5}]},hemi:{b:8,ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1.5},{t:4.5,d:1.5},{t:6,d:1.5},{t:7.5,d:.5}]}};
+/* dictation labels (music font) */
+const RLAB={q:'♩',ee:'♫',r:'𝄽',re:'𝄾♪',er:'♪𝄾',h:'𝅗𝅥',hr:'𝄼',w:'𝅝',dh:'𝅗𝅥.',qe:'♩.♪',eq:'♪♩.',eqe:'♪♩♪',tie:'♪‿♩.',qt:'♩♫',trip:'♪♪♪³',tqe:'♩♪³',teq:'♪♩³',ess:'♪♬',sse:'♬♪',ssss:'♬♬',ses:'𝅘𝅥𝅯♪𝅘𝅥𝅯',des:'♪.𝅘𝅥𝅯',sde:'𝅘𝅥𝅯♪.'};
+/* a bar or more from a cell vocabulary; cells never cross a bar line; M = beats per bar */
+function rhyBar(cells,bars=1,swing,M=4){const ev=[];let t=0,tup=0;const total=bars*M;let guard=0;
+  while(t<total&&guard++<300){const pool=cells.filter(c=>RCELL[c]&&(t%M)+RCELL[c].b<=M);if(!pool.length)break;const c=R(pool);RCELL[c].ev.forEach(e=>{const x={...e,t:t+e.t};if(e.tup)x.tup=tup+1;ev.push(x);});if(RCELL[c].ev.some(e=>e.tup))tup++;t+=RCELL[c].b;}
   while(t<total){ev.push({t,d:1});t++;}
   if(!ev.some(e=>!e.rest))ev[0]={t:0,d:1};
-  const on=ev.filter(e=>!e.rest).map(e=>swing&&Math.abs(e.t%1-0.5)<1e-6?Math.floor(e.t)+0.67:e.t);return {ev,on};}
+  const on=ev.filter(e=>!e.rest).map(e=>swing&&Math.abs(e.t%1-0.5)<1e-6?Math.floor(e.t)+0.67:e.t);return {ev,on,cells};}
+/* the same, remembering which cell made each bar position (for dictation answers) */
+function rhyBarCells(cells,bars,swing,M=4){const seq=[];const ev=[];let t=0,tup=0,guard=0;const total=bars*M;
+  while(t<total&&guard++<300){const pool=cells.filter(c=>RCELL[c]&&(t%M)+RCELL[c].b<=M);if(!pool.length)break;const c=R(pool);seq.push(c);RCELL[c].ev.forEach(e=>{const x={...e,t:t+e.t};if(e.tup)x.tup=tup+1;ev.push(x);});if(RCELL[c].ev.some(e=>e.tup))tup++;t+=RCELL[c].b;}
+  while(t<total){ev.push({t,d:1});seq.push('q');t++;}if(!ev.some(e=>!e.rest)){ev[0]={t:0,d:1};seq[0]='q';}
+  const on=ev.filter(e=>!e.rest).map(e=>swing&&Math.abs(e.t%1-0.5)<1e-6?Math.floor(e.t)+0.67:e.t);return {ev,on,seq};}
 const tapTol=beat=>Math.max(0.09,0.25*beat); /* seconds */
 /* taps and onsets in beats (already latency-corrected); returns per-onset result */
 function tapGrade(q,taps){const beat=60/q.bpm,tol=tapTol(beat)/beat;const used=new Set();const per=q.onsets.map(o=>{let best=-1,bd=1e9;taps.forEach((t,i)=>{if(used.has(i))return;const d=Math.abs(t-o);if(d<bd){bd=d;best=i;}});if(best>=0&&bd<=tol){used.add(best);return {o,t:taps[best],off:(taps[best]-o)*beat*1000,ok:true};}return {o,t:null,off:null,ok:false};});
-  const extra=taps.filter((t,i)=>!used.has(i)&&t>=-tol&&t<=q.len+tol);const hits=per.filter(x=>x.ok).length;return {per,extra,hits,ok:hits===q.onsets.length&&extra.length===0,n:q.onsets.length};}
-function tapTimeline(q,taps,r){const len=q.len,W=600,X0=20,BW=(W-40)/len,Y=36;let h=`<svg class="tl" viewBox="0 0 ${W} 72" role="img" aria-label="Timeline">`;
-  for(let b=0;b<=len;b++){const x=X0+b*BW,click=b<len&&q.clicks.includes(b%4);h+=`<line class="tl-beat${click?' click':''}" x1="${x}" x2="${x}" y1="${Y-18}" y2="${Y+18}"/><text class="tl-num" x="${x}" y="${Y+32}">${b<len?b%4+1:''}</text>`;}
-  for(let b=4;b<len;b+=4){const x=X0+b*BW;h+=`<line class="tl-bar" x1="${x}" x2="${x}" y1="${Y-24}" y2="${Y+24}"/>`;}
+  const extra=taps.filter((t,i)=>!used.has(i)&&t>=-tol&&t<=q.len+tol);const hits=per.filter(x=>x.ok).length;const r={per,extra,hits,ok:hits===q.onsets.length&&extra.length===0,n:q.onsets.length};
+  if(q.feel!=null){const offs=per.filter(x=>x.ok).map(x=>x.off),mean=offs.length?offs.reduce((a,b)=>a+b,0)/offs.length:0;r.mean=Math.round(mean);r.ok=hits>=Math.ceil(q.onsets.length*0.9)&&extra.length===0&&Math.abs(mean-q.feel)<=25;}   /* feel levels: land on purpose ahead of, on, or behind the click */
+  return r;}
+function tapTimeline(q,taps,r){const len=q.len,M=q.meter||4,W=600,X0=20,BW=(W-40)/len,Y=36;let h=`<svg class="tl" viewBox="0 0 ${W} 72" role="img" aria-label="Timeline">`;
+  for(let b=0;b<=len;b++){const x=X0+b*BW,click=b<len&&q.clicks.includes(b%M);h+=`<line class="tl-beat${click?' click':''}" x1="${x}" x2="${x}" y1="${Y-18}" y2="${Y+18}"/><text class="tl-num" x="${x}" y="${Y+32}">${b<len&&len<=32?b%M+1:''}</text>`;}
+  for(let b=M;b<len;b+=M){const x=X0+b*BW;h+=`<line class="tl-bar" x1="${x}" x2="${x}" y1="${Y-24}" y2="${Y+24}"/>`;}
   q.onsets.forEach((o,i)=>{const x=X0+o*BW,res=r?r.per[i]:null;h+=`<circle class="tl-on${res?(res.ok?' ok':' miss'):''}" cx="${x}" cy="${Y}" r="7"/>`;});
   (taps||[]).forEach(t=>{if(t<-0.5||t>len+0.5)return;const x=X0+t*BW;const isExtra=r&&r.extra.includes(t);h+=`<circle class="tl-tap${isExtra?' extra':''}" cx="${x}" cy="${Y-12}" r="4"/>`;});
   h+=`<line id="tapcur" class="tl-cur" x1="20" x2="20" y1="6" y2="66"/>`;return h+'</svg>';}
@@ -1889,7 +1913,8 @@ function tapTimeline(q,taps,r){const len=q.len,W=600,X0=20,BW=(W-40)/len,Y=36;le
 let TAP=null;
 function tapBegin(){if(!S||S.locked||TAP)return;const q=S.q,g=G(S.gid);const go=()=>{if(!S||S.q!==q||S.locked)return;const beat=60/q.bpm,lead=0.25,total=q.countIn+(q.call?q.len:0)+q.len;
     const p0=performance.now()+lead*1000;TAP={q,p0,beat,taps:[],respStart:q.countIn+(q.call?q.len:0),end:total,raf:0};
-    const clk=[];for(let i=0;i<total;i++){const inResp=i>=TAP.respStart,inCall=q.call&&i>=q.countIn&&i<TAP.respStart;const on=i<q.countIn||q.clicks.includes((i-q.countIn)%4);const drop=q.dropOut&&inResp&&(i-TAP.respStart)>=q.dropOut;if(on&&!drop){Piano.tick(lead+i*beat,(i-q.countIn)%4===0&&i>=q.countIn||i===0);clk.push((lead+i*beat)*1000);}}
+    const M=q.meter||4,clk=[];for(let i=0;i<total;i++){const inResp=i>=TAP.respStart;const on=i<q.countIn||q.clicks.includes((i-q.countIn)%M);const drop=q.dropOut&&inResp&&(i-TAP.respStart)>=q.dropOut;if(on&&!drop){Piano.tick(lead+i*beat,(i-q.countIn)%M===0&&i>=q.countIn||i===0);clk.push((lead+i*beat)*1000);}}
+    if(q.track)q.track.forEach(([o,m,d])=>Piano.note(m,lead+(TAP.respStart+o)*beat,Math.min(d||0.9,beat*0.9),0.55));   /* a bass line under the comping (headphones) */
     if(q.andClicks)for(let b=0;b<(q.call?2:1)*q.len/4;b++)Piano.note(79,lead+(q.countIn+b*4+3.5)*beat,0.2,0.6);
     if(q.call)q.call.forEach(o=>Piano.note(q.callNote||67,lead+(q.countIn+o)*beat,Math.min(0.4,beat*0.45),0.8));
     if(q.mic){startListening(res=>{if(!TAP)return;const taps=(res.onsets||[]).map(ms=>(ms-(TAP.respStart*beat*1000+lead*1000))/(beat*1000));TAP=null;S.tapping=false;answer(taps);},99,{onsets:true,limit:(total+0.8)*beat*1000+lead*1000,clicks:clk,calEnd:(lead+TAP.respStart*beat)*1000});}
@@ -1902,14 +1927,14 @@ function tapHit(){if(!TAP||TAP.q.mic)return;const g=G(S.gid),lat=((g.opts&&g.opt
   const tl=document.getElementById('tlwrap');if(tl){const bb=((performance.now()-TAP.p0)/1000/TAP.beat)-TAP.respStart;tl.innerHTML=tapTimeline(TAP.q,TAP.taps,null);const c=document.getElementById('tapcur');if(c){const x=20+Math.max(0,Math.min(TAP.q.len,bb))*(560/TAP.q.len);c.setAttribute('x1',x);c.setAttribute('x2',x);}}}
 function tapAbort(){if(TAP){cancelAnimationFrame(TAP.raf);TAP=null;}if(S)S.tapping=false;}
 /* after a graded tap round: learn the player's latency from the hits (only when most onsets were hit) */
-function tapLearnLatency(q,r,g){if(q.mic||r.hits<Math.max(3,q.onsets.length*0.6))return;const offs=r.per.filter(x=>x.ok).map(x=>x.off),mean=offs.reduce((a,b)=>a+b,0)/offs.length;g.opts=g.opts||{};const old=g.opts.lat||0;g.opts.lat=Math.max(-150,Math.min(250,Math.round(old*0.7+(old+mean)*0.3)));}
+function tapLearnLatency(q,r,g){if(q.mic||q.feel!=null||r.hits<Math.max(3,q.onsets.length*0.6))return;const offs=r.per.filter(x=>x.ok).map(x=>x.off),mean=offs.reduce((a,b)=>a+b,0)/offs.length;g.opts=g.opts||{};const old=g.opts.lat||0;g.opts.lat=Math.max(-150,Math.min(250,Math.round(old*0.7+(old+mean)*0.3)));}
 function tapPanel(q,done){const st=S.loading?'Loading piano…':S.tapping?'':done?'':q.mic?'Press Start (Space): four clicks of count-in, then play the pattern.':q.call?'Press Start (Space): four clicks, hear the rhythm for one bar, then tap it back on the next bar.':'Press Start (Space): four clicks of count-in, then tap.';
   const g=G(S.gid),lat=(g.opts&&g.opts.lat)||0;
   return `<div id="tlwrap" class="tlwrap">${tapTimeline(q,done?S.answers.at(-1).given:(TAP?TAP.taps:[]),done?S.tapResult:null)}</div>
    <div class="status ${S.tapping?'live':''}"><span id="tapphase">${st}</span></div>${micErr&&q.mic?`<div class="warn">${micErr}</div>`:''}
-   ${done?'':`<div class="ctrls">${S.tapping?(q.mic?'':`<button class="btn rec big tapbtn" id="tapbtn" data-act="tap">TAP (Space)</button>`):`<button class="btn primary big" data-act="tapstart" ${S.loading?'disabled':''}>▶ Start (Space)</button>`}<span class="muted" style="font-size:12px">${q.bpm} bpm${lat?` · latency correction ${lat} ms`:''}</span></div>`}`;}
+   ${done?'':`<div class="ctrls">${S.tapping?(q.mic?'':`<button class="btn rec big tapbtn" id="tapbtn" data-act="tap">TAP (Space)</button>`):`<button class="btn primary big" data-act="tapstart" ${S.loading?'disabled':''}>▶ Start (Space)</button>`}<span class="muted" style="font-size:12px">${q.bpm} bpm${lat?` · latency correction ${lat} ms`:''}${S.flow?` · Flow${S.flow.msg?' '+S.flow.msg:''}`:''}</span></div>`}`;}
 function tapFeedback(q,r){if(!r)return '';const late=r.per.filter(x=>x.ok&&x.off>40).length,early=r.per.filter(x=>x.ok&&x.off<-40).length;return ` On time: <b>${r.hits}/${r.n}</b>${r.extra.length?`, ${r.extra.length} extra tap${r.extra.length>1?'s':''}`:''}.${late>early&&late>=2?' You tend to land late: hear the click as the end of your motion, not the start.':early>late&&early>=2?' You tend to rush: let the click arrive.':''}`;}
-const T=o=>Object.assign({ui:'tap',factor:Infinity,countIn:4,clicks:[0,1,2,3],len:4},o);
+const T=o=>{const M=o.meter||4;return Object.assign({ui:'tap',factor:Infinity,countIn:M,clicks:Array.from({length:M},(_,i)=>i),len:M},o);};
 const rbpm=()=>micOpt().bpm;
 /* ---- Rhythm Tap ---- */
 function tapClickQ(bars){return ()=>{const bpm=rbpm(),on=[];for(let i=0;i<bars*4;i++)on.push(i);return T({key:`rt-click-${bars}`,label:`${bars*4} quarter notes on the click`,bpm,len:bars*4,onsets:on,calib:true,
@@ -1917,20 +1942,47 @@ function tapClickQ(bars){return ()=>{const bpm=rbpm(),on=[];for(let i=0;i<bars*4
   answerText:`${bars*4} taps on the click`,explain:'Quarter notes on the click. Aim to make the click disappear under your tap.',hint:'Move before the click so the tap lands on it.'});};}
 function tapBackQ(cells,swing){return ()=>{const bpm=rbpm(),{ev,on}=rhyBar(cells,1,swing);return T({key:`rt-back-${on.map(x=>x.toFixed(2)).join('_')}`,label:`tap back: ${on.map(x=>x+1).join(' ')}${swing?' (swing)':''}`,bpm,len:4,onsets:on,call:on,callNote:67,
   prompt:`Hear one bar of rhythm on the piano with the click, then <b>tap it back</b> in the next bar.${swing?' Swing eighths: the off-beats come late.':''}`,visual:'',answerText:on.map(x=>beatName(x)).join(' '),
-  reveal:rhySVG(ev,1,{swing}),explain:`The rhythm was ${on.map(beatName).join(', ')}.`,hint:'Count 1 & 2 & 3 & 4 & out loud through the call.',after:()=>rhySVG(ev,1,{swing})});};}
-function tapReadQ(cells,bars,swing){return ()=>{const bpm=rbpm(),{ev,on}=rhyBar(cells,bars,swing);return T({key:`rt-read-${on.map(x=>x.toFixed(2)).join('_')}`,label:`read: ${on.map(beatName).join(' ')}`,bpm,len:bars*4,onsets:on,
-  prompt:`Read the rhythm and <b>tap it</b> with the click after the count-in.${swing?' Swing the eighths.':''}`,visual:rhySVG(ev,bars,{swing}),answerText:on.map(beatName).join(' '),
-  explain:`${on.map(beatName).join(', ')}. Counts: ${countStr(on)}.`,hint:'Write the counts under the notes in your head: 1 & 2 & 3 & 4 &.'});};}
-const beatName=t=>{const b=Math.floor(t+1e-6)%4+1,f=t-Math.floor(t+1e-6);return f<0.01?String(b):Math.abs(f-0.5)<0.02||Math.abs(f-0.67)<0.02?b+'&':Math.abs(f-0.25)<0.02?b+'e':Math.abs(f-0.75)<0.02?b+'a':Math.abs(f-1/3)<0.02?b+'-trip':Math.abs(f-2/3)<0.02?b+'-let':b+'+';};
-const countStr=on=>on.map(beatName).join(' ');
+  reveal:rhySVG(ev,1,{swing}),explain:`The rhythm was ${on.map(t=>beatName(t)).join(', ')}.`,hint:'Count 1 & 2 & 3 & 4 & out loud through the call.',after:()=>rhySVG(ev,1,{swing})});};}
+function tapReadQ(cells,bars,swing,o={}){return ()=>{const M=o.meter||4,bpm=o.bpm||rbpm(),{ev,on}=rhyBar(cells,bars,swing,M),vis=bars>2?rhyLines(ev,bars,{swing,meter:M,ts:o.ts,noTup:o.noTup}):rhySVG(ev,bars,{swing,meter:M,ts:o.ts,noTup:o.noTup}),names=on.map(t=>beatName(t,M));
+  return T({key:`rt-read-${M}-${on.map(x=>x.toFixed(2)).join('_')}`,label:`${bars>2?'etude':'read'} ${o.ts||M+'/4'}: ${names.slice(0,12).join(' ')}${names.length>12?'…':''}`,bpm,meter:M,len:bars*M,onsets:on,
+  prompt:o.prompt||`Read the rhythm${o.ts?' in <b>'+o.ts+'</b>':''} and <b>tap it</b> with the click after the count-in${bars>2?`: ${bars} bars, one line after another`:''}.${swing?' Swing the eighths.':''}`,visual:vis,answerText:names.join(' '),
+  explain:`Counts: ${countStr(on,M)}.`,hint:o.hint||`Say the counts under the notes before you start: ${M===3?'1 & 2 & 3 &':M===5?'1 2 3 4 5':'1 & 2 & 3 & 4 &'}.`});};}
+/* dictation: hear a bar (piano on the onsets, click under it), write it with cells */
+function rhyDictQ(cells,swing,M=4,bars=1){return ()=>{const bpm=rbpm(),beat=60/bpm,{ev,on,seq}=rhyBarCells(cells,bars,swing,M),ans=seq.map(c=>RLAB[c]),toks=[...new Set(cells.map(c=>RLAB[c]))];
+  return {ui:'spell',tokens:toks,tokMusic:true,answer:ans,need:ans.length,key:`rd-${M}-${on.map(x=>x.toFixed(2)).join('_')}`,label:`write: ${countStr(on,M)}${swing?' (swing)':''}`,factor:4,
+    prompt:`Listen: ${bars} bar${bars>1?'s':''} of rhythm on the piano with the click. <b>Write it</b> with the cells, in order${swing?' (swing eighths)':''}.`,visual:listenCard(`${bars} bar${bars>1?'s':''} of rhythm`,`${bpm} bpm${swing?' · swing':''}`),
+    audio:()=>{const lead=0.1;for(let b=0;b<bars*M;b++)Piano.tick(lead+b*beat,b%M===0);on.forEach(t=>Piano.note(67,lead+t*beat,Math.min(0.35,beat*0.4),0.85));return lead+bars*M*beat+0.4;},
+    answerText:ans.join(' '),reveal:rhySVG(ev,bars,{swing,meter:M}),explain:`Counts: ${countStr(on,M)}. ${ans.join(' ')}`,hint:'Count the clicks; mark where the notes fall between them, then pick the cells beat by beat.'};};}
+/* feel: quarters with the click, landing on purpose ahead of, on, or behind it */
+function feelQ(ms){return ()=>{const bpm=Math.min(rbpm(),160),on=[];for(let i=0;i<8;i++)on.push(i);const w=ms<0?'ahead of':ms>0?'behind':'on';
+  return T({key:`fl-${ms}`,label:`quarters ${w} the beat (${ms>0?'+':''}${ms} ms)`,bpm,len:8,onsets:on,feel:ms,clicks:[1,3],prompt:`Click on 2 and 4. Tap quarter notes for two bars <b>${w} the beat</b>${ms?`, about ${Math.abs(ms)} ms ${ms<0?'early':'late'}`:''}: the grader checks the <b>average</b> of your taps, within 25 ms of the target.`,
+    visual:rhySVG(Array.from({length:4},(_,i)=>({t:i,d:1})),1),answerText:`8 taps, mean ${ms>0?'+':''}${ms} ms`,explain:ms<0?'Playing ahead: lean into the beat without rushing the tempo. Bebop players sit here.':ms>0?'Playing behind: relaxed, laid back, the ballad and blues feel. The tempo does not slow; only your placement moves.':'Dead centre: the click disappears under your tap.',hint:ms<0?'Hear your tap as the thing that makes the click happen.':ms>0?'Let the click land first, then answer it.':'Make the click vanish.'});};}
+/* a rhythm from the user's own transcriptions (Jazz Rhythm: standards), or a jazz etude when there are none yet */
+function parseRhy(text){const M=/\b3\/4\b/.test(text)?3:/\b5\/4\b/.test(text)?5:4,body=text.replace(/\b[35]\/4\b/g,'').replace(/^[^|]*:/,''),bars=body.split('|').map(x=>x.trim()).filter(Boolean),ev=[];let t=0,n=0;
+  const D={w:4,h:2,q:1,e:.5,s:.25};for(const bar of bars){const t0=t;let pend=false;for(const tok of bar.split(/\s+/).filter(Boolean)){if(tok==='r'){pend=true;continue;}const m=tok.match(/^(r?)([whqes])(\.?)(_?)(\^?)$/);if(!m)return {err:`Cannot read “${tok}”`};let d=D[m[2]]*(m[3]?1.5:1);const rest=!!m[1]||pend;pend=false;if(m[4]&&ev.length&&!rest&&!ev.at(-1).rest){ev.at(-1).d+=d;t+=d;continue;}ev.push({t,d,rest:rest?1:undefined});t+=d;}
+    if(Math.abs(t-t0-M)>1e-6)return {err:`Bar ${bars.indexOf(bar)+1} adds up to ${t-t0} beats, not ${M}`};n++;}
+  if(!n||n>16)return {err:'1 to 16 bars'};if(!ev.some(e=>!e.rest))return {err:'No notes'};return {ev,on:ev.filter(e=>!e.rest).map(e=>e.t),bars:n,meter:M};}
+function tuneQ(){return ()=>{const list=(STORE.tunes||[]).filter(t=>t.ok);if(!list.length){const q=tapReadQ(['charl','push1','dots3','phrA','bop','eqe','qe','q','ee'],8,true,{})();q.prompt='No tunes added yet: this is a jazz etude instead. Add the rhythm of a standard you play in the lobby (“Your tunes”) and it is asked here.';return q;}
+  const tn=R(list),p=parseRhy(tn.rhy),bpm=tn.bpm||rbpm(),M=p.meter,on=p.ev.filter(e=>!e.rest).map(e=>tn.swing?(Math.abs(e.t%1-0.5)<1e-6?Math.floor(e.t)+0.67:e.t):e.t);
+  return T({key:`tune-${tn.n}`,label:`${tn.n}`,bpm,meter:M,len:p.bars*M,onsets:on,prompt:`<b>${esc(tn.n)}</b>, your transcription: ${p.bars} bars${tn.swing?', swing':''}. Tap (or strum) the rhythm of the melody with the click.`,visual:rhyLines(p.ev,p.bars,{meter:M,swing:tn.swing}),answerText:countStr(on,M),explain:`${esc(tn.n)}: ${countStr(on,M)}.`,hint:'Sing the head in your mind over the count-in.'});};}
+function tunesBox(){const list=STORE.tunes||[];return `<div class="section"><h3>Your tunes</h3><div class="panel"><p class="note">Add the rhythm of a standard's melody (your own transcription, 1–16 bars) and level 12 asks it. Notation: <b>w h q e s</b> = whole, half, quarter, eighth, sixteenth; <b>.</b> dotted; <b>r</b> before a value = rest (r q or rq); <b>_</b> after a value = tied to the previous note; bars with <b>|</b>; start with <b>3/4</b> or <b>5/4</b> for other meters. Example: <code>q. e q q | e e q r q q | h q. e |</code></p>
+  ${list.length?`<table><thead><tr><th>Tune</th><th>Rhythm</th><th></th></tr></thead><tbody>${list.map((t,i)=>`<tr><td><b>${esc(t.n)}</b>${t.swing?' <span class="muted">swing</span>':''}</td><td class="mono" style="font-size:12px">${esc(t.rhy)}</td><td><button class="btn small ghost" data-act="deltune" data-i="${i}">Remove</button></td></tr>`).join('')}</tbody></table>`:''}
+  <div class="tools" style="margin-top:10px;flex-wrap:wrap"><input id="tunename" class="exportta" style="height:auto;min-height:0;width:200px" placeholder="Tune (first 8 bars)"><input id="tunerhy" class="exportta" style="height:auto;min-height:0;flex:1;min-width:260px" placeholder="q. e q q | e e q r q q | …"><label class="check"><input type="checkbox" id="tuneswing" checked> swing</label><button class="btn small primary" data-act="addtune">Add</button><span class="muted" id="tunemsg"></span></div></div></div>`;}
+/* Flow: endless rounds for the rhythm games; the tempo follows you */
+function flowAdapt(g,ok,r){const F=S.flow;F.hist.push(ok?1:0);if(F.hist.length>4)F.hist.shift();const ab=r&&r.per?(()=>{const o=r.per.filter(x=>x.ok&&x.off!=null).map(x=>Math.abs(x.off));return o.length?o.reduce((a,b)=>a+b,0)/o.length:99;})():99;
+  g.opts=g.opts||{};let bpm=g.opts.bpm||80;if(F.hist.length>=3&&F.hist.slice(-3).every(x=>x)&&ab<35){bpm=Math.min(240,bpm+4);F.hist=[];F.msg=`↑ ${bpm} bpm`;}else if(F.hist.length>=2&&F.hist.slice(-2).every(x=>!x)){bpm=Math.max(50,bpm-4);F.hist=[];F.msg=`↓ ${bpm} bpm`;}else F.msg='';g.opts.bpm=bpm;}
+const beatName=(t,M=4)=>{const b=Math.floor(t+1e-6)%M+1,f=t-Math.floor(t+1e-6);return f<0.01?String(b):Math.abs(f-0.5)<0.02||Math.abs(f-0.67)<0.02?b+'&':Math.abs(f-0.25)<0.02?b+'e':Math.abs(f-0.75)<0.02?b+'a':Math.abs(f-1/3)<0.02?b+'-trip':Math.abs(f-2/3)<0.02?b+'-let':b+'+';};
+const countStr=(on,M=4)=>on.map(t=>beatName(t,M)).join(' ');
 /* ---- Two and Four ---- */
-function twoFourQ(mode){return ()=>{const bpm=mode==='fast'?Math.max(rbpm(),150):rbpm();let clicks=[1,3],len=8,on=[],prompt,label,dropOut=0;
+function twoFourQ(mode){return ()=>{const bpm=mode==='fast'?Math.max(rbpm(),150):mode==='slow'?50:rbpm();let clicks=[1,3],len=8,on=[],prompt,label,dropOut=0;
   if(mode==='24'||mode==='fast'){for(let i=0;i<len;i++)on.push(i);prompt=`The click plays only on <b>2 and 4</b>. Tap <b>all four beats</b> of each bar for two bars. The count-in has all four clicks.`;label=`quarters against 2 & 4${mode==='fast'?' fast':''}`;}
   else if(mode==='4'){clicks=[3];for(let i=0;i<len;i++)on.push(i);prompt=`The click plays only on <b>beat 4</b>. Tap all four beats for two bars.`;label='quarters against 4 only';}
   else if(mode==='and4'){clicks=[];for(let i=0;i<len;i++)on.push(i);prompt=`No click in the bar except the count-in; the piano plays the <b>and of 4</b> each bar. Tap all four beats.`;label='quarters against the and of 4';}
   else if(mode==='drop'){clicks=[0,1,2,3];len=16;for(let i=0;i<len;i++)on.push(i);dropOut=8;prompt=`The click plays for two bars, then <b>stops</b>. Keep tapping quarter notes for two more bars without it: the grader checks where the click would have been.`;label='keep time through a drop-out';}
+  else if(mode==='drop4'||mode==='drop8'){clicks=[0,1,2,3];const silent=mode==='drop4'?16:32;len=8+silent;for(let i=0;i<len;i++)on.push(i);dropOut=8;prompt=`Two bars with the click, then <b>${silent/4} bars without it</b>. Keep the quarter notes going; the grader checks where the click would have been.`;label=`drop-out: ${silent/4} bars alone`;}
+  else if(mode==='slow'){for(let i=0;i<len;i++)on.push(i);prompt=`<b>50 bpm.</b> Click on 2 and 4. Tap all four beats for two bars: slow tempos are the hardest to hold, subdivide in eighths in your head.`;label='quarters at 50 bpm';}
   else{for(let i=0;i<len;i+=4)on.push(i,i+1.5);prompt=`Click on 2 and 4. Tap the <b>Charleston</b> (1 and the and of 2) in each bar for two bars.`;label='Charleston against 2 & 4';}
-  const q=T({key:`tf-${mode}`,label,bpm,len,onsets:on,clicks,dropOut,prompt,visual:mode==='charl'?rhySVG([{t:0,d:1.5},{t:1.5,d:.5},{t:2,d:2,rest:1}],1):'',answerText:`${on.length} taps`,explain:mode==='drop'?'Internal time: the tempo lives in your body, the click only confirms it.':'Jazz time is felt on 2 and 4; your tap on 1 and 3 should feel like the answer to the click, not the question.',hint:'Keep counting out loud: 1 (click) 3 (click).'});
+  const q=T({key:`tf-${mode}`,label,bpm,len,onsets:on,clicks,dropOut,prompt,visual:mode==='charl'?rhySVG([{t:0,d:1.5},{t:1.5,d:.5},{t:2,d:2,rest:1}],1):'',answerText:`${on.length} taps`,explain:mode==='drop'||mode==='drop4'||mode==='drop8'?'Internal time: the tempo lives in your body, the click only confirms it.':'Jazz time is felt on 2 and 4; your tap on 1 and 3 should feel like the answer to the click, not the question.',hint:'Keep counting out loud: 1 (click) 3 (click).'});
   if(mode==='and4'){q.call=null;q.andClicks=true;}return q;};}
 /* ---- Subdivision ---- */
 function subdivQ(mode){return ()=>{const bpm=rbpm();let on=[],len=4,ev=[],label,prompt,swing=false;
@@ -1940,20 +1992,39 @@ function subdivQ(mode){return ()=>{const bpm=rbpm();let on=[],len=4,ev=[],label,
   else if(mode==='16ths'){for(let b=0;b<4;b++)add(b,[0,.25,.5,.75],.25);label='sixteenth notes';prompt='Tap <b>sixteenth notes</b> (four per click) for one bar.';}
   else if(mode==='mixed'){len=8;const kinds=[[0],[0,.5],[0,1/3,2/3],[0,.25,.5,.75]];for(let b=0;b<len;b++){const k=R(kinds);add(b,k,k.length===1?1:k.length===2?.5:k.length===3?1/3:.25);}label='mixed subdivisions';prompt='Each beat shows its own subdivision. Tap exactly what is written, two bars.';}
   else if(mode==='swing'){len=8;swing=true;for(let b=0;b<len;b++){on.push(b,b+0.67);ev.push({t:b,d:.5},{t:b+.5,d:.5});}label='swing eighths';prompt='Tap <b>swing eighths</b>: the off-beat sits on the last third of the beat (triplet feel), two bars.';}
+  else if(mode==='switch'){len=16;const kinds=[[0],[0,.5],[0,1/3,2/3],[0,.25,.5,.75]],order=shuffle(kinds.slice());for(let bar=0;bar<4;bar++){const k=order[bar];for(let b=0;b<4;b++)add(bar*4+b,k,k.length===1?1:k.length===2?.5:k.length===3?1/3:.25);}label='switching subdivisions';prompt='Four bars, each in <b>one subdivision</b>: quarters, eighths, triplets or sixteenths, as written. Switch cleanly at the bar line.';}
   else{len=8;for(let b=0;b<len;b++){on.push(b+0.5);ev.push({t:b,d:.5,rest:1},{t:b+.5,d:.5});}label='off-beats only';prompt='Tap only the <b>“and”</b> of every beat (off-beats), two bars. Nothing on the click.';}
-  if(mode==='trip')ev=ev.map((e,i)=>({...e,tup:Math.floor(e.t)+1}));
-  return T({key:`sd-${mode}${mode==='mixed'?'-'+on.length:''}`,label,bpm,len,onsets:on,prompt,visual:rhySVG(ev,len/4,{swing}),answerText:`${on.length} taps`,explain:mode==='off'?'Off-beats: feel the click as the rebound of your tap.':mode==='swing'?'Swing eighths are long–short, roughly 2:1 at medium tempos; at fast tempos they straighten out.':'Subdivide out loud: 1 & 2 &, 1 trip-let, 1 e & a.',hint:'Say the subdivision syllables as you tap.'});};}
+  if(mode==='trip'||mode==='switch')ev=ev.map((e,i)=>e.d<0.4&&e.d>0.3?{...e,tup:Math.floor(e.t)+1}:e);
+  return T({key:`sd-${mode}${mode==='mixed'?'-'+on.length:mode==='switch'?'-'+on.length:''}`,label,bpm,len,onsets:on,prompt,visual:len>8?rhyLines(ev,len/4,{swing}):rhySVG(ev,len/4,{swing}),answerText:`${on.length} taps`,explain:mode==='off'?'Off-beats: feel the click as the rebound of your tap.':mode==='swing'?'Swing eighths are long–short, roughly 2:1 at medium tempos; at fast tempos they straighten out.':'Subdivide out loud: 1 & 2 &, 1 trip-let, 1 e & a.',hint:'Say the subdivision syllables as you tap.'});};}
 /* ---- Comping Rhythms (microphone onsets: strum the pattern) ---- */
 const COMP={charleston:{on:[0,1.5],ev:[{t:0,d:1.5},{t:1.5,d:.5},{t:2,d:2,rest:1}],n:'Charleston',d:'1 and the and of 2'},
  charl2:{on:[1.5,2.5],ev:[{t:0,d:1,rest:1},{t:1,d:.5,rest:1},{t:1.5,d:1},{t:2.5,d:1.5}],n:'Charleston, displaced',d:'the and of 2 and the and of 3'},
  freddie:{on:[0,1,2,3],ev:[{t:0,d:1},{t:1,d:1},{t:2,d:1},{t:3,d:1}],n:'Freddie Green four',d:'four to the bar, even'},
  ant:{on:[0,2,3.5],ev:[{t:0,d:2},{t:2,d:1.5},{t:3.5,d:.5}],n:'Anticipated 1',d:'1, 3, and the and of 4 pushing into the next bar'},
  ant2:{on:[0,1.5,3.5],ev:[{t:0,d:1.5},{t:1.5,d:2},{t:3.5,d:.5}],n:'Charleston with a push',d:'1, the and of 2, and the and of 4'},
- bossa:{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],n:'Bossa-style',d:'1, the and of 2, and 3'}};
-function compQ(names,bars){return ()=>{const nmk=R(names),c=COMP[nmk],bpm=rbpm(),on=[];for(let b=0;b<bars;b++)c.on.forEach(o=>on.push(o+4*b));const ev=[];for(let b=0;b<bars;b++)c.ev.forEach(e=>ev.push({...e,t:e.t+4*b}));
-  return T({key:`cp-${nmk}-${bars}`,label:`${c.n} × ${bars}`,bpm,len:4*bars,onsets:on,mic:true,clicks:[1,3],prompt:`Strum any chord in the <b>${c.n}</b> rhythm (${c.d}) for ${bars} bar${bars>1?'s':''}, click on 2 and 4. Mute between hits so each attack is clear.`,visual:rhySVG(ev,bars),answerText:`${on.length} attacks`,explain:`${c.n}: ${c.d}. Each attack must land within a quarter of a beat of its slot.`,hint:'Count out loud and keep the right hand moving in eighths even when it does not strike.'});};}
+ push3:{on:[0,1,1.5],ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:2.5}],n:'Anticipated 3',d:'1, 2, and the and of 2 held through 3'},
+ bossa:{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],n:'Bossa nova',d:'1, the and of 2, and 3 (bar one of the pattern)'},
+ bossa2:{on:[0.5,2,3.5],ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],n:'Bossa nova, bar two',d:'the and of 1, 3, and the and of 4'},
+ samba:{on:[0,.75,1.5,2,2.75,3.5],ev:[{t:0,d:.75},{t:.75,d:.75},{t:1.5,d:.5},{t:2,d:.75},{t:2.75,d:.75},{t:3.5,d:.5}],n:'Samba',d:'dotted eighths and eighths: 1, the a of 1, the and of 2, 3, the a of 3, the and of 4'},
+ ballad:{on:[0,2],ev:[{t:0,d:2},{t:2,d:2}],n:'Ballad, half time',d:'1 and 3, let each chord ring'},
+ ballad2:{on:[0,2,3.5],ev:[{t:0,d:2},{t:2,d:1.5},{t:3.5,d:.5}],n:'Ballad with a push',d:'1, 3 and the and of 4'}};
+function compQ(names,bars,o={}){return ()=>{const nmk=R(names),c=COMP[nmk],bpm=o.bpm||rbpm(),on=[];for(let b=0;b<bars;b++)c.on.forEach(x=>on.push(x+4*b));const ev=[];for(let b=0;b<bars;b++)c.ev.forEach(e=>ev.push({...e,t:e.t+4*b}));
+  return T({key:`cp-${nmk}-${bars}`,label:`${c.n} × ${bars}`,bpm,len:4*bars,onsets:on,mic:true,clicks:o.clicks||[1,3],prompt:`Strum any chord in the <b>${c.n}</b> rhythm (${c.d}) for ${bars} bar${bars>1?'s':''}, click on ${o.clicks?'every beat':'2 and 4'}. Mute between hits so each attack is clear.`,visual:bars>2?rhyLines(ev,bars):rhySVG(ev,bars),answerText:`${on.length} attacks`,explain:`${c.n}: ${c.d}. Each attack must land within a quarter of a beat of its slot.`,hint:'Count out loud and keep the right hand moving in eighths even when it does not strike.'});};}
+/* two patterns in a row (bossa and samba are two-bar patterns) */
+function compPairQ(a,b,reps){return ()=>{const bpm=rbpm(),on=[],ev=[];for(let r=0;r<reps;r++)[a,b].forEach((k,i)=>{const bar=r*2+i;COMP[k].on.forEach(x=>on.push(x+4*bar));COMP[k].ev.forEach(e=>ev.push({...e,t:e.t+4*bar}));});
+  return T({key:`cpp-${a}-${b}-${reps}`,label:`${COMP[a].n} + ${COMP[b].n} × ${reps}`,bpm,len:8*reps,onsets:on,mic:true,clicks:[0,1,2,3],prompt:`Strum the two-bar pattern <b>${COMP[a].n}</b> → <b>${COMP[b].n}</b> ${reps} time${reps>1?'s':''}, straight eighths, click on every beat.`,visual:rhyLines(ev,2*reps),answerText:`${on.length} attacks`,explain:`${COMP[a].n}: ${COMP[a].d}. ${COMP[b].n}: ${COMP[b].d}.`,hint:'Keep the strumming hand moving in steady eighths; the pattern is which eighths touch the strings.'});};}
+/* hear a bar of comping on the piano, strum it back */
+function compCallQ(names){return ()=>{const nmk=R(names),c=COMP[nmk],bpm=rbpm();return T({key:`cpc-${nmk}`,label:`strum back: ${c.n}`,bpm,len:4,onsets:c.on.slice(),call:c.on.slice(),callNote:60,mic:true,clicks:[1,3],prompt:`Hear one bar of comping rhythm, then <b>strum it back</b> in the next bar (click on 2 and 4).`,visual:'',answerText:c.on.map(t=>beatName(t)).join(' '),reveal:rhySVG(c.ev,1),explain:`${c.n}: ${c.d}.`,hint:'Count the bar you hear: 1 & 2 & 3 & 4 &.',after:()=>rhySVG(c.ev,1)});};}
+/* a whole chorus: comp a form in one pattern over a bass line (played on the piano: use headphones) */
+const CHORUS_FORMS={'blues in F':{k:'F',bars:[0,0,0,0,5,5,0,0,7,5,0,7]},'blues in B♭':{k:'Bb',bars:[0,0,0,0,5,5,0,0,7,5,0,7]},'rhythm changes A (B♭)':{k:'Bb',bars:[0,9,2,7,0,9,2,7]}};
+function compChorusQ(patterns){return ()=>{const fn=R(Object.keys(CHORUS_FORMS)),f=CHORUS_FORMS[fn],nmk=R(patterns),c=COMP[nmk],bpm=rbpm(),root=41+mod(pc(P(f.k))-5,12),on=[],ev=[],track=[];
+  f.bars.forEach((d,b)=>{c.on.forEach(x=>on.push(x+4*b));c.ev.forEach(e=>ev.push({...e,t:e.t+4*b}));const r=root+d,next=root+(f.bars[(b+1)%f.bars.length]);track.push([4*b,r,.9],[4*b+1,r+4,.9],[4*b+2,r+7,.9],[4*b+3,next>r?next-1:next+1,.9]);});
+  return T({key:`cpch-${fn}-${nmk}`,label:`${c.n} through ${fn}`,bpm,len:4*f.bars.length,onsets:on,mic:true,clicks:[1,3],track,prompt:`Comp <b>${fn}</b> in the <b>${c.n}</b> rhythm for the whole form (${f.bars.length} bars) over a walking bass. Wear headphones so the mic hears only your strums.`,visual:rhyLines(ev,f.bars.length,{perLine:4}),answerText:`${on.length} attacks`,explain:`${c.n} (${c.d}) through ${fn}. Hold the pattern steady while the chords change under you.`,hint:'The bass walks root–3rd–5th–approach each bar; lock your attacks to its quarters.'});};}
+/* trading: comp four bars, lay out four (an extra attack in the rest is a miss) */
+function compTradeQ(names){return ()=>{const nmk=R(names),c=COMP[nmk],bpm=rbpm(),on=[],ev=[];for(let b=0;b<8;b++){if(b<4){c.on.forEach(x=>on.push(x+4*b));c.ev.forEach(e=>ev.push({...e,t:e.t+4*b}));}else ev.push({t:4*b,d:4,rest:1});}
+  return T({key:`cpt-${nmk}`,label:`trade fours: ${c.n}`,bpm,len:32,onsets:on,mic:true,clicks:[1,3],prompt:`<b>Trade fours:</b> comp the <b>${c.n}</b> for four bars, lay out for four bars (nothing at all), then the round ends. Re-entering is the next question.`,visual:rhyLines(ev,8,{perLine:4}),answerText:`${on.length} attacks, then silence`,explain:`Four bars in, four bars out. Any attack in the silent bars counts as a miss: keep counting while you rest.`,hint:'Count the empty bars out loud: that is where time is lost.'});};}
 /* ---- Notation & meter (reading questions, multiple choice) ---- */
-function rhyReadQ(){return ()=>{const cells=['q','ee','r','re','er','qe','eq','eqe'],{ev,on}=rhyBar(cells,1);const k=ri(1,on.length)-1,ans=beatName(on[k]).replace('&',' &');
+function rhyReadQ(cs){return ()=>{const cells=cs||['q','ee','r','re','er','qe','eq','eqe'],{ev,on}=rhyBar(cells,1);const k=ri(1,on.length)-1,ans=beatName(on[k]).replace('&',' &');
   const all=['1','1 &','2','2 &','3','3 &','4','4 &'];return C({key:`rn-read-${on.map(x=>x.toFixed(2)).join('_')}-${k}`,label:`count of note ${k+1}`,prompt:`On which count does note <b>${k+1}</b> (counting from the left, rests excluded) fall?`,visual:rhySVG(ev,1),answer:ans,choices:mc(ans,shuffle(all.filter(x=>x!==ans)),5),factor:1.6,
     explain:`Counts for this bar: ${on.map(x=>beatName(x).replace('&',' &')).join(' · ')}. Note ${k+1} is on <b>${ans}</b>.`,hint:'Add the durations from the start of the bar: a quarter is one count, an eighth half a count.'});};}
 function rhyRestQ(){return ()=>{const which=R([['q',1,'quarter rest','one beat'],['h',2,'half rest','two beats'],['e',.5,'eighth rest','half a beat']]);const ev=which[0]==='q'?[{t:0,d:1},{t:1,d:1,rest:1},{t:2,d:1},{t:3,d:1}]:which[0]==='h'?[{t:0,d:1},{t:1,d:1},{t:2,d:2,rest:1}]:[{t:0,d:1},{t:1,d:.5,rest:1},{t:1.5,d:.5},{t:2,d:1},{t:3,d:1}];
@@ -2217,7 +2288,9 @@ const GAMES=[
   {n:'Read a line, fifth position',d:'Even notes, then rhythm, in frets 5–8 (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6]),readLineQ([5,8],[1,2,3,4,5,6],1)]},
   {n:'Ninth position & dyads',d:'Frets 9–12; two notes at once in first and fifth position',g:[sightQ([9,12],[1,2,3,4,5,6],1),sightDyadQ([0,4]),sightDyadQ([5,9])]},
   {n:'Read a line, ninth position',d:'Lines with rhythm in frets 9–12 (microphone)',g:[readLineQ([9,12],[1,2,3,4,5,6],1)]},
-  {n:'Every place it lives',d:'Mark all spots for one exact pitch, frets 0–12',g:[sightQ([0,12],[1,2,3,4,5,6],1,1),sightQ([7,10],[1,2,3,4,5,6],1)]}]},
+  {n:'Every place it lives',d:'Mark all spots for one exact pitch, frets 0–12',g:[sightQ([0,12],[1,2,3,4,5,6],1,1),sightQ([7,10],[1,2,3,4,5,6],1)]},
+  {n:'Melodic rhythms, syncopated',d:'Lines in first and fifth position with dotted quarters, ties and off-beats (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h']),readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h'])]},
+  {n:'Melodic rhythms, swing',d:'The jazz figures with pitches: pushes and swing eighths in fifth position (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eqe','qt','h'],true)]}]},
  {id:'hunt',cat:'neck',name:'Note Hunt',area:'One note, whole neck',desc:'Mark every place a note lives on all six strings, frets 0–12. Builds the octave map behind every scale and chord shape.',levels:[
   {n:'Open-string notes',d:'E, A, D, G, B — count shown',g:[huntQ(OPEN_PC,1)]},
   {n:'All naturals',d:'C, D, E, F, G, A, B — count shown',g:[huntQ(NAT_PC,1)]},
@@ -2414,27 +2487,58 @@ const GAMES=[
   {n:'Minor cadence',d:'IIm7♭5 → V7 and V7 → Im7',g:[gtVLQ(['min25','min51'])]},
   {n:'Turnaround pairs',d:'IMaj7 → VI7 and VI7 → IIm7',g:[gtVLQ(['ta16','ta62'])]},
   {n:'Everything',d:'Any pair, any key, three string pairs',g:[gtVLQ(['maj25','maj51','min25','min51','ta16','ta62'])]}]},
- {id:'rhythmtap',cat:'rhythm',tap:true,name:'Time & Groove',area:'Pulse, subdivision, reading',desc:'Steady quarter notes, the click on 2 and 4, eighths, triplets, swing, syncopation, off-beats and drop-outs, with rhythm reading and counting mixed in. Tap, or strum muted strings into the mic.',levels:[
+ {id:'pulse',cat:'rhythm',tap:true,name:'Pulse & Feel',area:'Subdivision, the click, time feel',desc:'Quarters, eighths, triplets and sixteenths on the click; then the click thins to 2 and 4, to 4, to nothing; swing; playing ahead of, on and behind the beat on purpose. Tap, or strum muted strings. Flow mode keeps going and raises the tempo as you get clean.',levels:[
   {n:'On the click',d:'Quarter notes for two bars; learns your tap latency',g:[tapClickQ(2)]},
-  {n:'Eighths and tap-back',d:'Two per click; hear a bar and tap it back',g:[subdivQ('8ths'),tapBackQ(['q','ee','r','re'])]},
+  {n:'Eighths',d:'Two per click, two bars: count 1 & 2 &',g:[subdivQ('8ths')]},
+  {n:'Triplets',d:'Three per click: 1 trip-let',g:[subdivQ('trip')]},
+  {n:'Sixteenths',d:'Four per click: 1 e & a',g:[subdivQ('16ths')]},
+  {n:'Switching subdivisions',d:'A bar of each, then every beat its own',g:[subdivQ('switch'),subdivQ('mixed')]},
   {n:'2 and 4',d:'All four beats against a click on 2 and 4',g:[twoFourQ('24')]},
-  {n:'Read a bar; note values and meter',d:'Quarters, eighths, rests, halves; dots, ties, time signatures',g:[tapReadQ(['q','ee','r','re','er','h'],1),rhyBeatsQ(),G_ge.values,G_ge.meter,rhyRestQ()]},
-  {n:'Triplets and swing',d:'Three per click; long–short swing eighths',g:[subdivQ('trip'),subdivQ('swing')]},
-  {n:'4 only',d:'One click per bar',g:[twoFourQ('4')]},
-  {n:'Drop-out',d:'Two bars with the click, two without',g:[twoFourQ('drop')]},
-  {n:'Syncopation: read and count',d:'Dotted quarters, ties, eighth–quarter–eighth; on which count?',g:[tapReadQ(['q','ee','re','qe','eq','eqe','tie'],2),rhyReadQ()]},
-  {n:'Swing tap-back and vocabulary',d:'Swing eighths by ear; where jazz time lives',g:[tapBackQ(['q','ee','re','eqe'],true),swingFactQ(),rhyReadQ()]},
-  {n:'Off-beats and the and of 4',d:'Only the “and”; the off-beat before the bar line',g:[subdivQ('off'),twoFourQ('and4')]},
-  {n:'Sixteenths and mixed',d:'Four per click; each beat its own subdivision',g:[subdivQ('16ths'),subdivQ('mixed'),tapReadQ(['q','ee','trip','ess','sse','ssss','eqe'],2)]},
-  {n:'Faster',d:'2 and 4 at 150+ bpm',g:[twoFourQ('fast')]},
-  {n:'Charleston on 2 & 4',d:'Tap the Charleston while the click plays 2 and 4',g:[twoFourQ('charl')]}]},
- {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping Rhythms',area:'Strum it · microphone',desc:'Strum the classic comping rhythms against a click on 2 and 4; the mic hears each attack and checks it against the slot.',levels:[
+  {n:'4 only; the and of 4',d:'One click per bar, then only the off-beat before the bar line',g:[twoFourQ('4'),twoFourQ('and4')]},
+  {n:'Drop-outs',d:'Two bars with the click, then two, four and eight bars alone',g:[twoFourQ('drop'),twoFourQ('drop4'),twoFourQ('drop8')]},
+  {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')]},
+  {n:'Ahead, on, behind',d:'Place your quarters on purpose: dead centre, 20 ms early, 25 ms late',g:[feelQ(0),feelQ(-20),feelQ(25)]},
+  {n:'Extremes',d:'50 bpm, then 2 and 4 at 150+',g:[twoFourQ('slow'),twoFourQ('fast')]}]},
+ {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Dictation and counting levels in between. Flow mode for endless reading.',levels:[
+  {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2),rhyRestQ(),rhyBeatsQ()]},
+  {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2),rhyBeatsQ()]},
+  {n:'Eighth notes',d:'Two per beat; hear a bar and tap it back',g:[tapReadQ(['q','ee','h','r'],2),tapBackQ(['q','ee','r'])]},
+  {n:'Dotted quarter and eighth',d:'q. e and e q.: the first syncopated feel',g:[tapReadQ(['q','ee','qe','eq','h'],2),rhyReadQ(['q','ee','qe','eq'])]},
+  {n:'Eighth rests, off-beats',d:'Rest on the beat, play the and',g:[tapReadQ(['q','ee','re','er','r','qe'],2),tapBackQ(['q','ee','re','er'])]},
+  {n:'Dictation I',d:'Hear a bar, write it with cells',g:[rhyDictQ(['q','ee','r','re','er','h','qe'])]},
+  {n:'3/4 and 2/4',d:'Three beats a bar, the dotted half; two beats a bar',g:[tapReadQ(['q','ee','h','dh','r','qe'],2,false,{meter:3}),tapReadQ(['q','ee','h','r'],4,false,{meter:2})]},
+  {n:'Triplets',d:'Eighth-note triplets, quarter–eighth and eighth–quarter inside the triplet',g:[tapReadQ(['q','ee','trip','tqe','teq','h'],2),tapBackQ(['q','ee','trip'])]},
+  {n:'Syncopation I',d:'Eighth–quarter–eighth; on which count?',g:[tapReadQ(['q','ee','eqe','eq','qe','re'],2),rhyReadQ(['q','ee','eqe','eq','re'])]},
+  {n:'Syncopation II',d:'Ties into the beat, anticipated downbeats',g:[tapReadQ(['ee','tie','eqe','er','re','q','qt'],2),tapBackQ(['ee','tie','eqe','re'])]},
+  {n:'Count it',d:'Which count, how long, which meter',g:[rhyReadQ(['q','ee','re','er','qe','eq','eqe']),rhyBeatsQ(),G_ge.values,G_ge.meter]},
+  {n:'Dictation II',d:'Syncopation and triplets by ear, written down',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','trip','h'])]},
+  {n:'Sixteenths',d:'Four per beat and the three-note groupings',g:[tapReadQ(['q','ee','ssss','ess','sse','ses'],2),tapBackQ(['q','ee','ssss','ess','sse'])]},
+  {n:'Dotted eighth–sixteenth',d:'The long–short and short–long sixteenth figures',g:[tapReadQ(['q','ee','des','sde','ssss','ess','sse'],2)]},
+  {n:'12/8',d:'Each click a dotted quarter, three eighths per click',g:[tapReadQ(['trip','tqe','teq','q'],2,false,{ts:'12/8',noTup:true,prompt:'Read the bar in <b>12/8</b>: each click is a dotted quarter, three eighths per click. Tap it after the count-in.',hint:'Count 1 & a 2 & a 3 & a 4 & a.'})]},
+  {n:'Etudes in 4/4 and 3/4',d:'Eight bars at a time, everything so far',g:[tapReadQ(['q','ee','qe','eqe','re','h','trip','tie'],8),tapReadQ(['q','ee','h','dh','qe','r','eqe'],8,false,{meter:3})]},
+  {n:'Etudes: everything',d:'Eight-bar studies with sixteenths and triplets mixed in',g:[tapReadQ(['q','ee','qe','eq','eqe','re','er','h','trip','tqe','ssss','ess','sse','des','tie','r'],8)]}]},
+ {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, jazz waltz and 5/4; dictation, eight-bar etudes, and the rhythms of the standards you transcribe yourself.',levels:[
+  {n:'Charleston',d:'1 and the and of 2, swung; against a click on 2 and 4',g:[tapReadQ(['charl'],2,true),twoFourQ('charl')]},
+  {n:'Displaced Charleston',d:'The same two hits moved: and of 2 → and of 3; and of 1 → 3',g:[tapReadQ(['charl','charl2','charl3'],2,true)]},
+  {n:'Pushes',d:'Anticipate 1 and 3: the chord arrives half a beat early',g:[tapReadQ(['push1','push3','charl'],2,true),tapBackQ(['qt','eqe','q','ee','re'],true)]},
+  {n:'Dotted-quarter chains',d:'q. q. q: three against four inside the bar',g:[tapReadQ(['dots3','qe','charl'],2,true)]},
+  {n:'Quarter-note triplets',d:'Three even notes over two beats',g:[tapReadQ(['qtrip','q','h','ee'],2,true)]},
+  {n:'Phrase placement',d:'Lines that start on the and of 1 and end on the and of 4',g:[tapReadQ(['phrA','phrB','bop','re'],2,true)]},
+  {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)]},
+  {n:'Bebop cells',d:'Running eighths, triplet pick-ups, the pushed last note',g:[tapReadQ(['bop','eqe','pick','teq','qt','re'],2,true)]},
+  {n:'Jazz waltz and 5/4',d:'Swing in three; five beats a bar',g:[tapReadQ(['q','ee','qe','eqe','h','re'],2,true,{meter:3}),tapReadQ(['q','ee','qe','h','r','eqe'],2,true,{meter:5})]},
+  {n:'Swing dictation',d:'Hear a swung bar, write it',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','qt','h'],true)]},
+  {n:'Etudes',d:'Eight bars of the figures mixed, swung',g:[tapReadQ(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],8,true)]},
+  {n:'Your standards',d:'The melody rhythms you transcribed (add them below)',g:[tuneQ()]}]},
+ {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping',area:'Strum it · microphone',desc:'Strum the comping rhythms into the mic: Freddie Green four, the Charleston and its displacements, pushes, strum-back, bossa and samba, ballads, a whole chorus over a walking bass, trading fours.',levels:[
   {n:'Freddie Green',d:'Four even quarters, two bars',g:[compQ(['freddie'],2)]},
-  {n:'Charleston',d:'1 and the and of 2, one bar',g:[compQ(['charleston'],1)]},
-  {n:'Displaced Charleston',d:'Both Charleston placements',g:[compQ(['charleston','charl2'],2)]},
-  {n:'Anticipations',d:'Pushes on the and of 4',g:[compQ(['ant','ant2'],2)]},
-  {n:'Mixed patterns',d:'Any of the six, two bars',g:[compQ(Object.keys(COMP),2)]},
-  {n:'Four bars',d:'Hold a pattern for four bars',g:[compQ(Object.keys(COMP),4)]}]},
+  {n:'Charleston',d:'Plain and displaced',g:[compQ(['charleston','charl2'],2)]},
+  {n:'Pushes',d:'Anticipate 1 and 3',g:[compQ(['ant','ant2','push3'],2)]},
+  {n:'Mixed, and strum it back',d:'Any swing pattern for two bars; hear a bar and strum it back',g:[compQ(['freddie','charleston','charl2','ant','ant2','push3'],2),compCallQ(['charleston','charl2','ant','ant2','freddie','push3'])]},
+  {n:'Bossa nova and samba',d:'Two-bar bossa pattern; samba in dotted eighths, straight',g:[compPairQ('bossa','bossa2',2),compQ(['samba'],2,{clicks:[0,1,2,3]})]},
+  {n:'Ballad',d:'Half-time at 60: 1 and 3, with a push',g:[compQ(['ballad','ballad2'],2,{bpm:60})]},
+  {n:'A whole chorus',d:'Comp a blues or rhythm changes over a walking bass (headphones)',g:[compChorusQ(['freddie','charleston','ant2'])]},
+  {n:'Trading fours',d:'Four bars in, four bars out, in time',g:[compTradeQ(['charleston','ant2','freddie'])]}]},
 ];
 const GBY=Object.fromEntries(GAMES.map(g=>[g.id,g]));
 const CATS=[
@@ -2467,7 +2571,7 @@ const blank=()=>({lvl:1,last:1,limit:'std',review:true,preview:true,round:12,sou
 const K=s=>{let h=5381;for(const ch of s)h=((h*33)^ch.codePointAt(0))>>>0;return 'k'+h.toString(36);};
 /* Nov 2026 consolidation: merged games and where each old level went (old game → {old level: new level}). The old games' saved data is
    kept untouched in STORE as a backup; their history is copied into the new game once (g.mig.m25). */
-const MERGES={"sight": {"treble": {"1": 1, "2": 1, "3": 2, "4": 2, "5": 3, "6": 3}, "sight": {"1": 4, "2": 5, "3": 6, "4": 7, "5": 8, "6": 9, "7": 10, "8": 11}}, "analysis": {"keys": {"1": 1, "2": 2, "3": 3, "4": 6, "5": 7, "6": 8}, "analysis": {"1": 4, "2": 5, "3": 9, "4": 10, "5": 11, "6": 12}}, "triads": {"voicings": {"1": 1, "2": 2, "4": 2}, "triads": {"1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11}}, "drop2": {"voicings": {"3": 1, "5": 2, "6": 2}, "drop2": {"1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8, "7": 9, "8": 10}, "chordname": {"1": 11, "2": 11, "3": 12, "4": 12, "5": 13, "6": 13, "7": 14}}, "rhythmtap": {"rhythmtap": {"1": 1, "2": 2, "3": 4, "4": 7, "5": 8, "6": 10}, "subdiv": {"1": 2, "2": 5, "5": 5, "6": 9, "3": 10, "4": 10}, "twofour": {"1": 3, "2": 6, "3": 9, "4": 11, "5": 12, "6": 13}, "notation": {"1": 4, "2": 4, "3": 7, "4": 8}}};
+const MERGES={"pulse":{"rhythmtap":{"1":1,"2":2,"3":6,"5":3,"6":7,"7":8,"9":9,"10":7,"12":11,"13":1}},"rhyread":{"rhythmtap":{"4":1,"8":9,"11":13}},"sight": {"treble": {"1": 1, "2": 1, "3": 2, "4": 2, "5": 3, "6": 3}, "sight": {"1": 4, "2": 5, "3": 6, "4": 7, "5": 8, "6": 9, "7": 10, "8": 11}}, "analysis": {"keys": {"1": 1, "2": 2, "3": 3, "4": 6, "5": 7, "6": 8}, "analysis": {"1": 4, "2": 5, "3": 9, "4": 10, "5": 11, "6": 12}}, "triads": {"voicings": {"1": 1, "2": 2, "4": 2}, "triads": {"1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8, "7": 9, "8": 10, "9": 11}}, "drop2": {"voicings": {"3": 1, "5": 2, "6": 2}, "drop2": {"1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8, "7": 9, "8": 10}, "chordname": {"1": 11, "2": 11, "3": 12, "4": 12, "5": 13, "6": 13, "7": 14}}, "rhythmtap": {"rhythmtap": {"1": 1, "2": 2, "3": 4, "4": 7, "5": 8, "6": 10}, "subdiv": {"1": 2, "2": 5, "5": 5, "6": 9, "3": 10, "4": 10}, "twofour": {"1": 3, "2": 6, "3": 9, "4": 11, "5": 12, "6": 13}, "notation": {"1": 4, "2": 4, "3": 7, "4": 8}}};
 function migrateMerge(tid){const spec=MERGES[tid],T0=STORE.games[tid]||blank(),out=blank(),unl=new Set([1]);
   for(const k of ['limit','review','preview','round','sound','mode','opts','v7','v67','v2'])if(T0[k]!==undefined)out[k]=T0[k];
   for(const [sid,map] of Object.entries(spec)){const g=sid===tid?T0:STORE.games[sid];if(!g)continue;const mp=L=>map[L]||null;
@@ -2491,13 +2595,14 @@ function migrateMerge(tid){const spec=MERGES[tid],T0=STORE.games[tid]||blank(),o
 /* Nov 2026 ladder reorders (pedagogical audit): old level → new level per game; unlisted levels keep their number. n = the old level count.
    Everything you had open stays open; a newly inserted level opens when you had already passed a level after it; a moved level you had not reached stays locked. */
 const REORDERS={"sight":{"n":13,"m":{"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":12,"9":16,"10":10,"11":14,"12":8,"13":13}},"triads":{"n":12,"m":{"1":1,"2":2,"3":3,"4":5,"5":6,"6":7,"7":8,"8":10,"9":11,"10":12,"11":13,"12":9}},"intervals":{"n":7,"m":{"3":1,"1":2,"2":3,"4":4,"5":5,"6":6,"7":7}},"spelling":{"n":10,"m":{"4":5,"5":4}},"drop2":{"n":14,"m":{"1":1,"2":2,"3":3,"4":4,"5":5,"11":6,"6":7,"7":8,"12":9,"8":10,"13":11,"14":12,"9":13,"10":14}},"shells":{"n":7,"m":{"7":4,"4":5,"5":6,"6":7}},"eardeg":{"n":9,"m":{"9":4,"5":5,"6":6,"7":7,"4":8,"8":9}},"eariv":{"n":6,"m":{"3":4,"4":5,"5":6,"6":7}},"earprog":{"n":9,"m":{"1":1,"2":2,"3":4,"4":5,"5":6,"6":7,"7":8,"8":9,"9":10}},"analysis":{"n":13,"m":{"1":1,"2":2,"3":3,"4":3,"5":4,"6":5,"7":6,"8":7,"9":8,"10":9,"11":10,"12":11,"13":12}},"sing":{"n":7,"m":{"5":6,"6":7,"7":8}},"cr":{"n":9,"m":{"8":6,"6":7,"7":8}},"bends":{"n":7,"m":{"6":7,"7":6}},"arp":{"n":8,"m":{"8":7,"7":8}},"rhythmtap":{"n":13,"m":{"11":7,"7":8,"8":9,"9":10,"10":11}},"comping":{"n":6,"m":{"1":2,"2":1}}};
-function migrateReorder(id,g){const R=REORDERS[id],mp=L=>R.m[L]||L,n=GBY[id].levels.length,open=new Set([1]);
+function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=GBY[id].levels.length,open=new Set([1]);
   for(let L=1;L<=Math.min(g.lvl||1,R.n);L++)open.add(mp(L));(g.unl||[]).forEach(L=>{if(L<=R.n)open.add(mp(L));});
   const img=new Set();for(let L=1;L<=R.n;L++)img.add(mp(L));const top=Math.max(...open);for(let L=2;L<top;L++)if(!img.has(L))open.add(L);
   const remap=o=>{const h={};Object.entries(o||{}).forEach(([L,v])=>{const N=mp(+L);h[N]=(h[N]||[]).concat(v).slice(-20);});return h;};
   g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
-  g.mig={...(g.mig||{}),r26:1};}
+  g.mig={...(g.mig||{}),[flag]:1};}
+const REORDERS2={comping:{n:6,m:{1:1,2:2,3:2,4:3,5:4,6:4}}};   /* Nov 2026 comping rebuild */
 /* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
    played counts (it.pn) give the total, the play log (g.pl, each answer's own level) places them, older played answers go to the levels of the
    guitar-mode rounds. Before the one-input rule (ONE_INPUT_T) a “playing it” round still asked most questions on screen, so a round's mode
@@ -2518,9 +2623,10 @@ function countBackfill(id,g){const x=GBY[id],nL=x.levels.length,lc={},add=(L,md,
   g.lc=lc;}
 const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[id].mig.m25))migrateMerge(id);let g=STORE.games[id]||(STORE.games[id]=blank());if(id==='spelling'&&!g.v2){g=STORE.games[id]=blank();g.v2=1;}/* rebuilt game: the user chose a fresh start */if(!g.cf)g.cf=[];if(id==='fretboard'&&!g.v7){g.v7=1;if(g.lvl>=4)g.lvl=Math.min(7,g.lvl+1);if(g.last>=4)g.last=Math.min(7,g.last+1);const h={};Object.entries(g.hist).forEach(([L,v])=>h[+L>=4?+L+1:+L]=v);g.hist=h;Object.values(g.items).forEach(it=>{if(it.lv>=4)it.lv++;});g.sessions.forEach(ss=>{if(ss.L>=4)ss.L++;});}if(id==='hunt'&&!g.v67){g.v67=1;const sw=L=>L===6?7:L===7?6:L,h={};Object.entries(g.hist).forEach(([L,v])=>h[sw(+L)]=v);g.hist=h;Object.values(g.items).forEach(it=>{it.lv=sw(it.lv);});g.sessions.forEach(ss=>{ss.L=sw(ss.L);});(g.pl||[]).forEach(e=>{e.lv=sw(e.lv);});
     if(g.lvl===6)g.lvl=7;g.last=sw(g.last);}   // hunt: 'two at once' (was 6) is 7, 'fret by fret' (was 7, open) is 6
-  if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(!g.round)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
+  if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(g.round==null)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
   if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
-  if(id==='rhythmtap'&&!(g.mig&&g.mig.ur1)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur1:1};saveLocal();}   /* user asked (5 Nov 2026): open every Time & Groove level; opened, not passed */
+  if(REORDERS2[id]&&!(g.mig&&g.mig.r27)){migrateReorder(id,g,REORDERS2[id],'r27');saveLocal();}
+  if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
 try{const s=JSON.parse(localStorage.getItem('fretwise-v1')||'null');if(s&&s.games)STORE=s;}catch(e){}
@@ -2566,12 +2672,13 @@ function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag=
   if(!best){if(lv!==L)return pickQ(gid,L);const order=[];for(let k=L;k>=1;k--)order.push(k);for(let k=L+1;k<=game.levels.length;k++)order.push(k);for(const k of order){if(best)break;if(!levelAvail(gid,k))continue;for(let t=0;t<40&&!best;t++){LAST_ROOT=null;try{const q=fitQ(gid,R(game.levels[k-1].g)());if(q){q.rootKey=LAST_ROOT;best=q;lv=k;}}catch(e){}}}}
   best.lv=lv;best.tag=tag;return best;}
 function start(gid,L){const g=G(gid);g.last=L;cancelAnimationFrame(raf);clearTimeout(autoT);
-  S={gid,L,i:0,score:0,streak:0,bestStreak:0,t0:Date.now(),answers:[],used:new Set(),q:null,acc:0,hinted:false,locked:false,unlocked:null,startLvl:g.lvl,round:g.round||ROUND};
+  S={gid,L,i:0,score:0,streak:0,bestStreak:0,t0:Date.now(),answers:[],used:new Set(),q:null,acc:0,hinted:false,locked:false,unlocked:null,startLvl:g.lvl,round:(g.round===0&&GBY[gid].tap)?Infinity:(g.round||ROUND),flow:(g.round===0&&GBY[gid].tap)?{hist:[],msg:''}:null};
   view={name:'play'};nextQ();}
 function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.spell=S.q.ui==='spell'&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.slice():[];S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
   S.limit=(LIMITS[G(S.gid).limit]||LIMITS.std).s*(S.q.factor||1)*1000;S.untimed=!isFinite(S.limit);S.qt=performance.now();S.replays=0;S.loading=false;render();
   // a played question has no prompt sound: cut the last answer's sound and listen at once, or the first notes fall into the wait
   if(S.q.ui==='mic'&&!S.q.audio){const q=S.q;Piano.hush();if(micOpt().auto)setTimeout(()=>{if(S&&S.q===q&&!S.locked&&!S.listening)micListen();},150);}
+  if(S.flow&&S.q.ui==='tap'){const q=S.q;setTimeout(()=>{if(S&&S.q===q&&!S.locked&&!TAP)tapBegin();},700);}   /* flow: the next segment starts by itself */
   if(S.q.audio){const q=S.q;S.qt=performance.now()+3600000;const go=()=>{if(S&&S.q===q&&!S.locked){S.loading=false;const d=q.audio();S.qt=performance.now()+d*1000;if(q.ui==='mic'){S.playing=true;setTimeout(()=>{if(S&&S.q===q&&!S.locked){S.playing=false;render();if(micOpt().auto)micListen();}},d*1000);}render();tick();}};
     if(Piano.ready)go();else{S.loading=true;render();Piano.load().then(go);}}
   tick();}
@@ -2596,7 +2703,7 @@ function spellKey(v){if(!S||S.locked||S.q.ui!=='spell')return;S.spell.push(S.q.t
 function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame(raf);const q=S.q,ms=Math.max(0,Math.round(performance.now()-S.qt)),ok=check(q,given),g=G(S.gid);
   const it=g.items[K(q.key)]||(g.items[K(q.key)]={l:q.label,lv:q.lv,c:0,w:0,h:0,n:0,ms:0});it.l=q.label;it.lv=q.lv;it.n++;it.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok&&!S.hinted)it.c++;else if(ok)it.h++;else it.w++;if(q.play||isGuitarQ(q,S.gid)){it.pn=(it.pn||0)+1;if(ok&&!S.hinted)it.pc=(it.pc||0)+1;g.pn=(g.pn||0)+1;if(ok)g.pc=(g.pc||0)+1;}
-  if(q.ui==='tap'&&S.tapResult)tapLearnLatency(q,S.tapResult,g);
+  if(q.ui==='tap'&&S.tapResult)tapLearnLatency(q,S.tapResult,g);if(S.flow&&q.ui==='tap')flowAdapt(g,ok,S.tapResult);
   perfLog(g,q,it,ok&&!S.hinted);
   if(!ok&&q.ui!=='multi'&&q.ui!=='mic'&&q.ui!=='tap'){const k=`${q.answerText||q.answer} → ${givenText(q,given)}`;if(given!==null){let e=g.cf.find(x=>x.k===k);if(e)e.n++;else g.cf.push(e={k,n:1});if(e.n>=3)S.diag=`This is the ${e.n===3?'third':e.n+'th'} time <b>${q.answerText||q.answer}</b> has come out as <b>${givenText(q,given)}</b>. Slow down on this pair: it will come back more often until it is clean.`;if(g.cf.length>60){g.cf.sort((a,b)=>b.n-a.n);g.cf.length=50;}}}
   if(q.rootKey){const rk=g.rk[q.rootKey]||(g.rk[q.rootKey]={n:0,c:0});rk.n++;if(ok&&!S.hinted)rk.c++;}
@@ -2608,7 +2715,7 @@ function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame
   g.best=Math.max(g.best||0,S.bestStreak);
   if(g.lvl<GBY[S.gid].levels.length){const hh=g.hist[g.lvl]||[];if(hh.length>=NEED&&hh.reduce((a,b)=>a+b,0)/hh.length>=PASS&&fluency(g,S.gid,g.lvl).ok){g.lvl++;S.unlocked=g.lvl;while(g.unl&&g.unl.includes(g.lvl+1))g.lvl++;if(g.unl)g.unl=g.unl.filter(L=>L>g.lvl);modeSkip(S.gid);S.unlocked=g.lvl;}}
   S.answers.push({q,given,ok,ms,hinted:S.hinted,timeout:given===null,mode:q.play?'play':'mark'});S.i++;
-  render();const dur=playSnd(q,g);if(ok&&!S.hinted)autoT=setTimeout(nextQ,Math.max(900,dur*1000+300));}
+  render();const dur=playSnd(q,g);if(ok&&!S.hinted)autoT=setTimeout(nextQ,Math.max(900,dur*1000+300));else if(S.flow)autoT=setTimeout(nextQ,2800);}
 /* practice data for the stats page (fields added Oct 2026; older answers have none):
    it.r last 8 results ('1' clean), it.rt/rn time to first played note, it.gp/gn time to find each next note,
    g.pl log of played/tapped answers {t,lv,k,ok,rt,gp,n,dr (mean signed offset to the click, ms; + = late),ab (mean |offset|)},
@@ -2634,15 +2741,15 @@ function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)s
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['rhythmtap',1,6],['fretboard',1,8],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
+  steps:[['pulse',1,7],['rhyread',1,6],['fretboard',1,8],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['rhythmtap',7,10],['comping',1,3],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',7,12],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,7],['triads',10,11],['sight',10,13],['rhythmtap',11,13],['comping',4,6]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,7],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',13,17],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['sight',17,18],['jazzrhy',7,10],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
-  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6]]}];
+  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6],['jazzrhy',11,12]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
    Four tracks; each node bundles level ranges from one or more games, all in one PATH stage (its column). pre = skills it builds on.
    Locks are soft: a locked skill still opens. Goals are the payoff skills that still need a feature (shown as “coming”).
@@ -2650,13 +2757,21 @@ const PATH=[
 function stageOf(gid,L){return PATH.findIndex(st=>st.steps.some(([g,a,b])=>g===gid&&L>=a&&L<=b));}
 const SK_TRACKS=[['time','Time & groove'],['solo','Soloing & the neck'],['chords','Chords & comping'],['harm','Harmony & ears']];
 const SKILLS=[
- {id:'t1',tr:'time',n:'Pulse',d:'Quarter notes on the click, eighths, the click on 2 and 4.',req:[['rhythmtap',1,3]],pre:[]},
- {id:'t2',tr:'time',n:'Read rhythm & swing',d:'Read a bar, triplets and swing eighths, one click per bar.',req:[['rhythmtap',4,6]],pre:['t1']},
- {id:'t3',tr:'time',n:'Inner clock',d:'Keep time through drop-outs; syncopation, off-beats, swing by ear.',req:[['rhythmtap',7,10]],pre:['t2']},
- {id:'t4',tr:'time',n:'First comping rhythms',d:'Freddie Green quarters and the Charleston against 2 and 4.',req:[['comping',1,3]],pre:['t2']},
- {id:'t5',tr:'time',n:'Fast & subdivided',d:'Sixteenths, mixed subdivisions, 150+ bpm, the Charleston on 2 & 4.',req:[['rhythmtap',11,13]],pre:['t3']},
- {id:'t6',tr:'time',n:'Comping patterns',d:'Anticipations and mixed patterns, held for four bars.',req:[['comping',4,6]],pre:['t4','t3']},
- {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['t6','t5','c4']},
+ {id:'t1',tr:'time',n:'Subdivide',d:'Quarters on the click, eighths, triplets, sixteenths, and switching between them.',req:[['pulse',1,5]],pre:[]},
+ {id:'t2',tr:'time',n:'The click on 2 and 4',d:'Four beats against 2 and 4, against 4 only, against the and of 4.',req:[['pulse',6,7]],pre:['t1']},
+ {id:'r1',tr:'time',n:'Reading I',d:'Whole, half, quarter, eighths, dotted quarter, ties, rests; first dictation.',req:[['rhyread',1,6]],pre:['t1']},
+ {id:'t3',tr:'time',n:'Inner clock & swing',d:'Drop-outs up to eight bars alone; swing eighths and off-beats.',req:[['pulse',8,9]],pre:['t2']},
+ {id:'r2',tr:'time',n:'Reading II',d:'3/4 and 2/4, triplets, syncopation, counting, dictation.',req:[['rhyread',7,12]],pre:['r1']},
+ {id:'k1',tr:'time',n:'First comping',d:'Freddie Green four and the Charleston, strummed to the click.',req:[['comping',1,2]],pre:['t2']},
+ {id:'t5',tr:'time',n:'Time feel',d:'Ahead, on and behind the beat on purpose; 50 and 240 bpm.',req:[['pulse',10,11]],pre:['t3']},
+ {id:'r3',tr:'time',n:'Reading III',d:'Sixteenths, dotted eighths, 12/8, eight-bar etudes.',req:[['rhyread',13,17]],pre:['r2']},
+ {id:'j1',tr:'time',n:'Jazz cells',d:'Charleston and its displacements, pushes, dotted chains, quarter-note triplets, phrase placement.',req:[['jazzrhy',1,6]],pre:['r2','t3']},
+ {id:'k2',tr:'time',n:'Comping patterns',d:'Pushes, mixed patterns, strum-back, bossa and samba.',req:[['comping',3,5]],pre:['k1','j1']},
+ {id:'j2',tr:'time',n:'Advanced jazz rhythm',d:'Hemiola, bebop cells, jazz waltz and 5/4, swing dictation.',req:[['jazzrhy',7,10]],pre:['j1']},
+ {id:'k3',tr:'time',n:'Comp a chorus',d:'Ballads, a whole form over a bass line, trading fours.',req:[['comping',6,8]],pre:['k2']},
+ {id:'s17',tr:'solo',n:'Melodic rhythms',d:'Syncopated and swung lines in position, pitch and time graded together.',req:[['sight',17,18]],pre:['s15','j1']},
+ {id:'j3',tr:'time',n:'Rhythm etudes & standards',d:'Eight-bar swing etudes and the rhythms of your own tunes.',req:[['jazzrhy',11,12]],pre:['j2']},
+ {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['k3','t5','j3']},
  {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,8]],pre:[]},
  {id:'s2',tr:'solo',n:'Every place a note lives',d:'All the spots of one note across the neck, played.',req:[['hunt',1,5]],pre:['s1']},
  {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces, ledger lines, accidentals and key signatures.',req:[['sight',1,3]],pre:[]},
@@ -2743,7 +2858,7 @@ const STD={
  repertoire:{acc:.9,why:'know the forms and changes by heart'},
  walking:{acc:.9,why:'walk a bar that works, every key'},
  voicelead:{acc:.95,why:'move the guide tones to the next chord without looking'},
- rhythmtap:{acc:.9,ab:25,why:'steady, tight time'},
+ pulse:{acc:.9,ab:25,why:'steady, tight time'},rhyread:{acc:.9,ab:30,why:'read any figure and place it within 30 ms'},jazzrhy:{acc:.9,ab:30,why:'the jazz figures in your hands, swung and placed'},
  comping:{acc:.85,ab:35,why:'tight comping time'}};
 /* seconds a game's standard means, from its own questions' targets (median over the sampled questions of its timed levels) */
 const STD_SEC={};function stdSeconds(gid){if(STD_SEC[gid]!==undefined)return STD_SEC[gid];const s=STD[gid],ts=[];if(s&&s.flu)GBY[gid].levels.forEach((lv,i)=>{if(!levelFlu(gid,i+1))return;for(const gen of lv.g)for(let k=0;k<3;k++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const t=fluTarget(gid,q);if(t)ts.push(t);}catch(e){}}});
@@ -3055,9 +3170,18 @@ const LESSONS={
  voicelead:{how:['Find the 3rd and 7th of the first chord on the given strings.','Move each to the nearest 3rd or 7th of the next chord.','Play the two pairs back and forth until the motion is in your hands.'],
   rules:['II → V: the 7th of IIm7 falls a half step to the 3rd of V; the 3rd of IIm7 stays and becomes the 7th of V.','V → I: the 7th of V falls a half step to the 3rd of I; the 3rd of V stays as the 7th of IMaj7.','In minor: IIm7♭5 → V7 → Im7 follows the same motion.'],
   take:'Two voices moving by half steps outline a whole progression. It is the most efficient comping there is, and the skeleton of good lines.'},
- rhythmtap:{how:['Count out loud and tap your foot on every beat; feel the subdivision before you play the first note.','When the click thins out to 2 and 4, to 4 only, or disappears, keep counting: the time is inside you.','Read the whole bar before the count-in ends. Say the syllables: 1 &, 1-trip-let, 1 e & a.','Strum muted strings into the mic instead of tapping, to put the time in your picking hand.'],
-  rules:['Values: whole 4, half 2, quarter 1, eighth ½, sixteenth ¼ beat; a dot adds half; a tie joins two notes; a triplet puts 3 in the time of 2.','In jazz, 2 and 4 are the backbeat; your quarter notes must not drift when the click thins out or stops.','Swing eighths are written straight and played long–short, the off-beat on the last third of the beat.','Syncopation puts the note on the “&”: feel the beat it lands between.'],
-  take:'Time is what a band trusts you for. Reading, subdividing and keeping the pulse without help are one skill, and it has to live in the hand that plays.'},
+ pulse:{how:['Count out loud and tap your foot on every beat; feel the subdivision before you play the first note.','When the click thins out to 2 and 4, to 4 only, or disappears, keep counting: the time is inside you.','Use Flow: let the tempo climb by itself while you stay clean, and stop the moment it gets sloppy.','Strum muted strings into the mic instead of tapping to put the time in your picking hand.'],
+  rules:['Subdivide the beat you are playing: eighths as 1 & 2 &, triplets as 1 trip-let, sixteenths as 1 e & a.','Jazz time sits on 2 and 4; 1 and 3 are your answer to the click.','Swing eighths are long–short, about 2:1 at medium tempos, nearly even when fast.','Ahead, on and behind the beat are placements, not tempo changes: the pulse stays put.'],
+  take:'Good time is a subdivision you never stop hearing, and a placement you choose.'},
+ rhyread:{how:['Read the whole bar before the count-in; say the counts under the notes.','Add durations from the start of the bar to find where a note falls; a dot adds half, a tie adds the next note.','Tap the rhythm on the guitar body or strum muted strings; the hand must learn it, not only the eye.','Dictation levels: count the clicks, mark where the notes fall between them, then pick the cells beat by beat.'],
+  rules:['Whole = 4, half = 2, quarter = 1, eighth = ½, sixteenth = ¼ beat in 4/4.','The dotted quarter + eighth is the first syncopation: 1 (hold) & of 2.','Eighth–quarter–eighth: the quarter sits off the beat and crosses it.','In 12/8 the click is the dotted quarter: three eighths per click.'],
+  take:'Rhythm reading is a vocabulary of beat-long cells; once the cells are automatic, any chart is a sequence of things you already know.'},
+ jazzrhy:{how:['Swing everything here: the off-beat eighth sits on the last third of the beat.','Sing each figure with syllables (doo-dat, doo-ba-doo-dat) before you tap it.','Transcribe the rhythm of the first eight bars of a standard you play and add it under Your tunes; the level asks it back.','Play the etudes on one note on the guitar, then on a scale, then over the chord changes of a tune.'],
+  rules:['Charleston: 1 and the and of 2. Displace it by an eighth or a beat and you have most comping rhythms.','A push places a chord on the and before the beat and holds it through the beat.','Three dotted quarters against four beats (q. q. q) and quarter-note triplets are the two ways to superimpose three on four.','Bebop phrases tend to start on the and of 1 and end on the and of 4.'],
+  take:'The jazz language is a small set of rhythmic figures placed with intention; the notes come second.'},
+ comping:{how:['Count out loud and mute between strums so every attack is short and clear.','Keep the strumming hand moving in eighths; touch the strings only on the hits.','Start at a slow tempo with the click on 2 and 4; use headphones for the chorus levels so the mic hears only you.','Trading fours: count the silent bars out loud, that is where time gets lost.'],
+  rules:['Freddie Green: four even quarters, short, the chord barely rings.','Bossa nova is a two-bar pattern; samba lives in dotted eighths and sixteenths.','A ballad in half time is felt in 2: chords on 1 and 3, pushes on the and of 4.'],
+  take:'Comping is rhythm first: the right pattern, placed tight, with chords that get out of the way.'},
  comping:{how:['Count out loud and mute between strums so every attack is short and clear.','Keep the strumming hand moving in eighths; touch the strings only on the hits.','Start at a slow tempo with the click on 2 and 4.'],
   rules:['Charleston: beat 1 and the “&” of 2.','Freddie Green: four even, short quarter notes.','A push anticipates the next bar’s 1 by an eighth: it lands on the “&” of 4.'],
   take:'Comping rhythm matters as much as the voicing: a few well-placed hits support the soloist better than constant strumming.'},};
@@ -3086,7 +3210,9 @@ const LOBBY_NOTES={
 <p><b>9. Minor II–V–I.</b> IIm7♭5 – V7(♭9) – Im7: the m7♭5 in front of a dominant tells you the target is minor.</p>
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
- rhythmtap:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Read levels show the bar before the count-in; tap-back levels play it once.'};
+ pulse:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Flow mode (round length) keeps the questions coming and moves the tempo with you.',
+ rhyread:'Read levels show the bar before the count-in; tap-back levels play it once; dictation levels play it and you write the cells. Flow mode for endless reading.',
+ jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
 /* the level's own success measure, sampled once per mode: time against the fluency target (recall), timing against the click
    (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */
 const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];
@@ -3098,7 +3224,7 @@ const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;
    what was stored: played answers (it.pn/pc) are guitar, a level that exists in one input only belongs to it; timed logs carry m (1 = guitar),
    older ones count as guitar except in Time & Groove, where they were taps */
 function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=levelAvail(gid,L,true),dual=dualMode(gid),both=dual&&aS&&aG;
-  const isG=e=>e.m!==undefined?e.m===1:gid!=='rhythmtap',plL=(g.pl||[]).filter(e=>e.lv===L&&!(e.ab>1000)),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
+  const isG=e=>e.m!==undefined?e.m===1:!GBY[gid].tap,plL=(g.pl||[]).filter(e=>e.lv===L&&!(e.ab>1000)),plM=plL.filter(e=>isG(e)===!!gm),pl=plM.slice(-20);
   const o=(g.lc||{})[L]||{s:0,g:0};let n=!dual?o.s+o.g:!both?((gm?aG:aS)?o.s+o.g:0):(gm?o.g:o.s);if(both&&gm)n=Math.max(n,plM.length);if(both&&gm&&!n)return {n:0,rn:0,rc:0,fb:'',avg:null,flu:[],ab:[],gp:[],rt:[]};   /* never played on the guitar: nothing to show */
   /* the stored questions at this level, split by input: played answers (pn/pc) are guitar, the rest screen */
   const its=Object.values(g.items).filter(i=>i.lv===L);let iN=0,iC=0,iMs=0,iMsN=0;its.forEach(it=>{const gn=both?(it.pn||0):(gm?it.n:it.n),gc=both?Math.min(it.c,it.pc||0):it.c;
@@ -3136,15 +3262,15 @@ function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&
   return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
-  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}
+  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=(L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L))||!levelAvail(x.id,L),other=!levelAvail(x.id,L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${other?` · <i>${guitarMode(x.id)?'screen only: switch Answer by to on screen':'guitar only: switch Answer by to playing it'}</i>`:locked?' · <i>locked</i>':''}</div>
     ${lvMeter(x,g,L,locked,other)}</button>`;}).join('')}</div>
   <div class="setup"><div><div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
-   <div class="eyebrow" style="margin-top:12px">Round length</div><div class="seg" role="group">${[6,12,24].map(n=>`<button class="${g.round===n?'on':''}" data-act="round" data-k="${n}">${n} questions</button>`).join('')}</div>
+   <div class="eyebrow" style="margin-top:12px">Round length</div><div class="seg" role="group">${[6,12,24].map(n=>`<button class="${g.round===n?'on':''}" data-act="round" data-k="${n}">${n} questions</button>`).join('')}${x.tap?`<button class="${g.round===0?'on':''}" data-act="round" data-k="0">Flow · endless</button>`:''}</div>
    <div class="eyebrow" style="margin-top:12px">Mix</div><div class="mixrow"><label class="check"><input type="checkbox" data-act="sound" ${g.sound?'checked':''}> Sound: play the answer on the piano after each question</label><label class="check"><input type="checkbox" data-act="mix" data-k="review" ${g.review?'checked':''}> Review: 25% of questions from the levels below (weakest items first)</label><label class="check"><input type="checkbox" data-act="mix" data-k="preview" ${g.preview?'checked':''}> Preview: 15% from the next level</label></div>
    ${x.tap?tapOptsUI(x,g):x.mic?micOptsUI(x,g):PLAY_GAMES.includes(x.id)?playOptsUI(x,g):''}
-   <p class="note">Round of ${g.round}${(rvOK=>{const pvOK=g.preview&&sel<x.levels.length&&sel<=g.lvl&&levelAvail(x.id,sel+1);return rvOK||pvOK?`: about ${100-(rvOK?25:0)-(pvOK?15:0)}% level ${sel}${rvOK?', 25% review':''}${pvOK?', 15% preview':''}`:', all from level '+sel;})(g.review&&Array.from({length:Math.min(sel-1,g.lvl)},(_,i)=>i+1).some(k=>levelAvail(x.id,k)))}. Multi-note and listening questions get extra time. No timer: no time-outs and no speed bonus; the round clock still runs.</p></div>
+   <p class="note">${g.round===0?'Flow: an endless round. Each question starts by itself; the tempo rises 4 bpm after three clean, tight answers and drops after two misses. End round when you are done':'Round of '+g.round}${(rvOK=>{const pvOK=g.preview&&sel<x.levels.length&&sel<=g.lvl&&levelAvail(x.id,sel+1);return rvOK||pvOK?`: about ${100-(rvOK?25:0)-(pvOK?15:0)}% level ${sel}${rvOK?', 25% review':''}${pvOK?', 15% preview':''}`:', all from level '+sel;})(g.review&&Array.from({length:Math.min(sel-1,g.lvl)},(_,i)=>i+1).some(k=>levelAvail(x.id,k)))}. Multi-note and listening questions get extra time. No timer: no time-outs and no speed bonus; the round clock still runs.</p></div>
    <button class="btn primary" data-act="start" style="padding:12px 28px;font-size:16px">Start level ${sel}</button></div>`;}
 const spGiven=()=>S&&S.q&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.length:0;
 function answerUI(q,done){const dis=done?'disabled':'';
@@ -3154,7 +3280,7 @@ function answerUI(q,done){const dis=done?'disabled':'';
     return acc+`<div class="keys">${'CDEFGAB'.split('').map(L=>{let cls='';if(done){const g=S.answers.at(-1).given;if(q.answer[0]===L)cls='right';else if(g&&g[0]===L)cls='wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${L}" ${dis}>${L}</button>`;}).join('')}</div>`;}
   if(q.ui==='spell'){const got=done?(S.answers.at(-1).given||[]):S.spell;
     const gv=spGiven(),slots=Array.from({length:q.need},(_,i)=>{const v=got[i],cls=(done?(v===q.answer[i]?'ok':'no'):v?'':'empty')+(i<gv?' given':'');return `<div class="slot ${cls}"><span class="n">${v||'·'}</span>${done&&v!==q.answer[i]?`<span class="s">${q.answer[i]}</span>`:''}</div>`;}).join('');
-    if(q.tokens)return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="tokkeys">${q.tokens.map(t=>`<button class="key tok" data-act="sp" data-v="${esc(t)}">${t}</button>`).join('')}</div><div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Pick the numerals in order; Backspace to undo</span></div>`}`;
+    if(q.tokens)return `<div class="slots spellslots${q.tokMusic?' music':''}">${slots}</div>${done?'':`<div class="tokkeys">${q.tokens.map(t=>`<button class="key tok${q.tokMusic?' music':''}" data-act="sp" data-v="${esc(t)}">${t}</button>`).join('')}</div><div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Pick the numerals in order; Backspace to undo</span></div>`}`;
     const root=gv?q.given[0]:null,row=(acc,lab)=>`<div class="sprow"><span class="splab">${lab}</span>${'CDEFGAB'.split('').map(L=>`<button class="key${L+acc===root?' given':''}" data-act="sp" data-v="${L+acc}"${L+acc===root?' title="the root, already in place"':''}>${L+acc}</button>`).join('')}</div>`;
     return `<div class="slots spellslots">${slots}</div>${done?'':`<div class="spkeys">${row('','Natural')}${row('♭','Flat')}${row('♯','Sharp')}</div>
       <div class="tools"><button class="btn small ghost" data-act="spdel">⌫ Undo</button><span class="muted" style="font-size:13px">Keyboard: the letter for a natural; - or [ then the letter for a flat; = or # then the letter for a sharp; Backspace to undo</span></div>`}`;}
@@ -3174,7 +3300,7 @@ function vPlay(){const q=S.q,g=G(S.gid),x=GBY[S.gid],done=S.locked,last=done?S.a
     ${last.ok&&!last.hinted?'':`<div class="row"><button class="btn primary small" data-act="next">${S.i>=S.round?'See results':'Next question'} ↵</button></div>`}
     ${fixBox('fixq',last.ok?'Something wrong with this question? Tell Claude… (Enter to send)':`${q.ui==='mic'?'Played it right? ':''}What went wrong? Tell Claude… (Enter to send)`)}</div>`:'';
   return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${S.L}</span>
-   <div class="sp"><div class="stat">Question<b>${Math.min(S.i+(done?0:1),S.round)}/${S.round}</b></div><div class="stat">Clock<b id="clock">${fmtClock(Date.now()-S.t0)}</b></div><div class="stat">Score<b>${S.score}</b></div><div class="stat">Streak<b>${S.streak}</b></div></div></div>
+   <div class="sp"><div class="stat">Question<b>${isFinite(S.round)?Math.min(S.i+(done?0:1),S.round)+'/'+S.round:(S.i+(done?0:1))+' · Flow'}</b></div><div class="stat">Clock<b id="clock">${fmtClock(Date.now()-S.t0)}</b></div><div class="stat">Score<b>${S.score}</b></div><div class="stat">Streak<b>${S.streak}</b></div></div></div>
   <div class="clockbar hp" id="cbar" data-hp="g" ${S.untimed?'hidden':''}>${HP_HEART}<span class="hp-track"><i style="width:${done?0:100}%"></i></span></div>
   <section class="stage"><div class="qtop">${q.tag?`<span class="chip ${q.tag}">${q.tag==='review'?'Review · L'+q.lv:'Stretch · L'+q.lv}</span>`:''}<span class="muted" style="font-size:13px">${S.untimed?'No time limit':Math.round(S.limit/1000)+'s limit'}${q.audio&&q.ui!=='mic'?' · timer starts after the sound':q.ui==='mic'?' · listening stops by itself':''}</span>${S.loading?'<span class="chip">Loading piano…</span>':''}</div>
    <div class="prompt">${q.prompt}</div>${vis?`<div class="visual">${vis}</div>`:''}
@@ -3435,6 +3561,8 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}
+  else if(a==='addtune'){const n=(document.getElementById('tunename').value||'').trim(),rhy=(document.getElementById('tunerhy').value||'').trim().replace(/\s+/g,' '),sw=document.getElementById('tuneswing').checked,msg=document.getElementById('tunemsg');if(!n||!rhy){msg.textContent='A name and a rhythm, please.';return;}const p=parseRhy(rhy);if(p.err){msg.textContent=p.err;return;}STORE.tunes=STORE.tunes||[];STORE.tunes.push({n,rhy,swing:sw,ok:true});saveLocal();render();}
+  else if(a==='deltune'){(STORE.tunes||[]).splice(+b.dataset.i,1);saveLocal();render();}
   else if(a==='tree'||a==='path'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}
   else if(a==='skill'){const sx=document.querySelector('.sk-wrap')?.scrollLeft||0;view.skill=b.dataset.k;render();const w=document.querySelector('.sk-wrap');if(w)w.scrollLeft=sx;document.getElementById('skdet')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}

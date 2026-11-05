@@ -1833,7 +1833,7 @@ function walkGrade(q,res){const W=q.walk,notes=(res&&res.notes)||[],beat=res.bea
   const ok=per.every(x=>x.ok);return {ok,notesOk:ok,timeOk:true,per,extra:[],firstAt:res&&res.firstAt,walkWhy:why};}
 function playOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{}),play=g.mode==='play';return `<div class="eyebrow" style="margin-top:12px">Answer by</div><div class="seg" role="group"><button class="${play?'':'on'}" data-act="mode" data-k="mark">On screen (no microphone)</button><button class="${play?'on':''}" data-act="mode" data-k="play">Playing it on the guitar (microphone)</button></div><p class="note">One input for the whole game: on screen nothing is recorded; playing it, every question is played on the guitar. Levels that have no question for the chosen input are marked and skipped.</p>
   ${play?`<div class="micopts"><div class="field"><span class="muted">Options</span><label class="check"><input type="checkbox" data-act="micopt" data-k="auto" ${o.auto?'checked':''}> Listen as soon as the question appears</label><label class="check"><input type="checkbox" data-act="micopt" data-k="strum" ${o.strum!==false?'checked':''}> Strum chords: the mic hears the whole grip (beta)</label></div></div><p class="note">Exact pitches count. Single notes and lines: one at a time, muting as you go. Chord grips: strum them once and let them ring (or switch “Strum chords” off to play them one note at a time, low to high). Bass notes below C3 are not checked: a laptop mic barely hears them. Check your tuning on the Mic check page first. Questions that would need more than 8 notes are left out in this mode. Played answers are counted separately in the stats.${g.pn?` So far: ${pct(g.pc||0,g.pn)}% over ${g.pn} played answers.`:''}${micErr?'':' If the mic cannot start in this view, download fretwise.html and open it in Chrome or Edge.'}</p>`:''}`;}
-function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[50,60,70,80,90,100,110,120,130,140,150,160,180,200,220,240].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div>${x.mic?'':`<div class="field"><span class="muted">Answer by</span><label class="check"><input type="checkbox" data-act="micopt" data-k="tapMic" ${o.tapMic?'checked':''}> Strumming muted strings into the mic instead of tapping (the whole game then uses the mic: reading and counting questions are left out)</label></div>`}<p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
+function tapOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});return `<div class="eyebrow" style="margin-top:12px">${x.mic?'Microphone rhythm game':'Tap game'}</div><div class="micopts"><label class="field"><span class="muted">Tempo</span><select data-act="micopt" data-k="bpm">${[50,60,70,80,90,100,110,120,130,140,150,160,180,200,220,240].map(v=>`<option value="${v}" ${o.bpm==v?'selected':''}>${v} bpm</option>`).join('')}</select></label><div class="field"><span class="muted">Latency</span><div class="muted" style="font-size:13px">${o.lat?`Your taps are corrected by ${o.lat} ms (learned from your clean rounds). <button class="btn small ghost" data-act="resetlat">Reset</button>`:'Learned automatically from rounds where you hit most beats.'}</div></div></div>${x.mic?'':`<div class="field"><span class="muted">Answer by</span><label class="check"><input type="checkbox" data-act="micopt" data-k="tapMic" ${o.tapMic?'checked':''}> Strumming muted strings into the mic instead of tapping (the whole game then uses the mic)</label></div>`}<p class="note">${x.mic?'Strum with the click on 2 and 4; mute between hits so each attack is clear. Needs the microphone (download fretwise.html if it cannot start here).':'Tap with the space bar or the big button. Use headphones or keep the volume low so the click does not drown your sense of the beat.'}</p>`;}
 function micOptsUI(x,g){const o=Object.assign({},MIC_DEF,g.opts||{});const sel=(k,opts,fmt)=>`<select data-act="micopt" data-k="${k}">${opts.map(v=>`<option value="${v}" ${String(o[k])===String(v)?'selected':''}>${fmt(v)}</option>`).join('')}</select>`;
   return `<div class="eyebrow" style="margin-top:12px">Microphone game</div><div class="micopts">${x.id==='cr'?`<label class="field"><span class="muted">Key</span>${sel('key',[...MKEYLIST,'random'],v=>v==='random'?'Random each phrase':nm(P(v))+' major')}</label>`:''}
    <label class="field"><span class="muted">Tempo (timed levels)</span>${sel('bpm',[60,70,80,100,120],v=>v+' bpm')}</label>
@@ -2499,25 +2499,32 @@ const GAMES=[
   {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')]},
   {n:'Ahead, on, behind',d:'Place your quarters on purpose: dead centre, 20 ms early, 25 ms late',g:[feelQ(0),feelQ(-20),feelQ(25)]},
   {n:'Extremes',d:'50 bpm, then 2 and 4 at 150+',g:[twoFourQ('slow'),twoFourQ('fast')]}]},
- {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Dictation and counting levels in between. Flow mode for endless reading.',levels:[
-  {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2),rhyRestQ(),rhyBeatsQ()]},
-  {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2),rhyBeatsQ()]},
+ {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Tap only: the paper side (counting, dictation) is in Rhythm Theory & Dictation. Flow mode for endless reading.',levels:[
+  {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)]},
+  {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2)]},
   {n:'Eighth notes',d:'Two per beat; hear a bar and tap it back',g:[tapReadQ(['q','ee','h','r'],2),tapBackQ(['q','ee','r'])]},
-  {n:'Dotted quarter and eighth',d:'q. e and e q.: the first syncopated feel',g:[tapReadQ(['q','ee','qe','eq','h'],2),rhyReadQ(['q','ee','qe','eq'])]},
+  {n:'Dotted quarter and eighth',d:'q. e and e q.: the first syncopated feel',g:[tapReadQ(['q','ee','qe','eq','h'],2)]},
   {n:'Eighth rests, off-beats',d:'Rest on the beat, play the and',g:[tapReadQ(['q','ee','re','er','r','qe'],2),tapBackQ(['q','ee','re','er'])]},
-  {n:'Dictation I',d:'Hear a bar, write it with cells',g:[rhyDictQ(['q','ee','r','re','er','h','qe'])]},
   {n:'3/4 and 2/4',d:'Three beats a bar, the dotted half; two beats a bar',g:[tapReadQ(['q','ee','h','dh','r','qe'],2,false,{meter:3}),tapReadQ(['q','ee','h','r'],4,false,{meter:2})]},
   {n:'Triplets',d:'Eighth-note triplets, quarter–eighth and eighth–quarter inside the triplet',g:[tapReadQ(['q','ee','trip','tqe','teq','h'],2),tapBackQ(['q','ee','trip'])]},
-  {n:'Syncopation I',d:'Eighth–quarter–eighth; on which count?',g:[tapReadQ(['q','ee','eqe','eq','qe','re'],2),rhyReadQ(['q','ee','eqe','eq','re'])]},
+  {n:'Syncopation I',d:'Eighth–quarter–eighth, the quarter off the beat',g:[tapReadQ(['q','ee','eqe','eq','qe','re'],2)]},
   {n:'Syncopation II',d:'Ties into the beat, anticipated downbeats',g:[tapReadQ(['ee','tie','eqe','er','re','q','qt'],2),tapBackQ(['ee','tie','eqe','re'])]},
-  {n:'Count it',d:'Which count, how long, which meter',g:[rhyReadQ(['q','ee','re','er','qe','eq','eqe']),rhyBeatsQ(),G_ge.values,G_ge.meter]},
-  {n:'Dictation II',d:'Syncopation and triplets by ear, written down',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','trip','h'])]},
   {n:'Sixteenths',d:'Four per beat and the three-note groupings',g:[tapReadQ(['q','ee','ssss','ess','sse','ses'],2),tapBackQ(['q','ee','ssss','ess','sse'])]},
   {n:'Dotted eighth–sixteenth',d:'The long–short and short–long sixteenth figures',g:[tapReadQ(['q','ee','des','sde','ssss','ess','sse'],2)]},
   {n:'12/8',d:'Each click a dotted quarter, three eighths per click',g:[tapReadQ(['trip','tqe','teq','q'],2,false,{ts:'12/8',noTup:true,prompt:'Read the bar in <b>12/8</b>: each click is a dotted quarter, three eighths per click. Tap it after the count-in.',hint:'Count 1 & a 2 & a 3 & a 4 & a.'})]},
   {n:'Etudes in 4/4 and 3/4',d:'Eight bars at a time, everything so far',g:[tapReadQ(['q','ee','qe','eqe','re','h','trip','tie'],8),tapReadQ(['q','ee','h','dh','qe','r','eqe'],8,false,{meter:3})]},
   {n:'Etudes: everything',d:'Eight-bar studies with sixteenths and triplets mixed in',g:[tapReadQ(['q','ee','qe','eq','eqe','re','er','h','trip','tqe','ssss','ess','sse','des','tie','r'],8)]}]},
- {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, jazz waltz and 5/4; dictation, eight-bar etudes, and the rhythms of the standards you transcribe yourself.',levels:[
+ {id:'rhytheory',cat:'rhythm',name:'Rhythm Theory & Dictation',area:'On paper · screen only',desc:'The paper side of rhythm, kept apart from the tapping: note values and rests, meter, which count a note falls on, swing vocabulary, and dictation: hear a bar with the click and write it with cells.',levels:[
+  {n:'Note values and rests',d:'How long is it; which rest is that',g:[rhyRestQ(),rhyBeatsQ(),G_ge.values]},
+  {n:'Meter',d:'Time signatures and what the beat is',g:[G_ge.meter,rhyBeatsQ()]},
+  {n:'Count it I',d:'On which count does the note fall? Quarters, eighths, rests',g:[rhyReadQ(['q','ee','r','re','er'])]},
+  {n:'Dictation I',d:'Hear a bar, write it: values, eighths, rests',g:[rhyDictQ(['q','ee','r','re','er','h','qe'])]},
+  {n:'Count it II',d:'Dotted quarters and eighth–quarter–eighth',g:[rhyReadQ(['q','ee','re','er','qe','eq','eqe'])]},
+  {n:'Dictation II',d:'Syncopation and triplets by ear, written down',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','trip','h'])]},
+  {n:'Swing vocabulary',d:'Where jazz time lives: swing, 2 and 4, pushes, the Charleston',g:[swingFactQ()]},
+  {n:'Swing dictation',d:'Hear a swung bar, write it',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','qt','h'],true)]},
+  {n:'Dictation III',d:'Sixteenth figures by ear',g:[rhyDictQ(['q','ee','ssss','ess','sse','ses','r'])]}]},
+ {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing, tapped or strummed: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, jazz waltz and 5/4, eight-bar etudes, and the rhythms of the standards you transcribe yourself.',levels:[
   {n:'Charleston',d:'1 and the and of 2, swung; against a click on 2 and 4',g:[tapReadQ(['charl'],2,true),twoFourQ('charl')]},
   {n:'Displaced Charleston',d:'The same two hits moved: and of 2 → and of 3; and of 1 → 3',g:[tapReadQ(['charl','charl2','charl3'],2,true)]},
   {n:'Pushes',d:'Anticipate 1 and 3: the chord arrives half a beat early',g:[tapReadQ(['push1','push3','charl'],2,true),tapBackQ(['qt','eqe','q','ee','re'],true)]},
@@ -2527,7 +2534,6 @@ const GAMES=[
   {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)]},
   {n:'Bebop cells',d:'Running eighths, triplet pick-ups, the pushed last note',g:[tapReadQ(['bop','eqe','pick','teq','qt','re'],2,true)]},
   {n:'Jazz waltz and 5/4',d:'Swing in three; five beats a bar',g:[tapReadQ(['q','ee','qe','eqe','h','re'],2,true,{meter:3}),tapReadQ(['q','ee','qe','h','r','eqe'],2,true,{meter:5})]},
-  {n:'Swing dictation',d:'Hear a swung bar, write it',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','qt','h'],true)]},
   {n:'Etudes',d:'Eight bars of the figures mixed, swung',g:[tapReadQ(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],8,true)]},
   {n:'Your standards',d:'The melody rhythms you transcribed (add them below)',g:[tuneQ()]}]},
  {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping',area:'Strum it · microphone',desc:'Strum the comping rhythms into the mic: Freddie Green four, the Charleston and its displacements, pushes, strum-back, bossa and samba, ballads, a whole chorus over a walking bass, trading fours.',levels:[
@@ -2556,7 +2562,7 @@ const roundMax=n=>Math.max(60000,n*120000),activeMs=(wall,n)=>Math.min(wall,roun
    the median of the last 12 at that level must be at or under the target (1.0), over at least FLU_N answers.
    Targets: spelling 1 s + 0.7 s a note you enter (the given root is not counted: a triad 2.4 s, a 7th chord 3.1 s); numerals 1.5 s + 1.2 s each; name a note 3 s; click a spot 4 s;
    multiple choice 4.8 s × the question's time factor. Played, tapped, heard and marked-on-neck answers have no target (they have their own timing). */
-const FLU_GAMES=['spelling','intervals','analysis','chordscale','fretboard','sight','triads','drop2','shells','neckiv'],FLU_N=6;
+const FLU_GAMES=['spelling','intervals','analysis','chordscale','fretboard','sight','triads','drop2','shells','neckiv','rhytheory'],FLU_N=6;
 function fluTarget(gid,q){if(!FLU_GAMES.includes(gid)||!q||q.audio||q.play||['mic','tap','multi'].includes(q.ui))return 0;
   if(q.ui==='spell')return q.tokens?1.5+1.2*q.need:1+0.7*(q.need-(q.given?q.given.length:0));if(q.ui==='pc'||q.ui==='letters')return 3;if(q.ui==='fret')return 4;return Math.min(12,4.8*(q.factor||1));}
 const LVT={};function lvTargetSec(gid,L){const k=gid+'|'+L;if(LVT[k]!==undefined)return LVT[k];const ts=[],lv=GBY[gid].levels[L-1];if(lv)lv.g.forEach(gen=>{for(let t=0;t<6;t++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const v=fluTarget(gid,q);if(v)ts.push(v);}catch(e){}}});ts.sort((a,b)=>a-b);return LVT[k]=ts.length?ts[ts.length>>1]:0;}
@@ -2603,6 +2609,7 @@ function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
   g.mig={...(g.mig||{}),[flag]:1};}
 const REORDERS2={comping:{n:6,m:{1:1,2:2,3:2,4:3,5:4,6:4}}};   /* Nov 2026 comping rebuild */
+const REORDERS3={rhyread:{n:17,m:{6:5,7:6,8:7,9:8,10:9,11:9,12:9,13:10,14:11,15:12,16:13,17:14}},jazzrhy:{n:12,m:{10:9,11:10,12:11}}};   /* paper levels moved out to Rhythm Theory (6 Nov 2026) */
 /* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
    played counts (it.pn) give the total, the play log (g.pl, each answer's own level) places them, older played answers go to the levels of the
    guitar-mode rounds. Before the one-input rule (ONE_INPUT_T) a “playing it” round still asked most questions on screen, so a round's mode
@@ -2626,6 +2633,7 @@ const G=id=>{if(MERGES[id]&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.games[
   if(g.review===undefined)g.review=true;if(g.preview===undefined)g.preview=true;if(g.round==null)g.round=12;if(g.sound===undefined)g.sound=true;if(!g.rk)g.rk={};if(!(g.mig&&g.mig.t26)){let cut=0;(g.sessions||[]).forEach(ss=>{const d=ss.dur||0,m=activeMs(d,ss.n||0);if(m<d){ss.wall=d;ss.dur=m;cut+=d-m;}});g.time=Math.max(0,(g.time||0)-cut);g.mig={...(g.mig||{}),t26:1};if(cut)saveLocal();}
   if(REORDERS[id]&&!(g.mig&&g.mig.r26)){migrateReorder(id,g);saveLocal();}
   if(REORDERS2[id]&&!(g.mig&&g.mig.r27)){migrateReorder(id,g,REORDERS2[id],'r27');saveLocal();}
+  if(REORDERS3[id]&&!(g.mig&&g.mig.r28)){migrateReorder(id,g,REORDERS3[id],'r28');saveLocal();}
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2741,15 +2749,15 @@ function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)s
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['pulse',1,7],['rhyread',1,6],['fretboard',1,8],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
+  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,8],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',7,12],['comping',1,2],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,7],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',13,17],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,7],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['sight',17,18],['jazzrhy',7,10],['comping',6,8]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,8],['earprog',6,10],['eardeg',8,9],['sing',6,8],['cr',7,9],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['sight',17,18],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
-  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6],['jazzrhy',11,12]]}];
+  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,7],['drop2',13,14],['arp',10,10],['repertoire',4,6],['jazzrhy',10,11]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
    Four tracks; each node bundles level ranges from one or more games, all in one PATH stage (its column). pre = skills it builds on.
    Locks are soft: a locked skill still opens. Goals are the payoff skills that still need a feature (shown as “coming”).
@@ -2759,18 +2767,21 @@ const SK_TRACKS=[['time','Time & groove'],['solo','Soloing & the neck'],['chords
 const SKILLS=[
  {id:'t1',tr:'time',n:'Subdivide',d:'Quarters on the click, eighths, triplets, sixteenths, and switching between them.',req:[['pulse',1,5]],pre:[]},
  {id:'t2',tr:'time',n:'The click on 2 and 4',d:'Four beats against 2 and 4, against 4 only, against the and of 4.',req:[['pulse',6,7]],pre:['t1']},
- {id:'r1',tr:'time',n:'Reading I',d:'Whole, half, quarter, eighths, dotted quarter, ties, rests; first dictation.',req:[['rhyread',1,6]],pre:['t1']},
+ {id:'r1',tr:'time',n:'Reading I',d:'Whole, half, quarter, eighths, dotted quarter, ties, rests, tapped.',req:[['rhyread',1,5]],pre:['t1']},
+ {id:'y1',tr:'time',n:'Rhythm on paper I',d:'Note values, meter, which count, first dictation.',req:[['rhytheory',1,4]],pre:[]},
  {id:'t3',tr:'time',n:'Inner clock & swing',d:'Drop-outs up to eight bars alone; swing eighths and off-beats.',req:[['pulse',8,9]],pre:['t2']},
- {id:'r2',tr:'time',n:'Reading II',d:'3/4 and 2/4, triplets, syncopation, counting, dictation.',req:[['rhyread',7,12]],pre:['r1']},
+ {id:'r2',tr:'time',n:'Reading II',d:'3/4 and 2/4, triplets, syncopation, tapped.',req:[['rhyread',6,9]],pre:['r1']},
+ {id:'y2',tr:'time',n:'Rhythm on paper II',d:'Counting syncopation, dictation with triplets, swing vocabulary.',req:[['rhytheory',5,7]],pre:['y1']},
  {id:'k1',tr:'time',n:'First comping',d:'Freddie Green four and the Charleston, strummed to the click.',req:[['comping',1,2]],pre:['t2']},
  {id:'t5',tr:'time',n:'Time feel',d:'Ahead, on and behind the beat on purpose; 50 and 240 bpm.',req:[['pulse',10,11]],pre:['t3']},
- {id:'r3',tr:'time',n:'Reading III',d:'Sixteenths, dotted eighths, 12/8, eight-bar etudes.',req:[['rhyread',13,17]],pre:['r2']},
- {id:'j1',tr:'time',n:'Jazz cells',d:'Charleston and its displacements, pushes, dotted chains, quarter-note triplets, phrase placement.',req:[['jazzrhy',1,6]],pre:['r2','t3']},
+ {id:'r3',tr:'time',n:'Reading III',d:'Sixteenths, dotted eighths, 12/8, eight-bar etudes.',req:[['rhyread',10,14]],pre:['r2']},
+ {id:'y3',tr:'time',n:'Dictation III',d:'Swing and sixteenth figures written from hearing.',req:[['rhytheory',8,9]],pre:['y2']},
+ {id:'j1',tr:'time',n:'Jazz cells',d:'Charleston and its displacements, pushes, dotted chains, quarter-note triplets, phrase placement.',req:[['jazzrhy',1,6]],pre:['r2','t3','y2']},
  {id:'k2',tr:'time',n:'Comping patterns',d:'Pushes, mixed patterns, strum-back, bossa and samba.',req:[['comping',3,5]],pre:['k1','j1']},
- {id:'j2',tr:'time',n:'Advanced jazz rhythm',d:'Hemiola, bebop cells, jazz waltz and 5/4, swing dictation.',req:[['jazzrhy',7,10]],pre:['j1']},
+ {id:'j2',tr:'time',n:'Advanced jazz rhythm',d:'Hemiola, bebop cells, jazz waltz and 5/4.',req:[['jazzrhy',7,9]],pre:['j1']},
  {id:'k3',tr:'time',n:'Comp a chorus',d:'Ballads, a whole form over a bass line, trading fours.',req:[['comping',6,8]],pre:['k2']},
  {id:'s17',tr:'solo',n:'Melodic rhythms',d:'Syncopated and swung lines in position, pitch and time graded together.',req:[['sight',17,18]],pre:['s15','j1']},
- {id:'j3',tr:'time',n:'Rhythm etudes & standards',d:'Eight-bar swing etudes and the rhythms of your own tunes.',req:[['jazzrhy',11,12]],pre:['j2']},
+ {id:'j3',tr:'time',n:'Rhythm etudes & standards',d:'Eight-bar swing etudes and the rhythms of your own tunes.',req:[['jazzrhy',10,11]],pre:['j2']},
  {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['k3','t5','j3']},
  {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,8]],pre:[]},
  {id:'s2',tr:'solo',n:'Every place a note lives',d:'All the spots of one note across the neck, played.',req:[['hunt',1,5]],pre:['s1']},
@@ -2858,7 +2869,7 @@ const STD={
  repertoire:{acc:.9,why:'know the forms and changes by heart'},
  walking:{acc:.9,why:'walk a bar that works, every key'},
  voicelead:{acc:.95,why:'move the guide tones to the next chord without looking'},
- pulse:{acc:.9,ab:25,why:'steady, tight time'},rhyread:{acc:.9,ab:30,why:'read any figure and place it within 30 ms'},jazzrhy:{acc:.9,ab:30,why:'the jazz figures in your hands, swung and placed'},
+ pulse:{acc:.9,ab:25,why:'steady, tight time'},rhyread:{acc:.9,ab:30,why:'read any figure and place it within 30 ms'},jazzrhy:{acc:.9,ab:30,why:'the jazz figures in your hands, swung and placed'},rhytheory:{acc:.9,flu:.7,why:'rhythm read and written on paper without working it out'},
  comping:{acc:.85,ab:35,why:'tight comping time'}};
 /* seconds a game's standard means, from its own questions' targets (median over the sampled questions of its timed levels) */
 const STD_SEC={};function stdSeconds(gid){if(STD_SEC[gid]!==undefined)return STD_SEC[gid];const s=STD[gid],ts=[];if(s&&s.flu)GBY[gid].levels.forEach((lv,i)=>{if(!levelFlu(gid,i+1))return;for(const gen of lv.g)for(let k=0;k<3;k++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const t=fluTarget(gid,q);if(t)ts.push(t);}catch(e){}}});
@@ -3173,9 +3184,12 @@ const LESSONS={
  pulse:{how:['Count out loud and tap your foot on every beat; feel the subdivision before you play the first note.','When the click thins out to 2 and 4, to 4 only, or disappears, keep counting: the time is inside you.','Use Flow: let the tempo climb by itself while you stay clean, and stop the moment it gets sloppy.','Strum muted strings into the mic instead of tapping to put the time in your picking hand.'],
   rules:['Subdivide the beat you are playing: eighths as 1 & 2 &, triplets as 1 trip-let, sixteenths as 1 e & a.','Jazz time sits on 2 and 4; 1 and 3 are your answer to the click.','Swing eighths are long–short, about 2:1 at medium tempos, nearly even when fast.','Ahead, on and behind the beat are placements, not tempo changes: the pulse stays put.'],
   take:'Good time is a subdivision you never stop hearing, and a placement you choose.'},
- rhyread:{how:['Read the whole bar before the count-in; say the counts under the notes.','Add durations from the start of the bar to find where a note falls; a dot adds half, a tie adds the next note.','Tap the rhythm on the guitar body or strum muted strings; the hand must learn it, not only the eye.','Dictation levels: count the clicks, mark where the notes fall between them, then pick the cells beat by beat.'],
+ rhyread:{how:['Read the whole bar before the count-in; say the counts under the notes.','Add durations from the start of the bar to find where a note falls; a dot adds half, a tie adds the next note.','Tap the rhythm on the guitar body or strum muted strings; the hand must learn it, not only the eye.','Use Flow once a level is clean: endless bars, the tempo climbing by itself.'],
   rules:['Whole = 4, half = 2, quarter = 1, eighth = ½, sixteenth = ¼ beat in 4/4.','The dotted quarter + eighth is the first syncopation: 1 (hold) & of 2.','Eighth–quarter–eighth: the quarter sits off the beat and crosses it.','In 12/8 the click is the dotted quarter: three eighths per click.'],
   take:'Rhythm reading is a vocabulary of beat-long cells; once the cells are automatic, any chart is a sequence of things you already know.'},
+ rhytheory:{how:['Say the counts out loud: 1 & 2 & 3 & 4 &, 1 trip-let, 1 e & a.','Add durations from the start of the bar; a dot adds half, a tie adds the next note.','Dictation: count the clicks, mark where the notes fall between them, then pick the cells beat by beat.','Check your answer by tapping it after: paper and hands must agree.'],
+  rules:['Whole = 4, half = 2, quarter = 1, eighth = ½, sixteenth = ¼ beat in 4/4.','The top number of a time signature is beats per bar, the bottom is which note gets the beat.','Swing eighths are long–short; jazz time sits on 2 and 4; a push lands half a beat early.'],
+  take:'Rhythm you can write is rhythm you can hear; the tapping games put it in the hands.'},
  jazzrhy:{how:['Swing everything here: the off-beat eighth sits on the last third of the beat.','Sing each figure with syllables (doo-dat, doo-ba-doo-dat) before you tap it.','Transcribe the rhythm of the first eight bars of a standard you play and add it under Your tunes; the level asks it back.','Play the etudes on one note on the guitar, then on a scale, then over the chord changes of a tune.'],
   rules:['Charleston: 1 and the and of 2. Displace it by an eighth or a beat and you have most comping rhythms.','A push places a chord on the and before the beat and holds it through the beat.','Three dotted quarters against four beats (q. q. q) and quarter-note triplets are the two ways to superimpose three on four.','Bebop phrases tend to start on the and of 1 and end on the and of 4.'],
   take:'The jazz language is a small set of rhythmic figures placed with intention; the notes come second.'},
@@ -3211,7 +3225,8 @@ const LOBBY_NOTES={
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
  pulse:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Flow mode (round length) keeps the questions coming and moves the tempo with you.',
- rhyread:'Read levels show the bar before the count-in; tap-back levels play it once; dictation levels play it and you write the cells. Flow mode for endless reading.',
+ rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
+ rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click; write it beat by beat with the cells.',
  jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
 /* the level's own success measure, sampled once per mode: time against the fluency target (recall), timing against the click
    (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */

@@ -1376,7 +1376,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(LS.onsets){const n=LS.frames.length,prev=n>=3?Math.min(LS.frames[n-1].rms,LS.frames[n-2].rms,LS.frames[n-3].rms):1;
       // the click as the mic hears it (speakers, no headphones): measured in the count-in, ignored later unless clearly louder
       const nearClick=LS.clicks.some(t=>el>=t+LS.lat-60&&el<=t+LS.lat+120);if(el<LS.calEnd&&nearClick)LS.clickPk=Math.max(LS.clickPk,r);
-      if(el>=300&&r>LS.thr&&r>1.8*prev&&el-LS.lastOn>=90&&!(nearClick&&r<LS.clickPk*1.6)){LS.ons.push(el-LS.lat);LS.lastOn=el;}
+      if(el>=300&&r>LS.thr&&r>1.8*prev&&el-LS.lastOn>=90&&!(nearClick&&r<LS.clickPk*1.6)){LS.ons.push(el-(LS.lat=micLat(false)));   /* re-read at each onset: the device reports its real output latency only once audio is flowing */LS.lastOn=el;}
       LS.frames.push({rms:r,m:null,t:el});drawLive(r);if(LS.limit?el>LS.limit:el>40000)return stopListening();requestAnimationFrame(step);return;}   // a given length rules (checkups run past 40 s)
     const C=LS.bp;
     if(C&&LS.chord){LS.frames.push({rms:r,m:null,t:el});const n=LS.frames.length,pv=n>=4?Math.min(LS.frames[n-2].rms,LS.frames[n-3].rms,LS.frames[n-4].rms):1;

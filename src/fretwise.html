@@ -80,7 +80,8 @@ html.castle{background:#07061a}html.castle body{background:transparent}html.cast
 .head .sp{margin-left:auto;display:flex;gap:8px}
 .ladder{display:grid;gap:8px}
 .formchart{display:flex;flex-wrap:wrap;gap:6px}.formchart .fbar{border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-weight:600;min-width:52px;text-align:center}.formchart .fbar small{display:block;font-weight:400;color:var(--muted);font-size:10px}
-.rhylines svg{display:block}.tok.music,.spellslots.music .slot .n{font-family:var(--f-music),serif;font-size:21px;letter-spacing:.04em}.st-dotd{fill:var(--fg)}.st-flag{fill:var(--fg)}
+.rhylines svg{display:block}
+.gtl{width:100%;height:110px;display:block;border:1px solid var(--line);border-radius:8px;background:var(--surface)}.gbars{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}.gbar{flex:1;min-width:260px}.gbar.next{opacity:.55;transform:scale(.85);transform-origin:left top}.gchord{font-family:var(--f-display);font-weight:800;font-size:26px}.gholdwrap{display:grid;gap:4px}.gholdwrap .bar2{position:relative;display:block;height:10px;border-radius:5px;background:var(--sunk);overflow:hidden}.gholdwrap .bar2 i{display:block;height:100%;background:var(--brass)}.gholdwrap .bar2 i.good{background:var(--good)}.gstats .tile b.good{color:var(--good)}.gstats .tile b.bad{color:var(--bad)}.tok.music,.spellslots.music .slot .n{font-family:var(--f-music),serif;font-size:21px;letter-spacing:.04em}.st-dotd{fill:var(--fg)}.st-flag{fill:var(--fg)}
 .rung{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
 .rung.sel{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
 .rung.locked{opacity:.55}
@@ -2334,6 +2335,16 @@ function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDot
   if(done&&q.answer){const arr=Array.isArray(q.answer)?q.answer:[q.answer];arr.forEach(x=>{if(x&&x.s!==undefined)dots.push({s:x.s,f:x.f,cls:'fb-ok',t:x.t||''});});}
   return (q.staff?`<div class="staffwrap">${done&&q.staffOk?q.staffOk:q.staff}</div>`:'')+fretSVG({dots,win:q.win});}
 /* ============ GAME DEFINITIONS ============ */
+/* ---- continuous level specs (used by level.c) ---- */
+const subdivBar=(M,k)=>{const on=[],ev=[],fr=k===1?[0]:k===2?[0,.5]:k===3?[0,1/3,2/3]:[0,.25,.5,.75];for(let b=0;b<M;b++)fr.forEach(f=>{on.push(b+f);ev.push({t:b+f,d:1/k,tup:k===3?b+1:undefined});});return {on,ev,label:['','quarters','eighths','triplets','sixteenths'][k]};};
+const cSub=(k,x)=>Object.assign({bar:()=>subdivBar(4,k)},x||{});
+const cCells=(cells,swing,M,x)=>Object.assign({meter:M||4,swing:!!swing,bar:()=>{const r=rhyBar(cells,1,swing,M||4);return {on:r.on,ev:r.ev};}},x||{});
+const swingBar=()=>({on:[0,.67,1,1.67,2,2.67,3,3.67],ev:Array.from({length:8},(_,i)=>({t:i/2,d:.5})),label:'swing eighths'}),offBar=()=>({on:[.5,1.5,2.5,3.5],ev:[0,1,2,3].flatMap(b=>[{t:b,d:.5,rest:1},{t:b+.5,d:.5}]),label:'off-beats only'});
+const hemiBar=k=>k%2===0?{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],label:'hemiola, bar 1'}:{on:[.5,2,3.5],ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],label:'hemiola, bar 2'};
+const BLUES_F=['F7','B♭7','F7','F7','B♭7','B♭7','F7','F7','C7','B♭7','F7','C7'];
+const compBar=(p,chord)=>({on:COMP[p].on.slice(),ev:COMP[p].ev.map(e=>({...e})),label:COMP[p].n,chord});
+const cComp=(pick,x)=>Object.assign({bar:k=>compBar(pick(k),BLUES_F[k%12])},x||{});
+const tuneBar=k=>{const list=(STORE.tunes||[]).filter(t=>t.ok&&parseRhy(t.rhy).bars&&parseRhy(t.rhy).meter===4);if(!list.length)return null;const tn=list[Math.floor(k/16)%list.length],p=parseRhy(tn.rhy),b=k%p.bars,ev=p.ev.filter(e=>e.t>=b*4&&e.t<(b+1)*4).map(e=>({...e,t:e.t-b*4}));return {on:ev.filter(e=>!e.rest).map(e=>tn.swing&&Math.abs(e.t%1-.5)<1e-6?Math.floor(e.t)+.67:e.t),ev,label:`${tn.n}, bar ${b+1}`};};
 const GAMES=[
  {id:'fretboard',cat:'neck',name:'Fretboard',area:'Note locations',desc:'Name notes on the neck, find them on any string, and connect octave shapes.',levels:[
   {n:'Low strings, first position',d:'Strings 6 and 5, frets 0–5',g:[fbId([6,5],0,5)]},
@@ -2567,32 +2578,32 @@ const GAMES=[
   {n:'Turnaround pairs',d:'IMaj7 → VI7 and VI7 → IIm7',g:[gtVLQ(['ta16','ta62'])]},
   {n:'Everything',d:'Any pair, any key, three string pairs',g:[gtVLQ(['maj25','maj51','min25','min51','ta16','ta62'])]}]},
  {id:'pulse',cat:'rhythm',tap:true,name:'Pulse & Feel',area:'Subdivision, the click, time feel',desc:'Quarters, eighths, triplets and sixteenths on the click; then the click thins to 2 and 4, to 4, to nothing; swing; playing ahead of, on and behind the beat on purpose. Tap, or strum muted strings. Flow mode keeps going and raises the tempo as you get clean.',levels:[
-  {n:'On the click',d:'Quarter notes for two bars; learns your tap latency',g:[tapClickQ(2)]},
-  {n:'Eighths',d:'Two per click, two bars: count 1 & 2 &',g:[subdivQ('8ths')]},
-  {n:'Triplets',d:'Three per click: 1 trip-let',g:[subdivQ('trip')]},
-  {n:'Sixteenths',d:'Four per click: 1 e & a',g:[subdivQ('16ths')]},
-  {n:'Switching subdivisions',d:'A bar of each, then every beat its own',g:[subdivQ('switch'),subdivQ('mixed')]},
-  {n:'2 and 4',d:'All four beats against a click on 2 and 4',g:[twoFourQ('24')]},
-  {n:'4 only; the and of 4',d:'One click per bar, then only the off-beat before the bar line',g:[twoFourQ('4'),twoFourQ('and4')]},
-  {n:'Drop-outs',d:'Two bars with the click, then two, four and eight bars alone',g:[twoFourQ('drop'),twoFourQ('drop4'),twoFourQ('drop8')]},
-  {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')]},
-  {n:'Ahead, on, behind',d:'Place your quarters on purpose: dead centre, 20 ms early, 25 ms late',g:[feelQ(0),feelQ(-20),feelQ(25)]},
-  {n:'Extremes',d:'50 bpm, then 2 and 4 at 150+',g:[twoFourQ('slow'),twoFourQ('fast')]}]},
+  {n:'On the click',d:'Quarter notes on every click; learns your tap latency',g:[tapClickQ(2)],c:cSub(1)},
+  {n:'Eighths',d:'Two per click: count 1 & 2 &',g:[subdivQ('8ths')],c:cSub(2)},
+  {n:'Triplets',d:'Three per click: 1 trip-let',g:[subdivQ('trip')],c:cSub(3)},
+  {n:'Sixteenths',d:'Four per click: 1 e & a',g:[subdivQ('16ths')],c:cSub(4)},
+  {n:'Switching subdivisions',d:'A bar of each, then every beat its own',g:[subdivQ('switch'),subdivQ('mixed')],c:{bar:k=>subdivBar(4,[1,2,3,4][(k>>1)%4]),note:'The subdivision changes every two bars; the next bar is shown.'}},
+  {n:'2 and 4',d:'All four beats against a click on 2 and 4',g:[twoFourQ('24')],c:cSub(1,{click:(bar,b)=>b===1||b===3})},
+  {n:'4 only; the and of 4',d:'One click per bar, then only the off-beat before the bar line',g:[twoFourQ('4'),twoFourQ('and4')],c:{bar:()=>subdivBar(4,1),click:(bar,b)=>bar%16<8?b===3:false,extra:(bar,b)=>bar%16>=8&&b===3?[0.5]:null,note:'Eight bars with the click on 4 only, then eight bars where only the and of 4 sounds.'}},
+  {n:'Drop-outs',d:'The click keeps leaving: two, four, then eight bars alone',g:[twoFourQ('drop'),twoFourQ('drop4'),twoFourQ('drop8')],c:cSub(1,{click:bar=>{const c=bar%20;return c<2||(c>=4&&c<6)||(c>=10&&c<12);},note:'The click drops out for 2, then 4, then 8 bars; keep the quarters going.'})},
+  {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')],c:{swing:true,bar:k=>k%8<4?swingBar():offBar(),note:'Four bars of swing eighths, four bars of off-beats only, round and round.'}},
+  {n:'Ahead, on, behind',d:'Place your quarters on purpose: dead centre, 20 ms early, 25 ms late',g:[feelQ(0),feelQ(-20),feelQ(25)],c:cSub(1,{click:(bar,b)=>b===1||b===3,feel:bar=>[0,-20,25][Math.floor(bar/16)%3],note:'The lean target changes every 16 bars: dead centre, then 20 ms ahead, then 25 ms behind.'})},
+  {n:'Extremes',d:'50 bpm and 150+, eight bars each',g:[twoFourQ('slow'),twoFourQ('fast')],c:cSub(1,{click:(bar,b)=>b===1||b===3,bpm2:(bar,b0)=>bar%16<8?50:Math.max(150,b0),note:'Eight bars at 50 bpm, then eight at 150 or your tempo if higher.'})}]},
  {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Tap only: the paper side (counting, dictation) is in Rhythm Theory & Dictation. Flow mode for endless reading.',levels:[
-  {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)]},
-  {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2)]},
-  {n:'Eighth notes',d:'Two per beat; hear a bar and tap it back',g:[tapReadQ(['q','ee','h','r'],2),tapBackQ(['q','ee','r'])]},
-  {n:'Dotted quarter and eighth',d:'q. e and e q.: the first syncopated feel',g:[tapReadQ(['q','ee','qe','eq','h'],2)]},
-  {n:'Eighth rests, off-beats',d:'Rest on the beat, play the and',g:[tapReadQ(['q','ee','re','er','r','qe'],2),tapBackQ(['q','ee','re','er'])]},
-  {n:'3/4 and 2/4',d:'Three beats a bar, the dotted half; two beats a bar',g:[tapReadQ(['q','ee','h','dh','r','qe'],2,false,{meter:3}),tapReadQ(['q','ee','h','r'],4,false,{meter:2})]},
-  {n:'Triplets',d:'Eighth-note triplets, quarter–eighth and eighth–quarter inside the triplet',g:[tapReadQ(['q','ee','trip','tqe','teq','h'],2),tapBackQ(['q','ee','trip'])]},
-  {n:'Syncopation I',d:'Eighth–quarter–eighth, the quarter off the beat',g:[tapReadQ(['q','ee','eqe','eq','qe','re'],2)]},
-  {n:'Syncopation II',d:'Ties into the beat, anticipated downbeats',g:[tapReadQ(['ee','tie','eqe','er','re','q','qt'],2),tapBackQ(['ee','tie','eqe','re'])]},
-  {n:'Sixteenths',d:'Four per beat and the three-note groupings',g:[tapReadQ(['q','ee','ssss','ess','sse','ses'],2),tapBackQ(['q','ee','ssss','ess','sse'])]},
-  {n:'Dotted eighth–sixteenth',d:'The long–short and short–long sixteenth figures',g:[tapReadQ(['q','ee','des','sde','ssss','ess','sse'],2)]},
-  {n:'12/8',d:'Each click a dotted quarter, three eighths per click',g:[tapReadQ(['trip','tqe','teq','q'],2,false,{ts:'12/8',noTup:true,prompt:'Read the bar in <b>12/8</b>: each click is a dotted quarter, three eighths per click. Tap it after the count-in.',hint:'Count 1 & a 2 & a 3 & a 4 & a.'})]},
-  {n:'Etudes in 4/4 and 3/4',d:'Eight bars at a time, everything so far',g:[tapReadQ(['q','ee','qe','eqe','re','h','trip','tie'],8),tapReadQ(['q','ee','h','dh','qe','r','eqe'],8,false,{meter:3})]},
-  {n:'Etudes: everything',d:'Eight-bar studies with sixteenths and triplets mixed in',g:[tapReadQ(['q','ee','qe','eq','eqe','re','er','h','trip','tqe','ssss','ess','sse','des','tie','r'],8)]}]},
+  {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)],c:cCells(['w','h','q','r','hr'])},
+  {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2)],c:cCells(['q','h','qe','tie','r'])},
+  {n:'Eighth notes',d:'Two per beat',g:[tapReadQ(['q','ee','h','r'],2),tapBackQ(['q','ee','r'])],c:cCells(['q','ee','h','r'])},
+  {n:'Dotted quarter and eighth',d:'q. e and e q.: the first syncopated feel',g:[tapReadQ(['q','ee','qe','eq','h'],2)],c:cCells(['q','ee','qe','eq','h'])},
+  {n:'Eighth rests, off-beats',d:'Rest on the beat, play the and',g:[tapReadQ(['q','ee','re','er','r','qe'],2),tapBackQ(['q','ee','re','er'])],c:cCells(['q','ee','re','er','r','qe'])},
+  {n:'3/4',d:'Three beats a bar, the dotted half',g:[tapReadQ(['q','ee','h','dh','r','qe'],2,false,{meter:3}),tapReadQ(['q','ee','h','r'],4,false,{meter:2})],c:cCells(['q','ee','h','dh','r','qe'],false,3,{note:'In 3/4.'})},
+  {n:'Triplets',d:'Eighth-note triplets, quarter–eighth and eighth–quarter inside the triplet',g:[tapReadQ(['q','ee','trip','tqe','teq','h'],2),tapBackQ(['q','ee','trip'])],c:cCells(['q','ee','trip','tqe','teq','h'])},
+  {n:'Syncopation I',d:'Eighth–quarter–eighth, the quarter off the beat',g:[tapReadQ(['q','ee','eqe','eq','qe','re'],2)],c:cCells(['q','ee','eqe','eq','qe','re'])},
+  {n:'Syncopation II',d:'Ties into the beat, anticipated downbeats',g:[tapReadQ(['ee','tie','eqe','er','re','q','qt'],2),tapBackQ(['ee','tie','eqe','re'])],c:cCells(['ee','tie','eqe','er','re','q','qt'])},
+  {n:'Sixteenths',d:'Four per beat and the three-note groupings',g:[tapReadQ(['q','ee','ssss','ess','sse','ses'],2),tapBackQ(['q','ee','ssss','ess','sse'])],c:cCells(['q','ee','ssss','ess','sse','ses'])},
+  {n:'Dotted eighth–sixteenth',d:'The long–short and short–long sixteenth figures',g:[tapReadQ(['q','ee','des','sde','ssss','ess','sse'],2)],c:cCells(['q','ee','des','sde','ssss','ess','sse'])},
+  {n:'12/8',d:'Each click a dotted quarter, three eighths per click',g:[tapReadQ(['trip','tqe','teq','q'],2,false,{ts:'12/8',noTup:true,prompt:'Read the bar in <b>12/8</b>: each click is a dotted quarter, three eighths per click. Tap it after the count-in.',hint:'Count 1 & a 2 & a 3 & a 4 & a.'})],c:cCells(['trip','tqe','teq','q'],false,4,{ts:'12/8',noTup:true,note:'Each click is a dotted quarter: three eighths per click.'})},
+  {n:'Everything so far',d:'Bar after bar of everything so far',g:[tapReadQ(['q','ee','qe','eqe','re','h','trip','tie'],8),tapReadQ(['q','ee','h','dh','qe','r','eqe'],8,false,{meter:3})],c:cCells(['q','ee','qe','eqe','re','h','trip','tie'])},
+  {n:'Everything',d:'Sixteenths and triplets mixed in, bar after bar',g:[tapReadQ(['q','ee','qe','eq','eqe','re','er','h','trip','tqe','ssss','ess','sse','des','tie','r'],8)],c:cCells(['q','ee','qe','eq','eqe','re','er','h','trip','tqe','ssss','ess','sse','des','tie','r'])}]},
  {id:'rhytheory',cat:'rhythm',name:'Rhythm Theory & Dictation',area:'On paper · screen only',desc:'The paper side of rhythm, kept apart from the tapping: note values and rests, meter, which count a note falls on, swing vocabulary, and dictation: hear a bar with the click and write it with cells.',levels:[
   {n:'Note values and rests',d:'How long is it; which rest is that',g:[rhyRestQ(),rhyBeatsQ(),G_ge.values]},
   {n:'Meter',d:'Time signatures and what the beat is',g:[G_ge.meter,rhyBeatsQ()]},
@@ -2604,26 +2615,26 @@ const GAMES=[
   {n:'Swing dictation',d:'Hear a swung bar, write it',g:[rhyDictQ(['q','ee','re','er','eqe','qe','eq','qt','h'],true)]},
   {n:'Dictation III',d:'Sixteenth figures by ear',g:[rhyDictQ(['q','ee','ssss','ess','sse','ses','r'])]}]},
  {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing, tapped or strummed: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, jazz waltz and 5/4, eight-bar etudes, and the rhythms of the standards you transcribe yourself.',levels:[
-  {n:'Charleston',d:'1 and the and of 2, swung; against a click on 2 and 4',g:[tapReadQ(['charl'],2,true),twoFourQ('charl')]},
-  {n:'Displaced Charleston',d:'The same two hits moved: and of 2 → and of 3; and of 1 → 3',g:[tapReadQ(['charl','charl2','charl3'],2,true)]},
-  {n:'Pushes',d:'Anticipate 1 and 3: the chord arrives half a beat early',g:[tapReadQ(['push1','push3','charl'],2,true),tapBackQ(['qt','eqe','q','ee','re'],true)]},
-  {n:'Dotted-quarter chains',d:'q. q. q: three against four inside the bar',g:[tapReadQ(['dots3','qe','charl'],2,true)]},
-  {n:'Quarter-note triplets',d:'Three even notes over two beats',g:[tapReadQ(['qtrip','q','h','ee'],2,true)]},
-  {n:'Phrase placement',d:'Lines that start on the and of 1 and end on the and of 4',g:[tapReadQ(['phrA','phrB','bop','re'],2,true)]},
-  {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)]},
-  {n:'Bebop cells',d:'Running eighths, triplet pick-ups, the pushed last note',g:[tapReadQ(['bop','eqe','pick','teq','qt','re'],2,true)]},
-  {n:'Jazz waltz and 5/4',d:'Swing in three; five beats a bar',g:[tapReadQ(['q','ee','qe','eqe','h','re'],2,true,{meter:3}),tapReadQ(['q','ee','qe','h','r','eqe'],2,true,{meter:5})]},
-  {n:'Etudes',d:'Eight bars of the figures mixed, swung',g:[tapReadQ(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],8,true)]},
-  {n:'Your standards',d:'The melody rhythms you transcribed (add them below)',g:[tuneQ()]}]},
+  {n:'Charleston',d:'1 and the and of 2, swung; against a click on 2 and 4',g:[tapReadQ(['charl'],2,true),twoFourQ('charl')],c:cCells(['charl'],true,4,{click:(bar,b)=>b===1||b===3})},
+  {n:'Displaced Charleston',d:'The same two hits moved: and of 2 → and of 3; and of 1 → 3',g:[tapReadQ(['charl','charl2','charl3'],2,true)],c:cCells(['charl','charl2','charl3'],true)},
+  {n:'Pushes',d:'Anticipate 1 and 3: the chord arrives half a beat early',g:[tapReadQ(['push1','push3','charl'],2,true),tapBackQ(['qt','eqe','q','ee','re'],true)],c:cCells(['push1','push3','charl'],true)},
+  {n:'Dotted-quarter chains',d:'q. q. q: three against four inside the bar',g:[tapReadQ(['dots3','qe','charl'],2,true)],c:cCells(['dots3','qe','charl'],true)},
+  {n:'Quarter-note triplets',d:'Three even notes over two beats',g:[tapReadQ(['qtrip','q','h','ee'],2,true)],c:cCells(['qtrip','q','h','ee'],true)},
+  {n:'Phrase placement',d:'Lines that start on the and of 1 and end on the and of 4',g:[tapReadQ(['phrA','phrB','bop','re'],2,true)],c:cCells(['phrA','phrB','bop','re'],true)},
+  {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)],c:{swing:true,bar:k=>k%4<2?hemiBar(k):(r=>({on:r.on,ev:r.ev}))(rhyBar(['dots3','charl','q'],1,true,4)),note:'Two bars of hemiola, two bars of dotted chains.'}},
+  {n:'Bebop cells',d:'Running eighths, triplet pick-ups, the pushed last note',g:[tapReadQ(['bop','eqe','pick','teq','qt','re'],2,true)],c:cCells(['bop','eqe','pick','teq','qt','re'],true)},
+  {n:'Jazz waltz',d:'Swing in 3/4',g:[tapReadQ(['q','ee','qe','eqe','h','re'],2,true,{meter:3}),tapReadQ(['q','ee','qe','h','r','eqe'],2,true,{meter:5})],c:cCells(['q','ee','qe','eqe','h','re'],true,3,{note:'Jazz waltz: swing in 3/4.'})},
+  {n:'All the figures',d:'The figures mixed, swung, bar after bar',g:[tapReadQ(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],8,true)],c:cCells(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],true)},
+  {n:'Your standards',d:'The melody rhythms you transcribed (add them below)',g:[tuneQ()],c:{swing:true,bar:k=>tuneBar(k)||(r=>({on:r.on,ev:r.ev,label:'etude (add a tune below for your own)'}))(rhyBar(['charl','push1','dots3','phrA','bop','eqe','qe','q','ee'],1,true,4))}}]},
  {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping',area:'Strum it · microphone',desc:'Strum the comping rhythms into the mic: Freddie Green four, the Charleston and its displacements, pushes, strum-back, bossa and samba, ballads, a whole chorus over a walking bass, trading fours.',levels:[
-  {n:'Freddie Green',d:'Four even quarters, two bars',g:[compQ(['freddie'],2)]},
-  {n:'Charleston',d:'Plain and displaced',g:[compQ(['charleston','charl2'],2)]},
-  {n:'Pushes',d:'Anticipate 1 and 3',g:[compQ(['ant','ant2','push3'],2)]},
-  {n:'Mixed, and strum it back',d:'Any swing pattern for two bars; hear a bar and strum it back',g:[compQ(['freddie','charleston','charl2','ant','ant2','push3'],2),compCallQ(['charleston','charl2','ant','ant2','freddie','push3'])]},
-  {n:'Bossa nova and samba',d:'Two-bar bossa pattern; samba in dotted eighths, straight',g:[compPairQ('bossa','bossa2',2),compQ(['samba'],2,{clicks:[0,1,2,3]})]},
-  {n:'Ballad',d:'Half-time at 60: 1 and 3, with a push',g:[compQ(['ballad','ballad2'],2,{bpm:60})]},
-  {n:'A whole chorus',d:'Comp a blues or rhythm changes over a walking bass (headphones)',g:[compChorusQ(['freddie','charleston','ant2'])]},
-  {n:'Trading fours',d:'Four bars in, four bars out, in time',g:[compTradeQ(['charleston','ant2','freddie'])]}]},
+  {n:'Freddie Green',d:'Four even quarters, two bars',g:[compQ(['freddie'],2)],c:cComp(()=>'freddie',{click:(bar,b)=>b===1||b===3})},
+  {n:'Charleston',d:'Plain and displaced',g:[compQ(['charleston','charl2'],2)],c:cComp(k=>(k>>1)%2?'charl2':'charleston',{click:(bar,b)=>b===1||b===3})},
+  {n:'Pushes',d:'Anticipate 1 and 3',g:[compQ(['ant','ant2','push3'],2)],c:cComp(k=>['ant','ant2','push3'][(k>>1)%3],{click:(bar,b)=>b===1||b===3})},
+  {n:'Mixed patterns',d:'The pattern changes every two bars',g:[compQ(['freddie','charleston','charl2','ant','ant2','push3'],2),compCallQ(['charleston','charl2','ant','ant2','freddie','push3'])],c:cComp(k=>['freddie','charleston','charl2','ant','ant2','push3'][(k>>1)%6],{click:(bar,b)=>b===1||b===3,note:'The pattern changes every two bars; read the next bar.'})},
+  {n:'Bossa nova and samba',d:'Two-bar bossa pattern; samba in dotted eighths, straight',g:[compPairQ('bossa','bossa2',2),compQ(['samba'],2,{clicks:[0,1,2,3]})],c:cComp(k=>k%16<8?(k%2?'bossa2':'bossa'):'samba',{note:'Eight bars of bossa nova (two-bar pattern), eight of samba, straight eighths.'})},
+  {n:'Ballad',d:'Half-time at 60: 1 and 3, with a push',g:[compQ(['ballad','ballad2'],2,{bpm:60})],c:cComp(k=>(k>>2)%2?'ballad2':'ballad',{bpm:()=>60,click:(bar,b)=>b===1||b===3})},
+  {n:'Chorus after chorus',d:'Blues in F; the pattern changes each chorus',g:[compChorusQ(['freddie','charleston','ant2'])],c:cComp(k=>['freddie','charleston','ant2'][Math.floor(k/12)%3],{click:(bar,b)=>b===1||b===3,note:'Blues in F, chorus after chorus; the pattern changes each chorus.'})},
+  {n:'Trading fours',d:'Four bars in, four bars out',g:[compTradeQ(['charleston','ant2','freddie'])],c:{bar:k=>k%8<4?compBar(['charleston','ant2','freddie'][Math.floor(k/8)%3],BLUES_F[k%12]):{on:[],ev:[{t:0,d:4,rest:1}],label:'lay out',chord:BLUES_F[k%12]},click:(bar,b)=>b===1||b===3,note:'Four bars in, four bars out: an attack in the silent bars is a miss.'}}]},
 ];
 const GBY=Object.fromEntries(GAMES.map(g=>[g.id,g]));
 const CATS=[
@@ -2763,7 +2774,7 @@ function pickQ(gid,L){const game=GBY[gid],g=G(gid),r=Math.random();let lv=L,tag=
     let w=weight(g,q.key);if(S&&S.used.has(q.key))w-=5;if(w>bw){bw=w;best=q;}}
   if(!best){if(lv!==L)return pickQ(gid,L);const order=[];for(let k=L;k>=1;k--)order.push(k);for(let k=L+1;k<=game.levels.length;k++)order.push(k);for(const k of order){if(best)break;if(!levelAvail(gid,k))continue;for(let t=0;t<40&&!best;t++){LAST_ROOT=null;try{const q=fitQ(gid,R(game.levels[k-1].g)());if(q){q.rootKey=LAST_ROOT;best=q;lv=k;}}catch(e){}}}}
   best.lv=lv;best.tag=tag;return best;}
-function start(gid,L){const g=G(gid);g.last=L;cancelAnimationFrame(raf);clearTimeout(autoT);
+function start(gid,L){if(grooveSpec(gid,L))return grooveStart(gid,L);const g=G(gid);g.last=L;cancelAnimationFrame(raf);clearTimeout(autoT);
   S={gid,L,i:0,score:0,streak:0,bestStreak:0,t0:Date.now(),answers:[],used:new Set(),q:null,acc:0,hinted:false,locked:false,unlocked:null,startLvl:g.lvl,round:(g.round===0&&GBY[gid].tap)?Infinity:(g.round||ROUND),flow:(g.round===0&&GBY[gid].tap)?{hist:[],msg:''}:null};
   view={name:'play'};nextQ();}
 function nextQ(){clearTimeout(autoT);if(S.i>=S.round)return finish();S.diag='';S.q=pickQ(S.gid,S.L);S.used.add(S.q.key);S.hinted=false;S.locked=false;S.acc=0;S.spell=S.q.ui==='spell'&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.slice():[];S.sel=new Set();S.listening=false;S.micResult=null;S.tapResult=null;S.live=[];S.micMsg='';LAST_TAKE=null;S.playing=false;S.tapping=false;tapAbort();if(LS)stopListening(true);
@@ -2828,6 +2839,74 @@ function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.fi
   view={name:'results'};render();}
 function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);if(S&&S.answers.length)finish();else{view={name:'lobby',gid:S.gid};S=null;render();}}
 
+/* ============ GROOVE (Nov 2026): the continuous format of the kinetic rhythm games ============
+   One session: the click never stops; expected hits are generated bar by bar ahead of you from the level's spec (level.c); every tap or
+   strum is matched live to the nearest expected hit; the dashboard shows moving averages over the last 16 and 64 expected hits
+   (tightness = mean |offset|, lean = mean signed offset, misses); the hold bar counts consecutive clean hits within the game's standard
+   and unlocks the level at GRV.hold. Sessions end by hand or after GRV.max seconds. Stats feed g.hist (one entry per 8 hits) so the lobby
+   bars, the skill tree and the standards keep working. Spec: {bar(k,M)→{on:[beat offsets],ev:notation,label,chord}, click(bar,b)→bool,
+   meter, bpm(user)→bpm, bpm2(bar,bpm0)→bpm per bar, extra(bar,b)→[offsets] (a high note instead of a click), feel(bar)→target ms,
+   swing, ts, noTup, note}. */
+const GRV={hold:64,win:16,win2:64,max:180,lean:15};
+let GR=null;
+const grooveSpec=(gid,L)=>{const lv=GBY[gid]&&GBY[gid].levels[L-1];return lv&&lv.c?lv.c:null;};
+function grooveStart(gid,L){const x=GBY[gid],g=G(gid),c=grooveSpec(gid,L),o=Object.assign({},MIC_DEF,g.opts||{}),mic=!!x.mic||!!o.tapMic,bpm0=c.bpm?c.bpm(o.bpm):o.bpm,M=c.meter||4,std=(STD[gid]||{}).ab||30;
+  if(S){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);S=null;}g.last=L;
+  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,lat:(g.opts&&g.opts.lat)||0,feel:c.feel?c.feel(0):null,wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
+  let t=0;const nb=Math.ceil(GRV.max*Math.max(bpm0,160)/60)+8;for(let i=0;i<nb;i++){const bar=Math.floor(i/M),b=i%M,bpm=c.bpm2?c.bpm2(bar,bpm0):bpm0,dur=60000/bpm;GR.beats.push({i,t,bar,b,dur,bpm,click:c.click?!!c.click(bar,b):true,extra:c.extra?c.extra(bar,b):null});t+=dur;}
+  grooveBars(8);view={name:'groove'};render();Piano.load();}
+function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.length;if(!GR.beats[k*GR.M])break;const bar=GR.c.bar(k,GR.M);GR.bars.push(bar);
+  (bar.on||[]).forEach(o=>{const bi=k*GR.M+Math.floor(o+1e-6),frac=o-Math.floor(o+1e-6),bt=GR.beats[bi];if(!bt)return;GR.onsets.push({t:bt.t+frac*bt.dur,bar:k,o,hit:null,off:null,tap:null});});}}
+const grooveTol=()=>tapTol(60/GR.bpm)*1000;
+function grooveGo(){if(!GR||GR.started)return;const go=()=>{if(!GR||GR.started)return;const lead=600;
+    if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t);startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
+    GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.wall=Date.now();GR.ons=0;render();grooveLoop();};
+  if(GR.mic)ensureMic().then(ok=>{if(!ok){GR.mic=false;}Piano.ready?go():Piano.load().then(go);});else Piano.ready?go():Piano.load().then(go);}
+function grooveSched(now){const c=Piano.ac(),ac0=c.currentTime,horizon=now+4000;for(;GR.sched<GR.beats.length;GR.sched++){const b=GR.beats[GR.sched];if(b.t>horizon)break;const at=ac0+(b.t-now)/1000;if(at<ac0-0.05)continue;
+    if(b.click)Piano.tick(at-ac0,b.b===0);if(b.extra)b.extra.forEach(f=>Piano.note(79,at-ac0+f*b.dur/1000,0.18,0.55));}}
+function grooveMatch(t){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
+  for(let i=Math.max(0,GR.res-4);i<GR.onsets.length&&!best;i++){const o=GR.onsets[i];if(o.hit===null&&Math.abs(t-o.t)<=tol){best=o;break;}}
+  if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;}else{GR.extras.push(t);GR.hold=0;}}
+function grooveHit(){if(!GR||!GR.started)return;grooveMatch(performance.now()-GR.t0-GR.lat);const b=document.getElementById('gtap');if(b){b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),90);}}
+function grooveLoop(){if(!GR||!GR.started||GR.done)return;GR.raf=requestAnimationFrame(grooveLoop);const now=performance.now()-GR.t0;grooveSched(now);
+  if(GR.mic&&LS){while(GR.ons<LS.ons.length){grooveMatch(LS.ons[GR.ons]-(GR.t0-LS.t0));GR.ons++;}}
+  const tol=grooveTol();GR.bi=Math.max(0,Math.floor(now/((60000/GR.bpm)*GR.M)));grooveBars(8);
+  /* resolve expected hits whose window has passed */
+  while(GR.res<GR.onsets.length&&GR.onsets[GR.res].t+tol<now){const o=GR.onsets[GR.res];if(o.hit===null)o.hit=false;GR.res++;grooveRecord(o);}
+  if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){GR.feel=f;}}
+  grooveStats();grooveDraw(now);if(now>GRV.max*1000)grooveEnd();}
+/* one resolved hit: hold bar, 8-hit windows into the game's history */
+function grooveRecord(o){const g=G(GR.gid),st=GR.stats,clean=o.hit&&Math.abs(o.off)<=GR.std;let ok=clean;
+  if(GR.c.feel!=null&&GR.feel!=null){const l=grooveLean(16);ok=clean&&l!==null&&Math.abs(l-GR.feel)<=GRV.lean;}
+  const extraSince=GR.extras.some(t=>t>o.t-grooveTol()*2&&t<=o.t+grooveTol());if(extraSince)ok=false;
+  GR.hold=ok?GR.hold+1:0;GR.best=Math.max(GR.best,GR.hold);
+  GR.win.push(ok?1:0);if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
+    const md=GR.mic?'g':'s';g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][GR.L]||(g.hm[md][GR.L]=[]);hm.push(w);if(hm.length>20)hm.shift();g.lc=g.lc||{};const lc=g.lc[GR.L]||(g.lc[GR.L]={s:0,g:0});lc[md]++;
+    const offs=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit).map(x=>x.off);if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(offs.reduce((a,b)=>a+Math.abs(b),0)/offs.length),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
+  if(!GR.unlocked&&GR.hold>=GRV.hold&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
+function grooveLean(n){const hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit);return hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null;}
+function grooveStats(){const st=GR.stats,w=n=>{const os=GR.onsets.slice(Math.max(0,GR.res-n),GR.res),hs=os.filter(o=>o.hit);return {t:hs.length?hs.reduce((a,o)=>a+Math.abs(o.off),0)/hs.length:null,l:hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null,miss:os.length-hs.length,n:os.length};},a=w(GRV.win),b=w(GRV.win2);
+  st.t16=a.t;st.l16=a.l;st.miss16=a.miss;st.t64=b.t;st.l64=b.l;st.miss64=b.miss;st.n=GR.res;st.hits=GR.onsets.slice(0,GR.res).filter(o=>o.hit).length;
+  const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold');if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';}const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
+  const nb=document.getElementById('gnow');if(nb)nb.innerHTML=grooveNowHTML();}
+const fmtMs=v=>v==null?'—':(v>0?'+':v<0?'−':'')+Math.abs(Math.round(v))+' ms';
+function grooveStatsHTML(){const st=GR.stats,c=(v,lim)=>v==null?'':v<=lim?'good':v>lim*2?'bad':'';
+  return `<div class="tile"><span>Tightness · last 16</span><b class="${c(st.t16,GR.std)}">${st.t16==null?'—':Math.round(st.t16)+' ms'}</b></div><div class="tile"><span>Tightness · last 64</span><b class="${c(st.t64,GR.std)}">${st.t64==null?'—':Math.round(st.t64)+' ms'}</b></div>
+   <div class="tile"><span>Lean · last 16${GR.feel!=null?` (aim ${fmtMs(GR.feel)})`:''}</span><b class="${GR.feel!=null&&st.l16!=null?(Math.abs(st.l16-GR.feel)<=GRV.lean?'good':'bad'):''}">${fmtMs(st.l16)}</b></div><div class="tile"><span>Missed · last 16</span><b class="${st.miss16?'bad':'good'}">${st.miss16}</b></div>
+   <div class="tile"><span>Hits</span><b>${st.hits}/${st.n}</b></div><div class="tile"><span>Extra hits</span><b class="${GR.extras.length?'bad':''}">${GR.extras.length}</b></div>`;}
+function grooveNowHTML(){const k=GR.bi,bar=GR.bars[k],nx=GR.bars[k+1];if(!bar)return '';const o={swing:GR.c.swing,meter:GR.M,ts:GR.c.ts,noTup:GR.c.noTup};
+  return `<div class="gbars"><div class="gbar now">${bar.chord?`<div class="gchord">${bar.chord}</div>`:''}${bar.ev?rhySVG(bar.ev,1,o):''}<div class="muted" style="font-size:12px">${bar.label||''}</div></div>${nx?`<div class="gbar next">${nx.chord?`<div class="gchord">${nx.chord}</div>`:''}${nx.ev?rhySVG(nx.ev,1,o):''}<div class="muted" style="font-size:12px">next${nx.label?': '+nx.label:''}</div></div>`:''}</div>`;}
+/* the sliding timeline: the last 2.5 bars to the left of “now”, the next 1.5 to the right */
+function grooveDraw(now){const cv=document.getElementById('gtl');if(!cv)return;const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,beat=60000/GR.bpm,span=4*GR.M*beat,x0=now-span*0.62,X=t=>(t-x0)/span*W;ctx.clearRect(0,0,W,H);
+  const css=getComputedStyle(document.documentElement),col=v=>css.getPropertyValue(v).trim()||'#888';
+  for(const b of GR.beats){if(b.t<x0-beat||b.t>x0+span+beat)continue;const x=X(b.t);ctx.strokeStyle=b.b===0?col('--fg'):col('--line');ctx.lineWidth=b.b===0?2:1;ctx.globalAlpha=b.click?1:0.35;ctx.beginPath();ctx.moveTo(x,10);ctx.lineTo(x,H-18);ctx.stroke();ctx.globalAlpha=1;if(b.b===0){ctx.fillStyle=col('--muted');ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(String(b.bar+1),x+3,H-5);}}
+  for(const o of GR.onsets){if(o.t<x0-beat||o.t>x0+span+beat)continue;const x=X(o.t),y=H/2-6;ctx.beginPath();ctx.arc(x,y,6,0,6.283);ctx.fillStyle=o.hit===null?col('--sunk'):o.hit?(Math.abs(o.off)<=GR.std?col('--good'):col('--brass')):col('--bad');ctx.fill();ctx.strokeStyle=col('--fg');ctx.lineWidth=1;ctx.stroke();
+    if(o.hit){const tx=X(o.tap);ctx.fillStyle=col('--fg');ctx.beginPath();ctx.arc(tx,y-14,3,0,6.283);ctx.fill();}}
+  for(const t of GR.extras){if(t<x0-beat||t>x0+span+beat)continue;ctx.fillStyle=col('--bad');ctx.beginPath();ctx.arc(X(t),H/2-20,3,0,6.283);ctx.fill();}
+  const nx=X(now);ctx.strokeStyle=col('--brass');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(nx,4);ctx.lineTo(nx,H-16);ctx.stroke();}
+function grooveEnd(quiet){if(!GR)return;const g=G(GR.gid),st=GR.stats;cancelAnimationFrame(GR.raf);if(LS)stopListening(true);GR.done=true;GR.started=false;
+  const n=Math.floor(GR.res/8),wall=Date.now()-(GR.wall||Date.now());if(n>0){const c=(g.hist[GR.L]||[]).slice(-n).filter(Boolean).length;const dur=activeMs(wall,n*8);g.sessions.push({t:Date.now(),L:GR.L,n,c,ms:0,dur,wall,sc:0,mode:GR.mic?'play':'mark',groove:1});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;}
+  const sum={L:GR.L,hits:st.hits,n:st.n,t64:st.t64,l64:st.l64,best:GR.best,unlocked:GR.unlocked,extras:GR.extras.length,secs:Math.round(wall/1000)};saveGame(GR.gid);const gid=GR.gid;GR=null;if(!quiet){view={name:'lobby',gid,gsum:sum};render();window.scrollTo(0,0);}}
 /* ============ THE PATH (Nov 2026): one curriculum across the games ============
    Five stages; each step is a range of levels in one game. Every level of every game sits in exactly one step (tests/sweep.js checks it).
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
@@ -3095,7 +3174,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();fireSync();}
+function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=vHome();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='groove'&&GR)app.innerHTML=vGroove();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();fireSync();}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 /* a level counts as passed once the ladder has moved past it, or (your own level, the top level, a level opened out of order) once its own record meets the unlock rule */
 function lvPassed(gid,L){const g=G(gid);if(L<g.lvl&&!(g.skip||[]).includes(L))return true;const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}
@@ -3165,6 +3244,16 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
   <div class="sk-legend"><span class="sk-node sk-std">★ at the master standard</span><span class="sk-node sk-done">all levels passed</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready to start</span><span class="sk-node sk-lock">later</span><span class="sk-node sk-goal">★ goal (coming)</span></div>
   <div class="sk-wrap"><div class="sk-canvas" style="width:${W}px;height:${H+24}px">${heads}<div class="sk-inner" style="top:24px">${bands}<svg class="sk-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${edges}</svg>${nodes}</div></div></div>
   <div class="section" id="skdet">${det}</div></div>`;}
+function vGroove(){const x=GBY[GR.gid],lv=x.levels[GR.L-1],g=G(GR.gid);
+  return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${GR.L} · ${lv.n}</span><div class="sp"><div class="stat">Tempo<b>${GR.bpm}${GR.c.bpm2?'→':''} bpm</b></div><div class="stat">Hold<b id="gholdt">${Math.min(GR.hold,GRV.hold)}/${GRV.hold}</b></div><div class="stat">Best<b>${GR.best}</b></div></div></div>
+  <section class="stage">${GR.unlocked?`<div class="banner"><h2>Level ${GR.L+1} unlocked</h2><span>${x.levels[GR.L]?x.levels[GR.L].n+': '+x.levels[GR.L].d:''}</span></div>`:''}
+   <div class="prompt">${lv.d}.${GR.c.note?' '+GR.c.note:''} ${GR.mic?'Strum muted strings':'Tap (Space or the button)'} on every written hit; the click never stops. Hold <b>${GRV.hold}</b> clean hits in a row (within ${GR.std} ms${GR.c.feel?', leaning as asked':''}) to unlock the next level.</div>
+   <div id="gnow">${grooveNowHTML()}</div>
+   <div class="gholdwrap"><span class="eyebrow">Hold to unlock</span><div class="bar2"><i id="ghold" class="good" style="width:${Math.min(100,GR.hold/GRV.hold*100)}%"></i></div></div>
+   <canvas id="gtl" class="gtl" width="900" height="110"></canvas>
+   <div class="big gstats" id="gstats">${grooveStatsHTML()}</div>
+   <div class="ctrls">${GR.started?(GR.mic?`<span class="status live">Listening… strum on the hits</span>`:`<button class="btn rec big tapbtn" id="gtap" data-act="gtap">TAP (Space)</button>`):`<button class="btn primary big" data-act="gstart">▶ Start (Space)</button>`}<button class="btn" data-act="gend">End session</button><span class="muted" style="font-size:12px">${GR.mic?'microphone':'tap'}${GR.lat?` · latency ${GR.lat} ms`:''} · ends by itself after ${GRV.max/60} min</span></div>
+   ${micErr&&GR.mic?`<div class="warn">${micErr}</div>`:''}</section>`;}
 function vPathPage(){return `<div class="head"><div><div class="eyebrow">What to play, and where you stand</div><h1>Plan</h1></div></div>${vPlan()}${vTree()}`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 4–14 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
@@ -3370,15 +3459,15 @@ function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&
   return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
-  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}
+  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}${view.gsum?(()=>{const z=view.gsum;return `<div class="panel" style="margin-bottom:14px"><div class="eyebrow">Last session · level ${z.L} · ${z.secs}s</div><div class="big"><div class="tile"><span>Hits</span><b>${z.hits}/${z.n}</b></div><div class="tile"><span>Tightness · last 64</span><b>${z.t64==null?'—':Math.round(z.t64)+' ms'}</b></div><div class="tile"><span>Lean · last 64</span><b>${fmtMs(z.l64)}</b></div><div class="tile"><span>Best hold</span><b>${z.best}</b></div><div class="tile"><span>Extra hits</span><b>${z.extras}</b></div></div>${z.unlocked?`<p class="note" style="color:var(--good)"><b>Level ${z.L+1} unlocked.</b></p>`:''}</div>`;})():''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=(L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L))||!levelAvail(x.id,L),other=!levelAvail(x.id,L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${other?` · <i>${guitarMode(x.id)?'screen only: switch Answer by to on screen':'guitar only: switch Answer by to playing it'}</i>`:locked?' · <i>locked</i>':''}</div>
     ${lvMeter(x,g,L,locked,other)}</button>`;}).join('')}</div>
-  <div class="setup"><div><div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
+  <div class="setup"><div>${x.levels.every(l=>l.c)?'':`<div class="eyebrow">Time per question</div><div class="seg" role="group">${Object.entries(LIMITS).map(([k,v])=>`<button class="${g.limit===k?'on':''}" data-act="limit" data-k="${k}">${isFinite(v.s)?v.n+' · '+v.s+'s':v.n}</button>`).join('')}</div>
    <div class="eyebrow" style="margin-top:12px">Round length</div><div class="seg" role="group">${[6,12,24].map(n=>`<button class="${g.round===n?'on':''}" data-act="round" data-k="${n}">${n} questions</button>`).join('')}${x.tap?`<button class="${g.round===0?'on':''}" data-act="round" data-k="0">Flow · endless</button>`:''}</div>
    <div class="eyebrow" style="margin-top:12px">Mix</div><div class="mixrow"><label class="check"><input type="checkbox" data-act="sound" ${g.sound?'checked':''}> Sound: play the answer on the piano after each question</label><label class="check"><input type="checkbox" data-act="mix" data-k="review" ${g.review?'checked':''}> Review: 25% of questions from the levels below (weakest items first)</label><label class="check"><input type="checkbox" data-act="mix" data-k="preview" ${g.preview?'checked':''}> Preview: 15% from the next level</label></div>
-   ${x.tap?tapOptsUI(x,g):x.mic?micOptsUI(x,g):PLAY_GAMES.includes(x.id)?playOptsUI(x,g):''}
-   <p class="note">${g.round===0?'Flow: an endless round. Each question starts by itself; the tempo rises 4 bpm after three clean, tight answers and drops after two misses. End round when you are done':'Round of '+g.round}${(rvOK=>{const pvOK=g.preview&&sel<x.levels.length&&sel<=g.lvl&&levelAvail(x.id,sel+1);return rvOK||pvOK?`: about ${100-(rvOK?25:0)-(pvOK?15:0)}% level ${sel}${rvOK?', 25% review':''}${pvOK?', 15% preview':''}`:', all from level '+sel;})(g.review&&Array.from({length:Math.min(sel-1,g.lvl)},(_,i)=>i+1).some(k=>levelAvail(x.id,k)))}. Multi-note and listening questions get extra time. No timer: no time-outs and no speed bonus; the round clock still runs.</p></div>
+   `}${x.tap?tapOptsUI(x,g):x.mic?micOptsUI(x,g):PLAY_GAMES.includes(x.id)?playOptsUI(x,g):''}
+   <p class="note">${x.levels.every(l=>l.c)?`Continuous: the click never stops. Hold ${GRV.hold} clean hits in a row to unlock the next level; a session ends when you end it or after ${GRV.max/60} minutes.`:g.round===0?'Flow: an endless round. Each question starts by itself; the tempo rises 4 bpm after three clean, tight answers and drops after two misses. End round when you are done':'Round of '+g.round}${(rvOK=>{const pvOK=g.preview&&sel<x.levels.length&&sel<=g.lvl&&levelAvail(x.id,sel+1);return rvOK||pvOK?`: about ${100-(rvOK?25:0)-(pvOK?15:0)}% level ${sel}${rvOK?', 25% review':''}${pvOK?', 15% preview':''}`:', all from level '+sel;})(g.review&&Array.from({length:Math.min(sel-1,g.lvl)},(_,i)=>i+1).some(k=>levelAvail(x.id,k)))}. Multi-note and listening questions get extra time. No timer: no time-outs and no speed bonus; the round clock still runs.</p></div>
    <button class="btn primary" data-act="start" style="padding:12px 28px;font-size:16px">Start level ${sel}</button></div>`;}
 const spGiven=()=>S&&S.q&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.length:0;
 function answerUI(q,done){const dis=done?'disabled':'';
@@ -3666,14 +3755,15 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(hit&&view.name==='lobby'&&hit.closest('#refneck')){const w=OPEN[+hit.dataset.s]+(+hit.dataset.f)+12;if(NAT.indexOf(w%12)>=0){const st=(Math.floor(w/12)-5)*7+NAT.indexOf(w%12)-2;view.ref=view.ref===st?null:st;render();}return;}if(hit&&S&&!S.locked&&view.name==='play'&&S.q.ui==='multi'){const k=hit.dataset.s+'-'+hit.dataset.f;if(S.sel.has(k))S.sel.delete(k);else S.sel.add(k);render();return;}
   if(hit&&S&&!S.locked&&view.name==='play'){answer({s:+hit.dataset.s,f:+hit.dataset.f});return;}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(b.tagName==='SELECT')return;/* menus act on 'change'; re-rendering on click closed them as they opened */const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
-  if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
-  else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
+  if(a==='gstart'){grooveGo();return;}if(a==='gtap'){grooveHit();return;}if(a==='gend'){grooveEnd();return;}
+  if(a==='home'){if(GR)grooveEnd(true);if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
+  else if(a==='lobby'){if(GR)grooveEnd(true);view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}
   else if(a==='plancheck'){const i=+b.dataset.i,j=+b.dataset.j;STORE.plan=STORE.plan||{};const tk=planTicks(i).slice();tk[j]=b.checked;STORE.plan[i]=tk;saveLocal();const y=window.scrollY;render();window.scrollTo(0,y);}
   else if(a==='planreset'){if(confirm('Clear all 84 ticks and start the four weeks again?')){STORE.plan={};saveLocal();render();}}
   else if(a==='addtune'){const n=(document.getElementById('tunename').value||'').trim(),rhy=(document.getElementById('tunerhy').value||'').trim().replace(/\s+/g,' '),sw=document.getElementById('tuneswing').checked,msg=document.getElementById('tunemsg');if(!n||!rhy){msg.textContent='A name and a rhythm, please.';return;}const p=parseRhy(rhy);if(p.err){msg.textContent=p.err;return;}STORE.tunes=STORE.tunes||[];STORE.tunes.push({n,rhy,swing:sw,ok:true});saveLocal();render();}
   else if(a==='deltune'){(STORE.tunes||[]).splice(+b.dataset.i,1);saveLocal();render();}
-  else if(a==='tree'||a==='path'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}
+  else if(a==='tree'||a==='path'){if(GR)grooveEnd(true);if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}
   else if(a==='skill'){const sx=document.querySelector('.sk-wrap')?.scrollLeft||0;view.skill=b.dataset.k;render();const w=document.querySelector('.sk-wrap');if(w)w.scrollLeft=sx;document.getElementById('skdet')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
   else if(a==='sel'){view.sel=+b.dataset.l;render();}
@@ -3739,6 +3829,7 @@ const fixResume=()=>{if(view.name==='play'&&S&&S.locked){const l=S.answers.at(-1
 document.addEventListener('focusout',e=>{if(e.target.classList&&e.target.classList.contains('fixin')&&!e.target.value.trim())fixResume();});
 document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('fixin')){if(e.key==='Enter'){e.preventDefault();fixSend(e.target.id);}return;}
   if(e.target.closest&&e.target.closest('input,textarea,select'))return;
+  if(view.name==='groove'&&GR&&!e.metaKey&&!e.ctrlKey&&!e.altKey){if(e.key===' '){e.preventDefault();if(e.repeat)return;GR.started?grooveHit():grooveGo();}else if(e.key==='Escape')grooveEnd();return;}
   if(view.name!=='play'||!S||e.metaKey||e.ctrlKey||e.altKey)return;const q=S.q,k=e.key;
   if(S.locked){if(k==='Enter'||k===' '){e.preventDefault();nextQ();}return;}
   if(q.ui==='multi'){if(k==='Enter'){e.preventDefault();answer(selArr());}else if(k==='Backspace'){S.sel.clear();render();}else if(k==='h'||k==='H'){if(!S.hinted)document.querySelector('[data-act="hint"]')?.click();}return;}

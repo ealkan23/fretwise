@@ -270,10 +270,11 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .sk-lvstd{color:var(--good);font-weight:700}.sk-stdtxt{font-size:12.5px;font-weight:400;color:var(--muted);margin-top:3px;max-width:80ch}.sk-node .lvrow{display:flex;align-items:center;gap:6px}.sk-node .lvrow .bar{flex:1}.sk-node .lvrow small{font-size:10px}
 .sk-lvtab td,.sk-lvtab th{padding-block:5px}.sk-game td{font-weight:700;padding-top:12px;border-bottom:1px solid var(--line)}
 .plansec{margin:8px 0 30px}.plangrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
-.pd{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:7px 7px 6px;display:grid;gap:4px;min-width:0}.pd.today{border-color:var(--brass);box-shadow:0 0 0 2px var(--brass) inset}.pd.past{opacity:.72}.pd.full{border-color:var(--good)}
+.pd{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:7px 7px 6px;display:grid;gap:4px;min-width:0}.pd.full{border-color:var(--good);background:color-mix(in srgb,var(--good) 7%,var(--surface))}
 .pdh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:2px}.pdh b{color:var(--fg);font-size:13px}.pth{font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
-.pg{all:unset;cursor:pointer;display:block;font-size:12px;line-height:1.2;padding:4px 6px;border-radius:6px;background:var(--sunk);color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pg:hover{background:var(--line)}.pg.ok{background:var(--good-soft);color:var(--good);font-weight:600}.pg:focus-visible{outline:2px solid var(--fg)}
-@media (max-width:760px){.plangrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd.past{display:none}}
+.pg{display:flex;align-items:center;gap:5px;font-size:12px;line-height:1.2;padding:3px 4px;border-radius:6px;background:var(--sunk);min-width:0}.pg input{margin:0;width:15px;height:15px;flex:none;accent-color:var(--good);cursor:pointer}.pg.ok{background:var(--good-soft)}.pg.ok .pgn{color:var(--good);text-decoration:line-through;text-decoration-thickness:1px}
+.pgn{all:unset;cursor:pointer;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.pgn:hover{text-decoration:underline}.pgn:focus-visible{outline:2px solid var(--fg)}
+@media (max-width:760px){.plangrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .pathsec{margin:8px 0 26px}.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
 .stg{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);min-width:0}
 .stg b{font-family:var(--f-display);font-size:15px}.stg small{font-size:11px;color:var(--muted);letter-spacing:.04em}.stg.cur{border-color:var(--fg)}.stg.sel{box-shadow:0 0 0 2px var(--fg) inset}.stg.done b{color:var(--good)}
@@ -2961,9 +2962,8 @@ const PLAN=[
  ['Mixed',['pulse','hunt','eardeg']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','voicelead']],['Ear',['earchord','earprog','sing']],['Jazz',['shells','jazzrhy','walking']],['Play',['cr','comping','bends']],['Repertoire',['repertoire','drop2','arp']]];
 const DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const SHORTN={analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
-const day0=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
-function planStart(){if(!STORE.planStart){const d=new Date();const mon=day0(d.getTime())-((d.getDay()+6)%7)*864e5;STORE.planStart=mon;saveLocal();}return STORE.planStart;}   /* starts on the Monday of the week it was first opened */
-const planDay=()=>Math.floor((day0(Date.now())-planStart())/864e5);
+/* ticks are the user's own: STORE.plan[i] = [bool,bool,bool] per session; nothing is tracked by date */
+const planTicks=i=>((STORE.plan||{})[i])||[false,false,false];
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
    The user's own image (art/castle-hall.webp, made with ChatGPT; 1536×1024) brought to life, classy and slow: the candles breathe and glow,
@@ -3099,13 +3099,11 @@ function pathState(){const st=PATH.map(s=>{const steps=s.steps.map(stepInfo);ret
   const cur=Math.max(0,st.findIndex(s=>s.done<s.tot));return {st,cur:st.every(s=>s.done>=s.tot)?PATH.length-1:cur};}
 function pathNext(s){const c=s.steps.filter(x=>x.done<x.n).sort((p,q)=>(q.started-p.started)||(p.frac-q.frac)),out=[],cats=new Set();
   for(const x of c){const cat=GBY[x.gid].cat;if(!cats.has(cat)){cats.add(cat);out.push(x);}if(out.length===3)break;}for(const x of c){if(out.length>=3)break;if(!out.includes(x))out.push(x);}return out;}
-function playedOn(gid,t0){return G(gid).sessions.some(ss=>day0(ss.t)===t0);}
-function vPlan(){const start=planStart(),di=planDay(),cyc=Math.floor(di/28),today=((di%28)+28)%28,base=start+cyc*28*864e5;
-  const cells=PLAN.map(([theme,gids],i)=>{const t0=base+i*864e5,past=i<today,isT=i===today,d=new Date(t0),done=gids.filter(g=>playedOn(g,t0)).length;
-    return `<div class="pd${isT?' today':past?' past':''}${past&&done===3?' full':''}"><div class="pdh"><span>${DAYN[i%7]} <b>${d.getDate()}</b></span><span class="pth">${theme}</span></div>${gids.map(g=>`<button class="pg${playedOn(g,t0)?' ok':''}" data-act="lobby" data-g="${g}" title="${GBY[g].name}">${SHORTN[g]||GBY[g].name}${playedOn(g,t0)?' ✓':''}</button>`).join('')}</div>`;}).join('');
-  const tg=PLAN[today][1],tdone=tg.filter(g=>playedOn(g,base+today*864e5)).length;
-  return `<section class="plansec"><div class="cathead"><div><div class="eyebrow">Four weeks · three games a day · week ${Math.floor(today/7)+1}, day ${today%7+1}</div><h2>Today: ${PLAN[today][0]} day${tdone===3?' · done ✓':tdone?` · ${tdone} of 3 played`:''}</h2>
-   <p>Play the three games of the day, one round each, at your current level. Mixed days spread across time, the neck and the ear; focused days go deep into one area; Saturday is for playing, Sunday is lighter. A tick appears when you have played a round that day.</p></div></div>
+function vPlan(){const cells=PLAN.map(([theme,gids],i)=>{const tk=planTicks(i),done=tk.filter(Boolean).length;
+    return `<div class="pd${done===3?' full':''}"><div class="pdh"><span>Session <b>${i+1}</b></span><span class="pth">${theme}</span></div>${gids.map((g,j)=>`<label class="pg${tk[j]?' ok':''}"><input type="checkbox" data-act="plancheck" data-i="${i}" data-j="${j}" ${tk[j]?'checked':''}><button class="pgn" data-act="lobby" data-g="${g}" title="${GBY[g].name}">${SHORTN[g]||GBY[g].name}</button></label>`).join('')}</div>`;}).join('');
+  const total=PLAN.reduce((a,_,i)=>a+planTicks(i).filter(Boolean).length,0),next=PLAN.findIndex((_,i)=>planTicks(i).filter(Boolean).length<3);
+  return `<section class="plansec"><div class="cathead"><div><div class="eyebrow">Four weeks · three games a session · ${total}/84 ticked${next>=0?` · next: session ${next+1}, ${PLAN[next][0]}`:' · all done'}</div><h2>Your plan</h2>
+   <p>One cell is one practice session: play its three games, one round each at your current level, and tick them off. Mixed sessions spread across time, the neck and the ear; focused sessions go deep into one area; the sixth is for playing, the seventh is lighter. Go at your own pace; when all 84 are ticked, reset and go round again.</p></div><div class="kv"><button class="btn small ghost" data-act="planreset">Reset ticks</button></div></div>
    <div class="plangrid">${cells}</div></section>`;}
 /* what success means in each game, per level: clean answers (recent window), speed vs the fluency target (recall games),
    distance from the click (tapped and strummed games), time to find each next note (played games), and how much was played */
@@ -3159,7 +3157,7 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
   <div class="sk-legend"><span class="sk-node sk-std">★ at the master standard</span><span class="sk-node sk-done">all levels passed</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready to start</span><span class="sk-node sk-lock">later</span><span class="sk-node sk-goal">★ goal (coming)</span></div>
   <div class="sk-wrap"><div class="sk-canvas" style="width:${W}px;height:${H+24}px">${heads}<div class="sk-inner" style="top:24px">${bands}<svg class="sk-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${edges}</svg>${nodes}</div></div></div>
   <div class="section" id="skdet">${det}</div></div>`;}
-function vPathPage(){return `<div class="head"><div><div class="eyebrow">What to play, and where you stand</div><h1>Your plan</h1></div></div>${vPlan()}${vTree()}`;}
+function vPathPage(){return `<div class="head"><div><div class="eyebrow">What to play, and where you stand</div><h1>Plan</h1></div></div>${vPlan()}${vTree()}`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 4–14 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>
@@ -3663,6 +3661,8 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(a==='home'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}
+  else if(a==='plancheck'){const i=+b.dataset.i,j=+b.dataset.j;STORE.plan=STORE.plan||{};const tk=planTicks(i).slice();tk[j]=b.checked;STORE.plan[i]=tk;saveLocal();const y=window.scrollY;render();window.scrollTo(0,y);}
+  else if(a==='planreset'){if(confirm('Clear all 84 ticks and start the four weeks again?')){STORE.plan={};saveLocal();render();}}
   else if(a==='addtune'){const n=(document.getElementById('tunename').value||'').trim(),rhy=(document.getElementById('tunerhy').value||'').trim().replace(/\s+/g,' '),sw=document.getElementById('tuneswing').checked,msg=document.getElementById('tunemsg');if(!n||!rhy){msg.textContent='A name and a rhythm, please.';return;}const p=parseRhy(rhy);if(p.err){msg.textContent=p.err;return;}STORE.tunes=STORE.tunes||[];STORE.tunes.push({n,rhy,swing:sw,ok:true});saveLocal();render();}
   else if(a==='deltune'){(STORE.tunes||[]).splice(+b.dataset.i,1);saveLocal();render();}
   else if(a==='tree'||a==='path'){if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}

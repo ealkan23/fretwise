@@ -2580,7 +2580,7 @@ const GAMES=[
   {n:'Turnaround pairs',d:'IMaj7 → VI7 and VI7 → IIm7',g:[gtVLQ(['ta16','ta62'])]},
   {n:'Everything',d:'Any pair, any key, three string pairs',g:[gtVLQ(['maj25','maj51','min25','min51','ta16','ta62'])]}]},
  {id:'pulse',cat:'rhythm',tap:true,name:'Pulse & Feel',area:'Subdivision, the click, time feel',desc:'Quarters, eighths, triplets and sixteenths on the click; then the click thins to 2 and 4, to 4, to nothing; swing; playing ahead of, on and behind the beat on purpose. Tap, or strum muted strings. Flow mode keeps going and raises the tempo as you get clean.',levels:[
-  {n:'On the click',d:'Quarter notes on every click; learns your tap latency',g:[tapClickQ(2)],c:cSub(1)},
+  {n:'On the click',d:'Quarter notes on every click',g:[tapClickQ(2)],c:cSub(1)},
   {n:'Eighths',d:'Two per click: count 1 & 2 &',g:[subdivQ('8ths')],c:cSub(2)},
   {n:'Triplets',d:'Three per click: 1 trip-let',g:[subdivQ('trip')],c:cSub(3)},
   {n:'Sixteenths',d:'Four per click: 1 e & a',g:[subdivQ('16ths')],c:cSub(4)},
@@ -2732,6 +2732,10 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(REORDERS3[id]&&!(g.mig&&g.mig.r28)){migrateReorder(id,g,REORDERS3[id],'r28');saveLocal();}
   if(REORDERS4[id]&&!(g.mig&&g.mig.r29)){migrateReorder(id,g,REORDERS4[id],'r29');saveLocal();}
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh1)){g.hist={};if(g.hm)g.hm={g:{},s:{}};g.mig={...(g.mig||{}),gh1:1};saveLocal();}   /* 6 Nov 2026: accuracy blocks scored by the wrong rule; sessions and timing kept */
+  if(RZ1.includes(id)&&!(g.mig&&g.mig.gh2)){const cut=new Date(2026,10,6,19,0).getTime();let tm=0,rn=0,rc=0;const rl={};   /* 6 Nov 2026 evening: the pre-fix blocks (all 0) removed from the log, rounds, counts */
+    g.pl=(g.pl||[]).filter(e=>{if(e.n===8&&'dr' in e&&e.t<cut){rn++;if(e.ok)rc++;const lc=rl[e.lv]||(rl[e.lv]={s:0,g:0});lc[e.m?'g':'s']++;return false;}return true;});
+    g.sessions=(g.sessions||[]).filter(s=>{if(s.groove&&s.t<cut){tm+=s.dur||0;return false;}return true;});g.time=Math.max(0,(g.time||0)-tm);g.n=Math.max(0,g.n-rn);g.c=Math.max(0,g.c-rc);
+    if(g.lc)Object.keys(rl).forEach(L=>{if(g.lc[L]){g.lc[L].s=Math.max(0,g.lc[L].s-rl[L].s);g.lc[L].g=Math.max(0,g.lc[L].g-rl[L].g);}});g.mig={...(g.mig||{}),gh2:1};saveLocal();}
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2855,7 +2859,7 @@ let GR=null;
 const grooveSpec=(gid,L)=>{const lv=GBY[gid]&&GBY[gid].levels[L-1];return lv&&lv.c?lv.c:null;};
 function grooveStart(gid,L){const x=GBY[gid],g=G(gid),c=grooveSpec(gid,L),o=Object.assign({},MIC_DEF,g.opts||{}),mic=!!x.mic||!!o.tapMic,bpm0=c.bpm?c.bpm(o.bpm):o.bpm,M=c.meter||4,std=(STD[gid]||{}).ab||30;
   if(S){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);S=null;}g.last=L;
-  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
+  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,met:{},feelSet:c.feel?[...new Set(Array.from({length:64},(_,k)=>c.feel(k)))].filter(f=>f!==0):[],wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
   let t=0;const nb=Math.ceil(GRV.max*Math.max(bpm0,160)/60)+8;for(let i=0;i<nb;i++){const bar=Math.floor(i/M),b=i%M,bpm=c.bpm2?c.bpm2(bar,bpm0):bpm0,dur=60000/bpm;GR.beats.push({i,t,bar,b,dur,bpm,click:c.click?!!c.click(bar,b):true,extra:c.extra?c.extra(bar,b):null});t+=dur;}
   grooveBars(8);view={name:'groove'};render();Piano.load();}
 function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.length;if(!GR.beats[k*GR.M])break;const bar=GR.c.bar(k,GR.M);GR.bars.push(bar);
@@ -2880,27 +2884,32 @@ function grooveLoop(){if(!GR||!GR.started||GR.done)return;GR.raf=requestAnimatio
   const tol=grooveTol();GR.bi=Math.max(0,Math.floor(now/((60000/GR.bpm)*GR.M)));grooveBars(8);
   /* resolve expected hits whose window has passed */
   while(GR.res<GR.onsets.length&&GR.onsets[GR.res].t+tol<now){const o=GR.onsets[GR.res];if(o.hit===null)o.hit=false;GR.res++;grooveRecord(o);}
-  if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){if(GR.feel===0){const l=grooveLean(16);if(l!==null)GR.base=l;}GR.feel=f;GR.feelAt=GR.res;}}   /* leaving the centre bars: remember where you sat */
+  if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){const l=grooveLean(16);if(GR.feel===0){if(l!==null)GR.base=l;}else GR.met[GR.feel]=l!==null&&GR.base!=null&&Math.abs(l-GR.base-GR.feel)<=GRV.lean;GR.feel=f;GR.feelAt=GR.res;grooveUnlock();}}   /* leaving the centre bars: remember where you sat; leaving ahead/behind bars: did the lean move as asked */   /* leaving the centre bars: remember where you sat */
   grooveStats();grooveDraw(now);if(now>GRV.max*1000)grooveEnd();}
 /* one resolved hit: hold bar, 8-hit windows into the game's history */
-function grooveRecord(o){const g=G(GR.gid),st=GR.stats,ctr=grooveCentre(),clean=o.hit&&Math.abs(adjOff(o)-ctr)<=GR.std;let ok=clean;   /* steadiness around your own placement: a constant lean is shown, not punished */
-  if(GR.c.feel!=null&&GR.feel!=null&&GR.feel!==0&&GR.res-GR.feelAt>=GRV.win){const l=grooveLean(16);ok=clean&&l!==null&&GR.base!=null&&Math.abs(l-GR.base-GR.feel)<=GRV.lean;}   /* from the 16th hit of the phase: the lean needs that many to be measured */   /* feel phases: move your placement by the asked amount from your own centre */
-  const extraSince=GR.extras.some(t=>t>o.t-grooveTol()*2&&t<=o.t+grooveTol());if(extraSince)ok=false;
-  GR.hold=ok?GR.hold+1:0;GR.best=Math.max(GR.best,GR.hold);
+function grooveRecord(o){const g=G(GR.gid),st=GR.stats;
+  /* the hold breaks on a miss or an extra hit only; the standard is judged on the tightness over the whole hold (a moving average,
+     not hit by hit: with an average deviation at the standard, half the single hits fall outside it and no run of 64 ever forms) */
+  const extraSince=GR.extras.some(t=>t>o.t-grooveTol()*2&&t<=o.t+grooveTol());
+  GR.hold=(!o.hit||extraSince)?0:GR.hold+1;GR.best=Math.max(GR.best,GR.hold);
   GR.win.push(o.hit&&!extraSince?1:0);   /* history (accuracy): hit within tolerance, no extra hit; the standard is judged by the timing numbers and the hold */if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
     const md=GR.mic?'g':'s';g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][GR.L]||(g.hm[md][GR.L]=[]);hm.push(w);if(hm.length>20)hm.shift();g.lc=g.lc||{};const lc=g.lc[GR.L]||(g.lc[GR.L]={s:0,g:0});lc[md]++;
     const hs8=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit),offs=hs8.map(x=>x.off);if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff))),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
-  if(!GR.unlocked&&GR.hold>=GRV.hold&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
+  grooveUnlock();}
+/* what the unlock needs now: 64 in a row, tightness over them within the standard; feel levels also every ahead/behind target placed */
+function grooveMeets(){const n=Math.min(GR.hold,GRV.hold),hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit),t=hs.length>=4?spread(hs.map(adjOff)):null;
+  const feelOk=!GR.c.feel||GR.feelSet.every(f=>GR.met[f]);return {t,n:hs.length,tight:t!==null&&t<=GR.std,feelOk,ok:GR.hold>=GRV.hold&&t!==null&&t<=GR.std&&feelOk};}
+function grooveUnlock(){const g=G(GR.gid);if(!GR.unlocked&&GR.hold>=GRV.hold&&grooveMeets().ok&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
 function grooveLean(n){const hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit);return hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null;}
-/* your centre: the mean offset of the last 16 hits (0 until four of them exist). People tapping to a click land 20–60 ms before it
-   while feeling dead on; what the hold judges is steadiness around that centre, the lean itself is information */
-function grooveCentre(){const hs=GR.onsets.slice(Math.max(0,GR.res-GRV.win),GR.res).filter(o=>o.hit);return hs.length>=4?hs.reduce((a,o)=>a+adjOff(o),0)/hs.length:0;}
+/* People tapping to a click land 20–60 ms before it while feeling dead on: tightness is the spread around the window's own mean,
+   the lean itself is information */
 /* on feel levels steadiness is measured around the bar's asked placement: moving by the asked amount keeps you steady, not moving breaks it */
 const adjOff=o=>o.off-(GR.c.feel?GR.c.feel(o.bar):0);
 const spread=offs=>{if(!offs.length)return 0;const m=offs.reduce((a,b)=>a+b,0)/offs.length;return offs.reduce((a,b)=>a+Math.abs(b-m),0)/offs.length;};
 function grooveStats(){const st=GR.stats,w=n=>{const os=GR.onsets.slice(Math.max(0,GR.res-n),GR.res),hs=os.filter(o=>o.hit);return {t:hs.length?spread(hs.map(adjOff)):null,l:hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null,miss:os.length-hs.length,n:os.length};},a=w(GRV.win),b=w(GRV.win2);
   st.t16=a.t;st.l16=a.l;st.miss16=a.miss;st.t64=b.t;st.l64=b.l;st.miss64=b.miss;st.n=GR.res;st.hits=GR.onsets.slice(0,GR.res).filter(o=>o.hit).length;
-  const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold');if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';}const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
+  const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold'),mt=grooveMeets();if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';hb.className=mt.t===null||mt.tight?'good':'';}
+  const hc=document.getElementById('gholdc');if(hc)hc.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold} in a row · tightness over them ${mt.t===null?'—':Math.round(mt.t)+' ms'} (need ≤ ${GR.std} ms)${GR.c.feel?` · ${GR.feelSet.map(f=>`${fmtMs(f)} ${GR.met[f]?'✓':GR.met[f]===false?'✗':'…'}`).join(' ')}`:''}`;const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
   const nb=document.getElementById('gnow');if(nb)nb.innerHTML=grooveNowHTML();}
 const fmtMs=v=>v==null?'—':(v>0?'+':v<0?'−':'')+Math.abs(Math.round(v))+' ms';
 function grooveStatsHTML(){const st=GR.stats,c=(v,lim)=>v==null?'':v<=lim?'good':v>lim*2?'bad':'';
@@ -2919,7 +2928,7 @@ function grooveDraw(now){const cv=document.getElementById('gtl');if(!cv)return;c
   const nx=X(now);ctx.strokeStyle=col('--brass');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(nx,4);ctx.lineTo(nx,H-16);ctx.stroke();}
 function grooveEnd(quiet){if(!GR)return;const g=G(GR.gid),st=GR.stats;cancelAnimationFrame(GR.raf);if(LS)stopListening(true);Piano.tickStop();Piano.hush();GR.done=true;GR.started=false;
   const n=Math.floor(GR.res/8),wall=Date.now()-(GR.wall||Date.now());if(n>0){const c=(g.hist[GR.L]||[]).slice(-n).filter(Boolean).length;const dur=activeMs(wall,n*8);g.sessions.push({t:Date.now(),L:GR.L,n,c,ms:0,dur,wall,sc:0,mode:GR.mic?'play':'mark',groove:1});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;}
-  const sum={L:GR.L,hits:st.hits,n:st.n,t64:st.t64,l64:st.l64,best:GR.best,unlocked:GR.unlocked,extras:GR.extras.length,secs:Math.round(wall/1000)};saveGame(GR.gid);const gid=GR.gid;GR=null;if(!quiet){view={name:'lobby',gid,gsum:sum};render();window.scrollTo(0,0);}}
+  const mt=grooveMeets(),sum={L:GR.L,hits:st.hits,n:st.n,t64:st.t64,l64:st.l64,best:GR.best,unlocked:GR.unlocked,extras:GR.extras.length,secs:Math.round(wall/1000),ht:mt.t,std:GR.std,feelOk:mt.feelOk};saveGame(GR.gid);const gid=GR.gid;GR=null;if(!quiet){view={name:'lobby',gid,gsum:sum};render();window.scrollTo(0,0);}}
 /* ============ THE PATH (Nov 2026): one curriculum across the games ============
    Five stages; each step is a range of levels in one game. Every level of every game sits in exactly one step (tests/sweep.js checks it).
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
@@ -3260,9 +3269,9 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
 function vGroove(){const x=GBY[GR.gid],lv=x.levels[GR.L-1],g=G(GR.gid);
   return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${GR.L} · ${lv.n}</span><div class="sp"><div class="stat">Tempo<b>${GR.bpm}${GR.c.bpm2?'→':''} bpm</b></div><div class="stat">Hold<b id="gholdt">${Math.min(GR.hold,GRV.hold)}/${GRV.hold}</b></div><div class="stat">Best<b>${GR.best}</b></div></div></div>
   <section class="stage">${GR.unlocked?`<div class="banner"><h2>Level ${GR.L+1} unlocked</h2><span>${x.levels[GR.L]?x.levels[GR.L].n+': '+x.levels[GR.L].d:''}</span></div>`:''}
-   <div class="prompt">${lv.d}.${GR.c.note?' '+GR.c.note:''} ${GR.mic?'Strum muted strings':'Tap (Space or the button)'} on every written hit; the click never stops. Hold <b>${GRV.hold}</b> steady hits in a row (each within ${GR.std} ms of your own lean${GR.c.feel?'; in the ahead/behind bars, your lean moved by the asked amount from your centre':''}) to unlock the next level. Where you sit against the click is shown as Lean, not judged.</div>
+   <div class="prompt">${lv.d}.${GR.c.note?' '+GR.c.note:''} ${GR.mic?'Strum muted strings':'Tap (Space or the button)'} on every written hit; the click never stops. Hold <b>${GRV.hold}</b> hits in a row (no miss, no extra hit) with your tightness over them at most ${GR.std} ms${GR.c.feel?', and move your lean from your centre by the asked amount in the ahead and behind bars,':''} to unlock the next level. Where you sit against the click is shown as Lean, not judged.</div>
    <div id="gnow">${grooveNowHTML()}</div>
-   <div class="gholdwrap"><span class="eyebrow">Hold to unlock</span><div class="bar2"><i id="ghold" class="good" style="width:${Math.min(100,GR.hold/GRV.hold*100)}%"></i></div></div>
+   <div class="gholdwrap"><span class="eyebrow">Hold to unlock</span><div class="bar2"><i id="ghold" class="good" style="width:${Math.min(100,GR.hold/GRV.hold*100)}%"></i></div><span id="gholdc" class="muted" style="font-size:12px"></span></div>
    <canvas id="gtl" class="gtl" width="900" height="110"></canvas>
    <div class="big gstats" id="gstats">${grooveStatsHTML()}</div>
    <div class="ctrls">${GR.started?(GR.mic?`<span class="status live">Listening… strum on the hits</span>`:`<button class="btn rec big tapbtn" id="gtap" data-act="gtap">TAP (Space)</button>`):`<button class="btn primary big" data-act="gstart">▶ Start (Space)</button>`}<button class="btn" data-act="gend">End session</button><span class="muted" style="font-size:12px"><span id="glat">${GR.mic?'microphone (corrected by the device’s reported latency)':GR.raw?'tap · raw, no correction':GR.lat?`tap · click reaches you ${GR.lat} ms late, taps corrected by −${GR.lat} ms`:'tap · no output latency reported yet'}</span> · ends by itself after ${GRV.max/60} min</span></div>
@@ -3419,7 +3428,7 @@ const LOBBY_NOTES={
 <p><b>9. Minor II–V–I.</b> IIm7♭5 – V7(♭9) – Im7: the m7♭5 in front of a dominant tells you the target is minor.</p>
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
- pulse:'Continuous: the click never stops. The hold bar judges steadiness: each hit within the standard of your own average placement. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
+ pulse:'Continuous: the click never stops. The hold bar counts hits in a row without a miss or an extra; the level unlocks when your tightness over those 64 (the average spread around your own placement, a moving average, not hit by hit) is within the standard. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
  rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
  rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click; write it beat by beat with the cells.',
  jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
@@ -3472,7 +3481,7 @@ function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&
   return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1></div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
-  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}${view.gsum?(()=>{const z=view.gsum;return `<div class="panel" style="margin-bottom:14px"><div class="eyebrow">Last session · level ${z.L} · ${z.secs}s</div><div class="big"><div class="tile"><span>Hits</span><b>${z.hits}/${z.n}</b></div><div class="tile"><span>Tightness · last 64</span><b>${z.t64==null?'—':Math.round(z.t64)+' ms'}</b></div><div class="tile"><span>Lean · last 64</span><b>${fmtMs(z.l64)}</b></div><div class="tile"><span>Best hold</span><b>${z.best}</b></div><div class="tile"><span>Extra hits</span><b>${z.extras}</b></div></div>${z.unlocked?`<p class="note" style="color:var(--good)"><b>Level ${z.L+1} unlocked.</b></p>`:''}</div>`;})():''}
+  ${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}${view.gsum?(()=>{const z=view.gsum;return `<div class="panel" style="margin-bottom:14px"><div class="eyebrow">Last session · level ${z.L} · ${z.secs}s</div><div class="big"><div class="tile"><span>Hits</span><b>${z.hits}/${z.n}</b></div><div class="tile"><span>Tightness · last 64</span><b>${z.t64==null?'—':Math.round(z.t64)+' ms'}</b></div><div class="tile"><span>Lean · last 64</span><b>${fmtMs(z.l64)}</b></div><div class="tile"><span>Best hold</span><b>${z.best}</b></div><div class="tile"><span>Extra hits</span><b>${z.extras}</b></div></div>${z.unlocked?`<p class="note" style="color:var(--good)"><b>Level ${z.L+1} unlocked.</b></p>`:z.best>=GRV.hold?`<p class="note">Held ${GRV.hold} in a row; tightness over the hold ${z.ht==null?'—':Math.round(z.ht)+' ms'}, need ≤ ${z.std} ms${z.feelOk===false?'; the ahead/behind bars not yet placed as asked':''}.</p>`:`<p class="note">Longest run without a miss or extra hit: ${z.best} (need ${GRV.hold}).</p>`}</div>`;})():''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=(L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L))||!levelAvail(x.id,L),other=!levelAvail(x.id,L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${other?` · <i>${guitarMode(x.id)?'screen only: switch Answer by to on screen':'guitar only: switch Answer by to playing it'}</i>`:locked?' · <i>locked</i>':''}</div>
     ${lvMeter(x,g,L,locked,other)}</button>`;}).join('')}</div>

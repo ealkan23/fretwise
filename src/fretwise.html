@@ -2731,6 +2731,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(REORDERS2[id]&&!(g.mig&&g.mig.r27)){migrateReorder(id,g,REORDERS2[id],'r27');saveLocal();}
   if(REORDERS3[id]&&!(g.mig&&g.mig.r28)){migrateReorder(id,g,REORDERS3[id],'r28');saveLocal();}
   if(REORDERS4[id]&&!(g.mig&&g.mig.r29)){migrateReorder(id,g,REORDERS4[id],'r29');saveLocal();}
+  if(RZ1.includes(id)&&!(g.mig&&g.mig.gh1)){g.hist={};if(g.hm)g.hm={g:{},s:{}};g.mig={...(g.mig||{}),gh1:1};saveLocal();}   /* 6 Nov 2026: accuracy blocks scored by the wrong rule; sessions and timing kept */
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2886,7 +2887,7 @@ function grooveRecord(o){const g=G(GR.gid),st=GR.stats,clean=o.hit&&Math.abs(o.o
   if(GR.c.feel!=null&&GR.feel!=null){const l=grooveLean(16);ok=clean&&l!==null&&Math.abs(l-GR.feel)<=GRV.lean;}
   const extraSince=GR.extras.some(t=>t>o.t-grooveTol()*2&&t<=o.t+grooveTol());if(extraSince)ok=false;
   GR.hold=ok?GR.hold+1:0;GR.best=Math.max(GR.best,GR.hold);
-  GR.win.push(ok?1:0);if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
+  GR.win.push(o.hit&&!extraSince?1:0);   /* history (accuracy): hit within tolerance, no extra hit; the standard is judged by the timing numbers and the hold */if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
     const md=GR.mic?'g':'s';g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][GR.L]||(g.hm[md][GR.L]=[]);hm.push(w);if(hm.length>20)hm.shift();g.lc=g.lc||{};const lc=g.lc[GR.L]||(g.lc[GR.L]={s:0,g:0});lc[md]++;
     const offs=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit).map(x=>x.off);if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(offs.reduce((a,b)=>a+Math.abs(b),0)/offs.length),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
   if(!GR.unlocked&&GR.hold>=GRV.hold&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
@@ -3412,7 +3413,7 @@ const LOBBY_NOTES={
 <p><b>9. Minor II–V–I.</b> IIm7♭5 – V7(♭9) – Im7: the m7♭5 in front of a dominant tells you the target is minor.</p>
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
- pulse:'Level 1 measures how late (or early) your taps land and corrects for it everywhere. Flow mode (round length) keeps the questions coming and moves the tempo with you.',
+ pulse:'Continuous: the click never stops. Taps are corrected by the latency your audio device reports (shown below); the hold bar unlocks the next level.',
  rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
  rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click; write it beat by beat with the cells.',
  jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
@@ -3761,7 +3762,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   if(hit&&view.name==='lobby'&&hit.closest('#refneck')){const w=OPEN[+hit.dataset.s]+(+hit.dataset.f)+12;if(NAT.indexOf(w%12)>=0){const st=(Math.floor(w/12)-5)*7+NAT.indexOf(w%12)-2;view.ref=view.ref===st?null:st;render();}return;}if(hit&&S&&!S.locked&&view.name==='play'&&S.q.ui==='multi'){const k=hit.dataset.s+'-'+hit.dataset.f;if(S.sel.has(k))S.sel.delete(k);else S.sel.add(k);render();return;}
   if(hit&&S&&!S.locked&&view.name==='play'){answer({s:+hit.dataset.s,f:+hit.dataset.f});return;}
   const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(b.tagName==='SELECT')return;/* menus act on 'change'; re-rendering on click closed them as they opened */const a=b.dataset.act;if((a==='mix'||a==='sound')&&e.target!==b)return;
-  if(a==='gstart'){grooveGo();return;}if(a==='gtap'){grooveHit();return;}if(a==='gend'){grooveEnd();return;}
+  if(a==='gstart'){grooveGo();return;}if(a==='gtap'){if(e.detail)grooveHit();return;}   /* e.detail 0 = keyboard-made click: Space already counted it */if(a==='gend'){grooveEnd();return;}
   if(a==='home'){if(GR)grooveEnd(true);if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'home'};render();window.scrollTo(0,0);}
   else if(a==='lobby'){if(GR)grooveEnd(true);view={name:'lobby',gid:b.dataset.g};if(b.dataset.l&&lvOpen(b.dataset.g,+b.dataset.l))view.sel=+b.dataset.l;render();window.scrollTo(0,0);}
   else if(a==='stage'){const y=window.scrollY;view.stage=+b.dataset.s;render();window.scrollTo(0,y);}

@@ -2589,7 +2589,7 @@ const GAMES=[
   {n:'4 only; the and of 4',d:'One click per bar, then only the off-beat before the bar line',g:[twoFourQ('4'),twoFourQ('and4')],c:{bar:()=>subdivBar(4,1),click:(bar,b)=>bar%16<8?b===3:false,extra:(bar,b)=>bar%16>=8&&b===3?[0.5]:null,note:'Eight bars with the click on 4 only, then eight bars where only the and of 4 sounds.'}},
   {n:'Drop-outs',d:'The click keeps leaving: two, four, then eight bars alone',g:[twoFourQ('drop'),twoFourQ('drop4'),twoFourQ('drop8')],c:cSub(1,{click:bar=>{const c=bar%20;return c<2||(c>=4&&c<6)||(c>=10&&c<12);},note:'The click drops out for 2, then 4, then 8 bars; keep the quarters going.'})},
   {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')],c:{swing:true,bar:k=>k%8<4?swingBar():offBar(),note:'Four bars of swing eighths, four bars of off-beats only, round and round.'}},
-  {n:'Ahead, on, behind',d:'Place your quarters on purpose: dead centre, 20 ms early, 25 ms late',g:[feelQ(0),feelQ(-20),feelQ(25)],c:cSub(1,{click:(bar,b)=>b===1||b===3,feel:bar=>[0,-20,25][Math.floor(bar/16)%3],note:'The lean target changes every 16 bars: dead centre, then 20 ms ahead, then 25 ms behind.'})},
+  {n:'Ahead, on, behind',d:'Place your quarters on purpose: your centre, then 20 ms ahead of it, then 25 ms behind it',g:[feelQ(0),feelQ(-20),feelQ(25)],c:cSub(1,{click:(bar,b)=>b===1||b===3,feel:bar=>[0,-20,25][Math.floor(bar/16)%3],note:'Sixteen bars each; the tile shows your lean against your own centre.'})},
   {n:'Extremes',d:'50 bpm and 150+, eight bars each',g:[twoFourQ('slow'),twoFourQ('fast')],c:cSub(1,{click:(bar,b)=>b===1||b===3,bpm2:(bar,b0)=>bar%16<8?50:Math.max(150,b0),note:'Eight bars at 50 bpm, then eight at 150 or your tempo if higher.'})}]},
  {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Tap only: the paper side (counting, dictation) is in Rhythm Theory & Dictation. Flow mode for endless reading.',levels:[
   {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)],c:cCells(['w','h','q','r','hr'])},
@@ -2855,7 +2855,7 @@ let GR=null;
 const grooveSpec=(gid,L)=>{const lv=GBY[gid]&&GBY[gid].levels[L-1];return lv&&lv.c?lv.c:null;};
 function grooveStart(gid,L){const x=GBY[gid],g=G(gid),c=grooveSpec(gid,L),o=Object.assign({},MIC_DEF,g.opts||{}),mic=!!x.mic||!!o.tapMic,bpm0=c.bpm?c.bpm(o.bpm):o.bpm,M=c.meter||4,std=(STD[gid]||{}).ab||30;
   if(S){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);S=null;}g.last=L;
-  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
+  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
   let t=0;const nb=Math.ceil(GRV.max*Math.max(bpm0,160)/60)+8;for(let i=0;i<nb;i++){const bar=Math.floor(i/M),b=i%M,bpm=c.bpm2?c.bpm2(bar,bpm0):bpm0,dur=60000/bpm;GR.beats.push({i,t,bar,b,dur,bpm,click:c.click?!!c.click(bar,b):true,extra:c.extra?c.extra(bar,b):null});t+=dur;}
   grooveBars(8);view={name:'groove'};render();Piano.load();}
 function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.length;if(!GR.beats[k*GR.M])break;const bar=GR.c.bar(k,GR.M);GR.bars.push(bar);
@@ -2880,26 +2880,32 @@ function grooveLoop(){if(!GR||!GR.started||GR.done)return;GR.raf=requestAnimatio
   const tol=grooveTol();GR.bi=Math.max(0,Math.floor(now/((60000/GR.bpm)*GR.M)));grooveBars(8);
   /* resolve expected hits whose window has passed */
   while(GR.res<GR.onsets.length&&GR.onsets[GR.res].t+tol<now){const o=GR.onsets[GR.res];if(o.hit===null)o.hit=false;GR.res++;grooveRecord(o);}
-  if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){GR.feel=f;}}
+  if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){if(GR.feel===0){const l=grooveLean(16);if(l!==null)GR.base=l;}GR.feel=f;GR.feelAt=GR.res;}}   /* leaving the centre bars: remember where you sat */
   grooveStats();grooveDraw(now);if(now>GRV.max*1000)grooveEnd();}
 /* one resolved hit: hold bar, 8-hit windows into the game's history */
-function grooveRecord(o){const g=G(GR.gid),st=GR.stats,clean=o.hit&&Math.abs(o.off)<=GR.std;let ok=clean;
-  if(GR.c.feel!=null&&GR.feel!=null){const l=grooveLean(16);ok=clean&&l!==null&&Math.abs(l-GR.feel)<=GRV.lean;}
+function grooveRecord(o){const g=G(GR.gid),st=GR.stats,ctr=grooveCentre(),clean=o.hit&&Math.abs(adjOff(o)-ctr)<=GR.std;let ok=clean;   /* steadiness around your own placement: a constant lean is shown, not punished */
+  if(GR.c.feel!=null&&GR.feel!=null&&GR.feel!==0&&GR.res-GR.feelAt>=GRV.win){const l=grooveLean(16);ok=clean&&l!==null&&GR.base!=null&&Math.abs(l-GR.base-GR.feel)<=GRV.lean;}   /* from the 16th hit of the phase: the lean needs that many to be measured */   /* feel phases: move your placement by the asked amount from your own centre */
   const extraSince=GR.extras.some(t=>t>o.t-grooveTol()*2&&t<=o.t+grooveTol());if(extraSince)ok=false;
   GR.hold=ok?GR.hold+1:0;GR.best=Math.max(GR.best,GR.hold);
   GR.win.push(o.hit&&!extraSince?1:0);   /* history (accuracy): hit within tolerance, no extra hit; the standard is judged by the timing numbers and the hold */if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
     const md=GR.mic?'g':'s';g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][GR.L]||(g.hm[md][GR.L]=[]);hm.push(w);if(hm.length>20)hm.shift();g.lc=g.lc||{};const lc=g.lc[GR.L]||(g.lc[GR.L]={s:0,g:0});lc[md]++;
-    const offs=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit).map(x=>x.off);if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(offs.reduce((a,b)=>a+Math.abs(b),0)/offs.length),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
+    const hs8=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit),offs=hs8.map(x=>x.off);if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff))),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
   if(!GR.unlocked&&GR.hold>=GRV.hold&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
 function grooveLean(n){const hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit);return hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null;}
-function grooveStats(){const st=GR.stats,w=n=>{const os=GR.onsets.slice(Math.max(0,GR.res-n),GR.res),hs=os.filter(o=>o.hit);return {t:hs.length?hs.reduce((a,o)=>a+Math.abs(o.off),0)/hs.length:null,l:hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null,miss:os.length-hs.length,n:os.length};},a=w(GRV.win),b=w(GRV.win2);
+/* your centre: the mean offset of the last 16 hits (0 until four of them exist). People tapping to a click land 20–60 ms before it
+   while feeling dead on; what the hold judges is steadiness around that centre, the lean itself is information */
+function grooveCentre(){const hs=GR.onsets.slice(Math.max(0,GR.res-GRV.win),GR.res).filter(o=>o.hit);return hs.length>=4?hs.reduce((a,o)=>a+adjOff(o),0)/hs.length:0;}
+/* on feel levels steadiness is measured around the bar's asked placement: moving by the asked amount keeps you steady, not moving breaks it */
+const adjOff=o=>o.off-(GR.c.feel?GR.c.feel(o.bar):0);
+const spread=offs=>{if(!offs.length)return 0;const m=offs.reduce((a,b)=>a+b,0)/offs.length;return offs.reduce((a,b)=>a+Math.abs(b-m),0)/offs.length;};
+function grooveStats(){const st=GR.stats,w=n=>{const os=GR.onsets.slice(Math.max(0,GR.res-n),GR.res),hs=os.filter(o=>o.hit);return {t:hs.length?spread(hs.map(adjOff)):null,l:hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null,miss:os.length-hs.length,n:os.length};},a=w(GRV.win),b=w(GRV.win2);
   st.t16=a.t;st.l16=a.l;st.miss16=a.miss;st.t64=b.t;st.l64=b.l;st.miss64=b.miss;st.n=GR.res;st.hits=GR.onsets.slice(0,GR.res).filter(o=>o.hit).length;
   const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold');if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';}const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
   const nb=document.getElementById('gnow');if(nb)nb.innerHTML=grooveNowHTML();}
 const fmtMs=v=>v==null?'—':(v>0?'+':v<0?'−':'')+Math.abs(Math.round(v))+' ms';
 function grooveStatsHTML(){const st=GR.stats,c=(v,lim)=>v==null?'':v<=lim?'good':v>lim*2?'bad':'';
-  return `<div class="tile"><span>Tightness · last 16</span><b class="${c(st.t16,GR.std)}">${st.t16==null?'—':Math.round(st.t16)+' ms'}</b></div><div class="tile"><span>Tightness · last 64</span><b class="${c(st.t64,GR.std)}">${st.t64==null?'—':Math.round(st.t64)+' ms'}</b></div>
-   <div class="tile"><span>Lean · last 16${GR.feel!=null?` (aim ${fmtMs(GR.feel)})`:''}</span><b class="${GR.feel!=null&&st.l16!=null?(Math.abs(st.l16-GR.feel)<=GRV.lean?'good':'bad'):''}">${fmtMs(st.l16)}</b></div><div class="tile"><span>Missed · last 16</span><b class="${st.miss16?'bad':'good'}">${st.miss16}</b></div>
+  return `<div class="tile" title="average distance of each hit from your own lean"><span>Tightness · last 16</span><b class="${c(st.t16,GR.std)}">${st.t16==null?'—':Math.round(st.t16)+' ms'}</b></div><div class="tile"><span>Tightness · last 64</span><b class="${c(st.t64,GR.std)}">${st.t64==null?'—':Math.round(st.t64)+' ms'}</b></div>
+   ${GR.feel!=null&&GR.feel!==0?`<div class="tile" title="your lean now minus your centre (measured in the dead-centre bars)"><span>vs your centre (aim ${fmtMs(GR.feel)})</span><b class="${st.l16!=null&&GR.base!=null?(Math.abs(st.l16-GR.base-GR.feel)<=GRV.lean?'good':'bad'):''}">${GR.base==null||st.l16==null?'—':fmtMs(st.l16-GR.base)}</b></div>`:`<div class="tile" title="where you sit against the click: − before it, + after it. Shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on"><span>Lean · last 16${GR.feel===0?' (your centre)':''}</span><b>${fmtMs(st.l16)}</b></div>`}<div class="tile"><span>Missed · last 16</span><b class="${st.miss16?'bad':'good'}">${st.miss16}</b></div>
    <div class="tile"><span>Hits</span><b>${st.hits}/${st.n}</b></div><div class="tile"><span>Extra hits</span><b class="${GR.extras.length?'bad':''}">${GR.extras.length}</b></div>`;}
 function grooveNowHTML(){const k=GR.bi,bar=GR.bars[k],nx=GR.bars[k+1];if(!bar)return '';const o={swing:GR.c.swing,meter:GR.M,ts:GR.c.ts,noTup:GR.c.noTup};
   return `<div class="gbars"><div class="gbar now">${bar.chord?`<div class="gchord">${bar.chord}</div>`:''}${bar.ev?rhySVG(bar.ev,1,o):''}<div class="muted" style="font-size:12px">${bar.label||''}</div></div>${nx?`<div class="gbar next">${nx.chord?`<div class="gchord">${nx.chord}</div>`:''}${nx.ev?rhySVG(nx.ev,1,o):''}<div class="muted" style="font-size:12px">next${nx.label?': '+nx.label:''}</div></div>`:''}</div>`;}
@@ -3008,7 +3014,7 @@ const SKBY=Object.fromEntries(SKILLS.map(n=>[n.id,n]));
 const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
 /* the master standard per game (Nov 2026): what a practising musician would call solid, well above the unlock rule.
    acc = clean share of the last answers at a level (at least STD_N of them); flu = median clean-answer time as a share of the fluency target
-   (the unlock bar is 1.0); ab = mean distance from the click (ms); gp = median seconds from one played note to the next.
+   (the unlock bar is 1.0); ab = mean distance from the click (ms; continuous games: from the player's own lean); gp = median seconds from one played note to the next.
    A level is at standard when its accuracy and its game's speed measure (when the level has one) both meet it; a skill is green when all its levels are. */
 const STD_N=12;
 /* guitar speed standards (seconds) where the game has no own: rt = from listening to your first right note or strum, gp = from one played note to the next */
@@ -3216,7 +3222,7 @@ function sumMetrics(ms){return ms.reduce((a,m)=>({n:a.n+m.n,rn:a.rn+m.rn,rc:a.rc
 function metricBits(m,sd){sd=sd||{acc:PASS,flu:1,ab:35,gp:1.5};const med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];},out=[];if(!m.n&&!m.rn)return [{t:'not played yet',c:'muted'}];
   if(m.rn){const p=m.rc/m.rn;out.push({t:Math.round(p*100)+'%',c:m.rn<5?'muted':p>=sd.acc?'good':p<sd.acc-.15?'bad':'',tip:`${m.rc} of your last ${m.rn} answers clean (standard ${Math.round(sd.acc*100)}%)`});}
   if(m.flu.length){const r=med(m.flu),p=Math.round((r-1)*100);out.push({t:m.fs&&m.fs.length?`${med(m.fs).toFixed(1)} s`:`${p>0?'+':p<0?'−':'±'}${Math.abs(p)}% time`,c:r<=sd.flu?'good':r>1?'bad':'',tip:`median time of your clean answers ${p<=0?Math.abs(p)+'% under':p+'% over'} the unlock target (− is faster); the standard is ${Math.round((sd.flu-1)*100)}%`});}
-  else if(m.ab.length){const a=Math.round(m.ab.reduce((x,y)=>x+y,0)/m.ab.length);out.push({t:`±${a} ms`,c:a<=sd.ab?'good':a>2*sd.ab?'bad':'',tip:`mean distance of your notes or taps from the click (standard ${sd.ab} ms)`});}
+  else if(m.ab.length){const a=Math.round(m.ab.reduce((x,y)=>x+y,0)/m.ab.length);out.push({t:`±${a} ms`,c:a<=sd.ab?'good':a>2*sd.ab?'bad':'',tip:`mean distance of your notes or taps from the click${GBY[gid]&&GBY[gid].levels.some(l=>l.c)?' — in the continuous games, from your own lean (steadiness; where you sit is shown separately)':''} (standard ${sd.ab} ms)`});}
   else if(m.gp.length){const s=med(m.gp)/1000;out.push({t:`${s.toFixed(1)} s/note`,c:s<=sd.gp?'good':s>2*sd.gp?'bad':'',tip:`median time from one played note to the next (standard ${sd.gp} s)`});}
   else if(m.an){out.push({t:`${(m.ams/m.an/1000).toFixed(1)} s avg`,c:'muted',tip:'average answer time, all answers so far; the timed target starts counting from your next clean answers'});}
   out.push({t:`${m.n} played`,tip:'answers, all time'});return out;}
@@ -3254,7 +3260,7 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
 function vGroove(){const x=GBY[GR.gid],lv=x.levels[GR.L-1],g=G(GR.gid);
   return `<div class="hud"><div class="t">${x.name}</div><span class="chip">Level ${GR.L} · ${lv.n}</span><div class="sp"><div class="stat">Tempo<b>${GR.bpm}${GR.c.bpm2?'→':''} bpm</b></div><div class="stat">Hold<b id="gholdt">${Math.min(GR.hold,GRV.hold)}/${GRV.hold}</b></div><div class="stat">Best<b>${GR.best}</b></div></div></div>
   <section class="stage">${GR.unlocked?`<div class="banner"><h2>Level ${GR.L+1} unlocked</h2><span>${x.levels[GR.L]?x.levels[GR.L].n+': '+x.levels[GR.L].d:''}</span></div>`:''}
-   <div class="prompt">${lv.d}.${GR.c.note?' '+GR.c.note:''} ${GR.mic?'Strum muted strings':'Tap (Space or the button)'} on every written hit; the click never stops. Hold <b>${GRV.hold}</b> clean hits in a row (within ${GR.std} ms${GR.c.feel?', leaning as asked':''}) to unlock the next level.</div>
+   <div class="prompt">${lv.d}.${GR.c.note?' '+GR.c.note:''} ${GR.mic?'Strum muted strings':'Tap (Space or the button)'} on every written hit; the click never stops. Hold <b>${GRV.hold}</b> steady hits in a row (each within ${GR.std} ms of your own lean${GR.c.feel?'; in the ahead/behind bars, your lean moved by the asked amount from your centre':''}) to unlock the next level. Where you sit against the click is shown as Lean, not judged.</div>
    <div id="gnow">${grooveNowHTML()}</div>
    <div class="gholdwrap"><span class="eyebrow">Hold to unlock</span><div class="bar2"><i id="ghold" class="good" style="width:${Math.min(100,GR.hold/GRV.hold*100)}%"></i></div></div>
    <canvas id="gtl" class="gtl" width="900" height="110"></canvas>
@@ -3413,7 +3419,7 @@ const LOBBY_NOTES={
 <p><b>9. Minor II–V–I.</b> IIm7♭5 – V7(♭9) – Im7: the m7♭5 in front of a dominant tells you the target is minor.</p>
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
- pulse:'Continuous: the click never stops. Taps are corrected by the latency your audio device reports (shown below); the hold bar unlocks the next level.',
+ pulse:'Continuous: the click never stops. The hold bar judges steadiness: each hit within the standard of your own average placement. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
  rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
  rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click; write it beat by beat with the cells.',
  jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
@@ -3453,7 +3459,7 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
       t===null?`Your typical time for a clean answer at this level shows after your first timed answers. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:avg!==null?`Your average answer time so far: ${t.toFixed(1)} s (all answers; clean answers are timed from your next round on). Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:`Your typical clean answer takes ${t.toFixed(1)} s${full?'':` (only ${n} timed so far; ${FLU_N} are needed before speed counts)`}. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s. The bar fills as you get faster.`,
       `unlock ${T.toFixed(1)} s · master ${(f*T).toFixed(1)} s`,t!==null&&!full);}
   else if(kind==='timing'){const a=M.ab.length?Math.round(M.ab.reduce((p,q)=>p+q,0)/M.ab.length):null,S0=Math.max(100,(sd.ab||35)*3);
-    sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click; master standard ${sd.ab||35} ms. The bar fills as you get tighter.`,`master ±${sd.ab||35} ms from the click`);}
+    sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click${x.levels.some(l=>l.c)?' (continuous games: from your own lean, which is shown, not judged)':''}; master standard ${sd.ab||35} ms. The bar fills as you get tighter.`,`master ±${sd.ab||35} ms`);}
   else if(kind==='gp'){const G0=gStd(x.id).gp,v=M.gp.length?med(M.gp)/1000:null,S0=Math.max(4,G0*3);
     sp=bar('Speed',v===null?'—':`${v.toFixed(1)} s/note`,v===null?0:1-v/S0,[[1-G0/S0,'std',`master: ${G0} s per note`]],v!==null&&v<=G0,v===null?'Time from one played note to the next: shows after your first round.':`Median ${v.toFixed(1)} s from one played note to the next; master ${G0} s. The bar fills as you get faster.`);}
   else if(kind==='rt'){const R0=gStd(x.id).rt,v=M.rt.length?med(M.rt)/1000:null,S0=R0*3;

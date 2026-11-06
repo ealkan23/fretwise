@@ -73,6 +73,9 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   if(!m){bad++;console.log('SHAPE unparsed',k,part);continue;}const n=m[1]==='same string'?0:m[1]==='next string up'?1:+m[2],off=m[3]==='same fret'?0:(+m[4])*(m[5]==='up'?1:-1),offB=m[6]===undefined?off:m[6]==='same fret'?0:(+m[7])*(m[8]==='up'?1:-1);
   for(let s=6;s-n>=1;s--){const tt=s-n,o=(s>=3&&tt<=2&&n>0)?offB:off;if(OPEN[tt]-OPEN[s]+o!==semi){bad++;console.log('SHAPE wrong',k,part,'from string',s);}}}}
 {const r0=OPEN[IVMAP_ROOT.s]+IVMAP_ROOT.f;for(const [d,s2,f,semi] of IVMAP){if(OPEN[s2]+f-r0!==semi||(semi%12)!==({R:0,'3':4,'5':7,'6':9,'7':11,'9':2,'11':5,'13':9})[d]){bad++;console.log('IVMAP wrong',d,s2,f);}if(s2===IVMAP_ROOT.s&&semi>0){bad++;console.log('IVMAP on the root string',d);}}}
+/* the plan: 28 days of three existing games, every game at least once, no game twice in a day */
+{const seen=new Set();if(PLAN.length!==28){bad++;console.log('PLAN days',PLAN.length);}PLAN.forEach(([th,gs],i)=>{if(gs.length!==3||new Set(gs).size!==3){bad++;console.log('PLAN day',i,gs);}gs.forEach(g=>{if(!GBY[g]){bad++;console.log('PLAN unknown game',g);}seen.add(g);});});
+ GAMES.forEach(x=>{if(!seen.has(x.id)){bad++;console.log('PLAN never plays',x.id);}});}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

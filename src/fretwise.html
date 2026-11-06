@@ -269,6 +269,11 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .sk-node .bar{position:relative}.sk-node .bar i{position:absolute;left:0;top:0}.sk-node .bar i.ps{background:var(--fg);opacity:.35}.sk-std small,.sk-std .mts{color:var(--fg)}
 .sk-lvstd{color:var(--good);font-weight:700}.sk-stdtxt{font-size:12.5px;font-weight:400;color:var(--muted);margin-top:3px;max-width:80ch}.sk-node .lvrow{display:flex;align-items:center;gap:6px}.sk-node .lvrow .bar{flex:1}.sk-node .lvrow small{font-size:10px}
 .sk-lvtab td,.sk-lvtab th{padding-block:5px}.sk-game td{font-weight:700;padding-top:12px;border-bottom:1px solid var(--line)}
+.plansec{margin:8px 0 30px}.plangrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
+.pd{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:7px 7px 6px;display:grid;gap:4px;min-width:0}.pd.today{border-color:var(--brass);box-shadow:0 0 0 2px var(--brass) inset}.pd.past{opacity:.72}.pd.full{border-color:var(--good)}
+.pdh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:2px}.pdh b{color:var(--fg);font-size:13px}.pth{font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.pg{all:unset;cursor:pointer;display:block;font-size:12px;line-height:1.2;padding:4px 6px;border-radius:6px;background:var(--sunk);color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pg:hover{background:var(--line)}.pg.ok{background:var(--good-soft);color:var(--good);font-weight:600}.pg:focus-visible{outline:2px solid var(--fg)}
+@media (max-width:760px){.plangrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd.past{display:none}}
 .pathsec{margin:8px 0 26px}.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
 .stg{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);min-width:0}
 .stg b{font-family:var(--f-display);font-size:15px}.stg small{font-size:11px;color:var(--muted);letter-spacing:.04em}.stg.cur{border-color:var(--fg)}.stg.sel{box-shadow:0 0 0 2px var(--fg) inset}.stg.done b{color:var(--good)}
@@ -370,7 +375,7 @@ svg.rhy{width:100%;max-width:640px;display:block}.rh-line,.rh-bar{stroke:var(--f
 
 <header class="top"><div class="wrap">
   <button class="brand" data-act="home">Fret<span>wise</span></button>
-  <nav class="topnav" aria-label="Pages"><button data-act="home" id="nav-games">Games</button><button data-act="path" id="nav-path">Path</button></nav>
+  <nav class="topnav" aria-label="Pages"><button data-act="home" id="nav-games">Games</button><button data-act="path" id="nav-path">Plan</button></nav>
   <div class="sync" id="sync"><i></i><span>Saved on this device</span></div><div class="mic" id="mic" hidden><i></i><span>Mic off</span></div>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -2946,6 +2951,19 @@ const STD_SEC={};function stdSeconds(gid){if(STD_SEC[gid]!==undefined)return STD
 function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.acc*100)}% clean over your last ${STD_N}+ answers at each level`];
   if(s.flu){const sec=stdSeconds(gid);p.push(`median clean answer at most ${Math.round(s.flu*100)}% of the unlock target time${s.ex?` (${s.ex})`:sec?` (about ${sec.toFixed(1)} s for a typical question)`:''}`);}
   if(s.gp)p.push(`under ${s.gp.toFixed(1)} s from one played note to the next`);if(s.ab)p.push(`within ${s.ab} ms of the click on timed levels`);return p.join('; ')+': '+s.why+'.';}
+/* ============ THE PLAN (Nov 2026): four weeks, three games a day ============
+   A school week: Mon mixed foundations (time, neck, ear), Tue reading, Wed harmony, Thu ear, Fri jazz, Sat play (kinetic), Sun lighter review.
+   Weeks vary so every game comes round and the essentials recur weekly. Day index = days since the plan was first opened, modulo 28. */
+const PLAN=[
+ ['Mixed',['pulse','fretboard','eardeg']],['Reading',['sight','rhyread','rhytheory']],['Harmony',['spelling','intervals','triads']],['Ear',['eariv','earchord','sing']],['Jazz',['shells','jazzrhy','arp']],['Play',['cr','comping','hunt']],['Review',['earprog','analysis','bends']],
+ ['Mixed',['pulse','hunt','eariv']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','drop2']],['Ear',['eardeg','earprog','sing']],['Jazz',['voicelead','jazzrhy','walking']],['Play',['cr','comping','bends']],['Review',['sight','rhytheory','chordscale']],
+ ['Mixed',['pulse','fretboard','earchord']],['Reading',['sight','rhyread','rhytheory']],['Chords',['triads','shells','drop2']],['Ear',['eariv','eardeg','sing']],['Jazz',['arp','chordscale','repertoire']],['Play',['cr','comping','hunt']],['Review',['intervals','analysis','earprog']],
+ ['Mixed',['pulse','hunt','eardeg']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','voicelead']],['Ear',['earchord','earprog','sing']],['Jazz',['shells','jazzrhy','walking']],['Play',['cr','comping','bends']],['Repertoire',['repertoire','drop2','arp']]];
+const DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SHORTN={analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
+const day0=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
+function planStart(){if(!STORE.planStart){const d=new Date();const mon=day0(d.getTime())-((d.getDay()+6)%7)*864e5;STORE.planStart=mon;saveLocal();}return STORE.planStart;}   /* starts on the Monday of the week it was first opened */
+const planDay=()=>Math.floor((day0(Date.now())-planStart())/864e5);
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
    The user's own image (art/castle-hall.webp, made with ChatGPT; 1536×1024) brought to life, classy and slow: the candles breathe and glow,
@@ -3081,13 +3099,14 @@ function pathState(){const st=PATH.map(s=>{const steps=s.steps.map(stepInfo);ret
   const cur=Math.max(0,st.findIndex(s=>s.done<s.tot));return {st,cur:st.every(s=>s.done>=s.tot)?PATH.length-1:cur};}
 function pathNext(s){const c=s.steps.filter(x=>x.done<x.n).sort((p,q)=>(q.started-p.started)||(p.frac-q.frac)),out=[],cats=new Set();
   for(const x of c){const cat=GBY[x.gid].cat;if(!cats.has(cat)){cats.add(cat);out.push(x);}if(out.length===3)break;}for(const x of c){if(out.length>=3)break;if(!out.includes(x))out.push(x);}return out;}
-function vPath(){const P=pathState(),sel=view.stage!=null?view.stage:P.cur,s=P.st[sel],nx=pathNext(s);
-  const lvName=(gid,L)=>GBY[gid].levels[L-1].n;
-  return `<section class="pathsec"><div class="cathead"><div><div class="eyebrow">Your path · stage ${P.cur+1} of ${PATH.length}</div><h2>${sel===P.cur?'Now':'Stage '+(sel+1)}: ${s.n}</h2><p>${s.d}</p></div></div>
-  <div class="stages">${P.st.map((x,i)=>`<button class="stg${i===sel?' sel':''}${i===P.cur?' cur':''}${x.done>=x.tot?' done':''}" data-act="stage" data-s="${i}" aria-pressed="${i===sel}"><small>Stage ${i+1}${x.done>=x.tot?' ✓':i===P.cur?' · now':''}</small><b>${x.n}</b><span class="bar"><i style="width:${Math.round(x.done/x.tot*100)}%"></i></span><small>${x.done}/${x.tot} levels</small></button>`).join('')}</div>
-  ${nx.length?`<div class="eyebrow" style="margin-top:14px">${sel===P.cur?'Work on next':'Next in this stage'}</div><div class="grid nextgrid">${nx.map(x=>`<article class="card"><div class="eyebrow">${GBY[x.gid].area}</div><h3>${GBY[x.gid].name}</h3><p><b>Level ${x.go}</b> · ${lvName(x.gid,x.go)}${x.go<x.a?` <span class="muted">(opens the stage’s levels ${x.a}–${x.b})</span>`:''}</p><span class="bar"><i style="width:${Math.round(x.frac*100)}%"></i></span><div class="row"><button class="btn primary" data-act="lobby" data-g="${x.gid}" data-l="${x.go}">Play level ${x.go}</button></div></article>`).join('')}</div>`:'<p class="note">Every level of this stage is passed. Keep its games in review; move on to the next stage.</p>'}
-  <details class="pathall"><summary>All of stage ${sel+1}: ${s.steps.length} games, ${s.tot} levels</summary><div class="panel tablewrap"><table><thead><tr><th>Game</th><th>Levels</th><th class="n">Passed</th><th></th></tr></thead><tbody>${s.steps.map(x=>`<tr><td>${GBY[x.gid].name}</td><td>${x.a===x.b?x.a:x.a+'–'+x.b}: ${lvName(x.gid,x.a)}${x.b>x.a?' → '+lvName(x.gid,x.b):''}</td><td class="n">${x.done}/${x.n}</td><td><button class="btn small" data-act="lobby" data-g="${x.gid}" data-l="${x.done<x.n?x.go:x.b}">${x.done<x.n?'Play':'Review'}</button></td></tr>`).join('')}</tbody></table>
-  <p class="note">Nothing is locked by the path: it is the order a teacher would take you through the material, so each game prepares the next. A game’s own ladder still unlocks level by level.</p></div></details></section>`;}
+function playedOn(gid,t0){return G(gid).sessions.some(ss=>day0(ss.t)===t0);}
+function vPlan(){const start=planStart(),di=planDay(),cyc=Math.floor(di/28),today=((di%28)+28)%28,base=start+cyc*28*864e5;
+  const cells=PLAN.map(([theme,gids],i)=>{const t0=base+i*864e5,past=i<today,isT=i===today,d=new Date(t0),done=gids.filter(g=>playedOn(g,t0)).length;
+    return `<div class="pd${isT?' today':past?' past':''}${past&&done===3?' full':''}"><div class="pdh"><span>${DAYN[i%7]} <b>${d.getDate()}</b></span><span class="pth">${theme}</span></div>${gids.map(g=>`<button class="pg${playedOn(g,t0)?' ok':''}" data-act="lobby" data-g="${g}" title="${GBY[g].name}">${SHORTN[g]||GBY[g].name}${playedOn(g,t0)?' ✓':''}</button>`).join('')}</div>`;}).join('');
+  const tg=PLAN[today][1],tdone=tg.filter(g=>playedOn(g,base+today*864e5)).length;
+  return `<section class="plansec"><div class="cathead"><div><div class="eyebrow">Four weeks · three games a day · week ${Math.floor(today/7)+1}, day ${today%7+1}</div><h2>Today: ${PLAN[today][0]} day${tdone===3?' · done ✓':tdone?` · ${tdone} of 3 played`:''}</h2>
+   <p>Play the three games of the day, one round each, at your current level. Mixed days spread across time, the neck and the ear; focused days go deep into one area; Saturday is for playing, Sunday is lighter. A tick appears when you have played a round that day.</p></div></div>
+   <div class="plangrid">${cells}</div></section>`;}
 /* what success means in each game, per level: clean answers (recent window), speed vs the fluency target (recall games),
    distance from the click (tapped and strummed games), time to find each next note (played games), and how much was played */
 function lvStd(gid,L){const s=STD[gid],m=lvMetrics(gid,L),med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];};if(!s)return {ok:false};
@@ -3116,7 +3135,7 @@ function skState(n){if(n.goal){const r=n.pre.every(p=>['done','std'].includes(sk
   let std=0;n.req.forEach(([g,a,b])=>{for(let L=a;L<=b;L++)if(lvStd(g,L).ok)std++;});
   return {st:std>=tot?'std':done>=tot?'done':started?'prog':n.pre.every(p=>['done','std'].includes(skState(SKBY[p]).st))?'avail':'lock',done,tot,inf,met,std,sd:stdOf(n.req.map(r=>r[0]))};}
 function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
-  const CW=204,NW=184,NH=64,RH=74,HD=30,cols=PATH.length+1,pos={};let y=0,bands='';
+  const CW=204,NW=184,NH=52,RH=62,HD=30,cols=PATH.length+1,pos={};let y=0,bands='';
   for(const [tr,tn] of SK_TRACKS){const ns=SKILLS.filter(n=>n.tr===tr),per={};ns.forEach(n=>{const c=skCol(n);per[c]=(per[c]||0)+1;});const rows=Math.max(...Object.values(per)),cnt={};
     bands+=`<div class="sk-band" style="top:${y}px;height:${HD+rows*RH+6}px"><span>${tn}</span></div>`;
     ns.forEach(n=>{const c=skCol(n),r=cnt[c]=(cnt[c]||0)+1;pos[n.id]={x:c*CW+14,y:y+HD+(r-1)*RH};});y+=HD+rows*RH+14;}
@@ -3126,8 +3145,8 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
     else{const x1=a.x+NW,y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,mx=(x1+x2)/2;d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;}
     edges+=`<path class="sk-edge${on?' on':''}${hl?' hl':''}" d="${d}"/>`;}));
   const heads=Array.from({length:cols},(_,c)=>`<div class="sk-colhead" style="left:${c*CW+14}px;width:${NW}px" title="${c<PATH.length?PATH[c].n:'Goals'}">${c<PATH.length?'Stage '+(c+1)+' · '+PATH[c].n:'Goals'}</div>`).join('');
-  const nodes=SKILLS.map(n=>{const p=pos[n.id],s=ST[n.id];return `<button class="sk-node sk-${s.st}${sel===n.id?' sel':''}" style="left:${p.x}px;top:${p.y}px;width:${NW}px;height:${NH}px" data-act="skill" data-k="${n.id}" aria-pressed="${sel===n.id}">
-    <b>${n.goal?'★ ':''}${n.n}</b>${n.goal?`<small>${s.st==='ready'?'ready · coming':'goal · coming'}</small>`:`<small class="mts">${bitsHTML(metricBits(s.met,s.sd))}</small><span class="lvrow"><span class="bar" title="levels passed (dark) and at the standard (green)"><i class="ps" style="width:${Math.round(s.done/s.tot*100)}%"></i><i style="width:${Math.round(s.std/s.tot*100)}%"></i></span><small>${s.done}/${s.tot} lv${s.std?` · ${s.std}★`:''}</small></span>`}</button>`;}).join('');
+  const nodes=SKILLS.map(n=>{const p=pos[n.id],s=ST[n.id],tip=n.goal?n.d:`${n.d} — ${metricBits(s.met,s.sd).map(b=>b.t).join(' · ')}; ${s.std}/${s.tot} levels at the master standard`;return `<button class="sk-node sk-${s.st}${sel===n.id?' sel':''}" style="left:${p.x}px;top:${p.y}px;width:${NW}px;height:${NH}px" data-act="skill" data-k="${n.id}" aria-pressed="${sel===n.id}" title="${tip.replace(/"/g,'&quot;')}">
+    <b>${n.goal?'★ ':''}${n.n}</b>${n.goal?`<small>${s.st==='ready'?'you have what it needs · coming':'goal · coming'}</small>`:(()=>{const bs=metricBits(s.met,s.sd),acc=s.met.rn?bs[0]:null;return `<small>${s.done}/${s.tot} levels${acc?` · <span class="mt ${acc.c||''}">${acc.t}</span>`:''}${s.std===s.tot?' · ★':''}</small>`;})()}</button>`;}).join('');
   let det='';
   if(sel){const n=SKBY[sel],s=ST[sel],kids=SKILLS.filter(k=>k.pre.includes(sel)),chip=k=>`<button class="sk-chip sk-${ST[k.id].st}" data-act="skill" data-k="${k.id}">${k.goal?'★ ':''}${k.n}</button>`;
     det=`<div class="panel"><div class="eyebrow">${SK_TRACKS.find(t=>t[0]===n.tr)[1]} · ${n.goal?'goal':'stage '+(skCol(n)+1)}</div><h2 style="margin:4px 0 6px">${n.goal?'★ ':''}${n.n}</h2><p style="margin:0 0 10px">${n.d}</p>
@@ -3136,12 +3155,11 @@ function vTree(){const ST={};SKILLS.forEach(n=>ST[n.id]=skState(n));
      ${n.goal?`<p class="note" style="margin-top:12px">Not playable yet: this is where the tracks lead. ${s.st==='ready'?'You have every skill it needs.':''}</p>`:`<div class="tablewrap" style="margin-top:12px"><table class="sk-lvtab"><thead><tr><th>Level</th><th class="n">Played</th><th class="n">Clean</th><th class="n">Speed / timing</th><th></th></tr></thead><tbody>${s.inf.map(x=>`<tr class="sk-game"><td colspan="5">${GBY[x.gid].name}<div class="sk-stdtxt">Standard: ${stdText(x.gid)}</div></td></tr>`+Array.from({length:x.n},(_,i)=>x.a+i).map(L=>{const m=lvMetrics(x.gid,L),bs=metricBits(m,stdOf([x.gid])),ps=lvPassed(x.gid,L),op=lvOpen(x.gid,L),cur=L===G(x.gid).lvl,at=lvStd(x.gid,L).ok;const acc=m.rn?bs[0]:null,sp=bs.find(b=>/time|ms|note|avg/.test(b.t));
        return `<tr><td><span class="${at?'sk-lvstd':ps?'sk-lvok':cur?'':'muted'}">${at?'★':ps?'✓':cur?'●':'○'} ${L} ${GBY[x.gid].levels[L-1].n}</span></td><td class="n">${m.n||'—'}</td><td class="n">${acc?bitsHTML([acc]):'—'}</td><td class="n">${sp?bitsHTML([sp]):'—'}</td><td>${op?`<button class="btn small${cur?' primary':''}" data-act="lobby" data-g="${x.gid}" data-l="${L}">Play</button>`:'<span class="muted">locked</span>'}</td></tr>`;}).join('')).join('')}</tbody></table></div>`}</div>`;}
   return `<div class="section"><h2 style="margin:0 0 4px">Skill tree</h2>
-  <p class="lobbynote">Every level of every game sits in one skill; lines show what each skill builds on (click a skill to see its links to the other tracks and play its levels).</p>
-  <p class="note sk-key">On each skill: <b>%</b> clean answers lately · <b>s</b> your typical clean-answer time (green at the game’s master speed) · <b>± ms</b> how far your notes or taps land from the click · <b>s/note</b> time to find each next note · <b>s avg</b> average answer time (shown until the timed target has data) · <b>played</b> answers so far · the bar shows levels passed (dark) and levels at the game’s <b>master standard</b> (green, ★). Each game’s standard is listed when you click a skill; a skill turns green when every level meets it. Green numbers meet the standard, red ones are well short.</p>
-  <div class="sk-legend"><span class="sk-node sk-std">at the master standard</span><span class="sk-node sk-done">all levels passed</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready to start</span><span class="sk-node sk-lock">not yet (still opens)</span><span class="sk-node sk-goal">goal · coming</span></div>
+  <p class="lobbynote">Each box is a skill made of a few game levels. Left to right is the order to learn them; a line means “builds on”. Click a box to see its levels, your numbers and the standard, and to play.</p>
+  <div class="sk-legend"><span class="sk-node sk-std">★ at the master standard</span><span class="sk-node sk-done">all levels passed</span><span class="sk-node sk-prog">in progress</span><span class="sk-node sk-avail">ready to start</span><span class="sk-node sk-lock">later</span><span class="sk-node sk-goal">★ goal (coming)</span></div>
   <div class="sk-wrap"><div class="sk-canvas" style="width:${W}px;height:${H+24}px">${heads}<div class="sk-inner" style="top:24px">${bands}<svg class="sk-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${edges}</svg>${nodes}</div></div></div>
   <div class="section" id="skdet">${det}</div></div>`;}
-function vPathPage(){return `<div class="head"><div><div class="eyebrow">Progress across all games</div><h1>Your path</h1></div></div>${vPath()}${vTree()}`;}
+function vPathPage(){return `<div class="head"><div><div class="eyebrow">What to play, and where you stand</div><h1>Your plan</h1></div></div>${vPlan()}${vTree()}`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
   return `<section class="hero"><div class="eyebrow">Guitar theory & ear drills · ${GAMES.length} games in ${CATS.length} areas · 4–14 levels each</div><h1>Know the neck. Hear the changes. Spell the chord.</h1>
   <p>Rounds of ${ROUND} questions. Each level unlocks after ${NEED}+ recent answers at ${PASS*100}% without hints. Review and preview mixing is a per-game setting. Everything that sounds is a sampled grand piano.</p>

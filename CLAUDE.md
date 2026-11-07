@@ -123,6 +123,7 @@ Serve for development: `python3 -m http.server 8765` from `src/`'s parent with `
 ```
 node tests/extract.js && node --check tests/fw.js && node tests/sweep.js   # must print bad 0
 python3 tests/screens.py                                                   # look at tests/out/*.png
+.venv/bin/python tests/pages_check.py                                      # every page, lobby and stats page rendered on the user's real data: must print all ok
 python3 build.py                                                           # refresh dist/ (embeds vendor/ too)
 .venv/bin/python tests/live_takes.py bp                                    # mic changes: live detection on the user's recordings
 git commit -am '…' && git push                                             # deploys the live site

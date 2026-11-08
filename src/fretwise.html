@@ -999,6 +999,101 @@ function earDegree(set,opts={}){return ()=>{const k=rootPick(opts.keys||EAR_KEYS
     explain:`${two?'The notes were':'The note was'} ${names.map((n,i)=>`<b>${nm(n)}</b> (${picks[i]})`).join(' then ')} against the ${keyTxt} cadence. Hear each note as its pull toward home: 7 leans up to 1, 4 falls to 3, 2 falls to 1, 6 floats above 5.`,
     hint:'Sing the tonic from the cadence first, then sing up the scale until you land on the note.'});};}
 
+/* ============ BASS & TOP (outer voices; 8 Nov 2026, from the user's teacher: hear the bass and the soprano of every chord) ============ */
+const degLab=(p,t)=>DEG_ORDER[mod(p-t,12)];
+const degSort=a=>[...new Set(a)].sort((x,y)=>DEG_ORDER.indexOf(x)-DEG_ORDER.indexOf(y));
+const CT_TENS={1:'♭9',2:'9',3:'♯9',5:'11',6:'♯11',8:'♭13',9:'13'};
+/* what a note is to its chord: a chord tone (1 3 5 7 6) or a tension (9 11 13 with its accidental) */
+function chordToneLab(semi,q){for(const x of CH[q]){if(mod(IV[x][1],12)===semi){const n=x.replace(/^[b#]/,'');return ['1','3','5','7','6'].includes(n)?n:x.replace('b','♭').replace('#','♯');}}return CT_TENS[semi]||'?';}
+const TOP_TENS={maj7:[2,9,6],'7':[2,9,1,6],m7:[2,5,9],'':[2],m:[2,5],'6':[2],m6:[2],'m7♭5':[5],dim:[],aug:[],'dim7':[],'7♭9':[1],'9':[2],'13':[9,2],'maj9':[2],'m9':[2]};
+/* pick a top note for a chord: a chord tone most of the time, a tension sometimes */
+function pickTop(ch){const tones=CH[ch.q].map(x=>mod(IV[x][1],12)).filter(s=>s!==0||Math.random()<.5),tens=(TOP_TENS[ch.q]||[]).filter(s=>!tones.includes(s));const semi=tens.length&&Math.random()<.3?R(tens):R(tones.length?tones:[0]);return {pc:mod(ch.bass+semi,12),lab:chordToneLab(semi,ch.q)};}
+function voiceTop(pcs,topPc){const top=67+mod(topPc-7,12);const inner=pcs.filter(p=>p!==topPc).map(p=>{let m=top-mod(top-p,12);if(m===top)m-=12;return m;}).filter(m=>m>top-12&&m>=55).sort((a,b)=>a-b);return {top,inner};}
+/* bass clear and low, the top voice a touch louder than the inner voices: the outer-voice polarity */
+function playOuter(chs,len=1.0,t0=0.05){let t=t0;chs.forEach(ch=>{const v=voiceTop(ch.pcs,ch.top);Piano.note(bassOf(ch.bass),t,len*1.05,0.8);if(v.inner.length)Piano.chord(v.inner,t+0.01,len*0.95,0.42,0.01);Piano.note(v.top,t+0.02,len*1.0,0.95);t+=len;});return t-t0+0.4;}
+function outerChords(k,name){const t=pc(P(k));return PROGS[name].map(([d,q])=>{const ch={pcs:CH[q].map(x=>mod(t+d+IV[x][1],12)),bass:mod(t+d,12),q,deg:d};const tp=pickTop(ch);ch.top=tp.pc;ch.topLab=tp.lab;return ch;});}
+const OUTER_KEYS=['C','F','G','Bb','D','Eb','A'],OUTER_MKEYS=['A','E','D','G','C'];
+function outerQ(kind,names){return ()=>{const name=R(names),minor=PROG_MINOR.has(name),k=rootPick(minor?OUTER_MKEYS:OUTER_KEYS),t=pc(P(k)),chs=outerChords(k,name),syms=progSyms(k,name),keyTxt=`${kname(k)} ${minor?'minor':'major'}`;
+  const bassD=chs.map(c=>degLab(c.bass,t)),topD=chs.map(c=>degLab(c.top,t)),topCT=chs.map(c=>c.topLab),n=chs.length;
+  const sum=`Bass: <b>${bassD.join(' – ')}</b> · top: <b>${topD.join(' – ')}</b> (${topCT.map((l,i)=>l==='1'?'root':l.match(/^[0-9]$/)?l+(l==='3'?'rd':'th'):l).join(', ')} of each chord) · ${syms.join(' – ')} in ${keyTxt}.`;
+  const base={key:`ou-${kind}-${name}`,sound:true,visual:listenCard(kind==='ct'||kind==='top1'?`Cadence in ${keyTxt}, then one chord`:`${n} chords in ${keyTxt}`,kind==='ct'||kind==='top1'?'a clear top note':'bass low, melody on top'),audio:()=>playOuter(chs,n>4?0.8:1.0),explain:sum,hint:'Hum the lowest note of each chord, then the highest. Each is a degree of the key; the top one is also a chord tone or tension of its chord.'};
+  const degToks=degSort(bassD.concat(topD,['1','2','3','4','5','6','7','♭7','♭6','♭3']));
+  if(kind==='bass')return Object.assign(base,{ui:'spell',tokens:degToks,answer:bassD,need:n,factor:3,label:`bass line ${bassD.join(' ')} (${progName(name)})`,prompt:`<b>${keyTxt}</b>: ${n} chords. Write the <b>bass line</b> as scale degrees, one per chord.`});
+  if(kind==='top')return Object.assign(base,{ui:'spell',tokens:degToks,answer:topD,need:n,factor:3,label:`top line ${topD.join(' ')} (${progName(name)})`,prompt:`<b>${keyTxt}</b>: ${n} chords. Write the <b>top voice</b> (the highest note of each chord) as scale degrees.`});
+  if(kind==='both')return Object.assign(base,{ui:'spell',tokens:degToks,answer:bassD.concat(topD),need:2*n,factor:4,label:`both lines of ${progName(name)}`,prompt:`<b>${keyTxt}</b>: ${n} chords. Write the <b>bass line</b> first (${n} degrees), then the <b>top voice</b> (${n} degrees).`});
+  if(kind==='top1'||kind==='ct'){const i=ri(0,n-1),ch=chs[i],cad=cadenceOf(t,minor),ans=kind==='top1'?topD[i]:topCT[i];
+    const choices=kind==='top1'?degSort(['1','2','3','4','5','6','7'].concat([ans])):mc(ans,shuffle(['1','3','5','7','9','11','13','♯11','♭9','6'].filter(x=>x!==ans)),6);
+    return A(Object.assign(base,{key:`ou-${kind}-${ans}`,answer:ans,choices,factor:2,label:kind==='top1'?`top note degree ${ans}`:`top note is the ${ans} of the chord`,
+      prompt:kind==='top1'?`A cadence in <b>${keyTxt}</b>, then one chord with a clear top note. Which <b>scale degree</b> is on top?`:`A cadence in <b>${keyTxt}</b>, then one chord. What is the top note <b>to its chord</b>: root, 3rd, 5th, 7th, or a tension?`,
+      audio:()=>{const d=playChords(cad,0.7);playOuter([ch],1.6,d+0.2);return d+2.2;},explain:`${syms[i]}: top note ${nm(degNote(P(k),topD[i]))}, degree <b>${topD[i]}</b> of ${keyTxt}, the <b>${ans==='1'?'root':ans}</b> of the chord. Tensions are intervals from the root: 9 is a 2nd an octave up, 11 a 4th, 13 a 6th.`}));}
+  if(kind==='playbass'){const mids=chs.map(c=>48+c.bass),nmz=mids.map(m=>PCN[mod(m,12)].split('/')[0]);return M(Object.assign(base,{key:`oupb-${name}`,label:`play the bass of ${progName(name)}`,target:mids,octaveFree:true,maxNotes:n,hideTarget:true,degs:bassD,names:nmz,answerText:nmz.join(' '),prompt:`<b>${keyTxt}</b>: listen, then <b>play the bass line</b> on the guitar, one note per chord (any octave).`}));}
+  if(kind==='playtop'){const mids=chs.map(c=>voiceTop(c.pcs,c.top).top),nmz=mids.map(m=>PCN[mod(m,12)].split('/')[0]);return M(Object.assign(base,{key:`oupt-${name}`,label:`play the top of ${progName(name)}`,target:mids,octaveFree:true,maxNotes:n,hideTarget:true,degs:topD,names:nmz,answerText:nmz.join(' '),prompt:`<b>${keyTxt}</b>: listen, then <b>play the top voice</b> on the guitar, one note per chord (any octave).`}));}
+  };}
+/* root motion: how the bass moves from one chord to the next (by 4ths, 3rds or steps: the convention behind pop, jazz and rock changes) */
+const MOTION_LAB=s=>s===5?'up a 4th (down a 5th)':s===7?'up a 5th (down a 4th)':s===1||s===2?'up a step':s===10||s===11?'down a step':s===3||s===4?'up a 3rd':s===8||s===9?'down a 3rd':'a tritone';
+const MOTION_ALL=['up a 4th (down a 5th)','up a 5th (down a 4th)','up a step','down a step','up a 3rd','down a 3rd','a tritone'];
+const DIA_TRI=[[0,'maj7'],[2,'m7'],[4,'m7'],[5,'maj7'],[7,'7'],[9,'m7'],[11,'m7♭5']];
+function earMotionQ(mode){return ()=>{const k=rootPick(OUTER_KEYS),t=pc(P(k));
+  if(mode==='phrase'){const type=R(Object.keys(MOTION_SETS)),name=R(MOTION_SETS[type]),chs=progChords(k,name),syms=progSyms(k,name);
+    return A({key:`mo-ph-${name}`,label:`${progName(name)} moves ${type}`,answer:type,choices:Object.keys(MOTION_SETS),factor:2.5,prompt:`<b>${kname(k)} major</b>: ${chs.length} chords. How does the <b>bass move</b> from chord to chord?`,visual:listenCard(`${chs.length} chords`,'follow the bass'),
+      audio:()=>playChords(chs,chs.length>4?0.7:0.9),explain:`${progName(name)} = ${syms.join(' – ')}: ${chs.map((c,i)=>i?MOTION_LAB(mod(c.bass-chs[i-1].bass,12)):'').filter(Boolean).join(', ')}. <b>${type}</b>. ${PROG_NOTES[name]||''}`,hint:'Sing the bass notes; is each one a leap of a 4th, a 3rd, or a neighbour?'});}
+  let a=R(DIA_TRI),b=R(DIA_TRI.filter(x=>x!==a));const semi=mod(b[0]-a[0],12),ans=MOTION_LAB(semi),chs=[a,b,a,b].map(([d,q])=>({pcs:CH[q].map(x=>mod(t+d+IV[x][1],12)),bass:mod(t+d,12)})),na=bnum(a[0],a[1]),nb=bnum(b[0],b[1]);
+  return A({key:`mo-${semi}`,label:`root motion ${ans}`,answer:ans,choices:MOTION_ALL,factor:2,prompt:`<b>${kname(k)} major</b>: two chords, twice. How does the <b>bass move</b> from the first to the second?`,visual:listenCard('Two chords, played twice','which way does the bass go?'),
+    audio:()=>playChords(chs,0.8),explain:`${na} → ${nb}: the root moves <b>${ans}</b> (${semi} half steps up). By 4ths is the cycle (jazz, blues); by 3rds the pop and doo-wop sound; by steps rock and modal music.`,hint:'Hum the first bass note, then the second; a 4th leaps, a 3rd is a short jump, a step is a neighbour.'});};}
+/* a song-like example: two four-chord clichés in a row with a melody on top; write the numerals */
+function earSongQ(){return ()=>{const k=rootPick(OUTER_KEYS),A1=R(POP_PROGS),B1=R(POP_PROGS.concat(SEV_PROGS).filter(x=>x!==A1)),chs=outerChords(k,A1).concat(outerChords(k,B1)),ans=progTokens(A1).concat(progTokens(B1)),syms=progSyms(k,A1).concat(progSyms(k,B1)),keyTxt=`${kname(k)} major`;
+  const toks=tokSort(POP_PROGS.concat(SEV_PROGS).flatMap(progTokens).concat(['I','IIm','IIIm','IV','V','VIm']));
+  return {ui:'spell',tokens:toks,answer:ans,need:ans.length,sound:true,key:`song-${A1}-${B1}`,label:`song example ${progName(A1)} + ${progName(B1)}`,factor:5,prompt:`<b>${keyTxt}</b>: eight chords with a melody on top, like a verse. <b>Write the numerals</b> in order (bass first, then quality).`,visual:listenCard('Eight chords, two phrases',keyTxt),
+    audio:()=>playOuter(chs,0.8),answerText:ans.join(' – '),explain:`<b>${ans.slice(0,4).join(' – ')}</b> | <b>${ans.slice(4).join(' – ')}</b> = ${syms.join(' – ')}. First phrase: ${PROG_NOTES[A1.replace(/\s*\(.*/,'').trim()]||progName(A1)} Second: ${PROG_NOTES[B1.replace(/\s*\(.*/,'').trim()]||progName(B1)}`,hint:'Bass first: it gives the numeral. Then the colour: major or minor; a dominant has the ♭7 on it.'};};}
+/* tensions as intervals: a 9th is a 2nd an octave up, an 11th a 4th, a 13th a 6th */
+const TENS=[['♭9',13],['9',14],['11',17],['♯11',18],['♭13',20],['13',21]];
+function earTensionQ(){return ()=>{const [lab,semi]=R(TENS),a=45+ri(0,8),b=a+semi,simple=IVL.find(x=>x[2]===semi-12)[1];
+  return A({key:`et-${lab}`,label:`${lab} above the root`,answer:lab,choices:TENS.map(x=>x[0]),factor:2,prompt:'Listen: a root, then a note more than an octave above it, then both together. Which <b>tension</b> is it?',visual:listenCard('Root, then the tension','then both together'),
+    audio:()=>{Piano.note(a,0.05,1.0,0.85);Piano.note(b,1.0,1.2,0.85);Piano.note(a,2.4,1.8,0.8);Piano.note(b,2.4,1.8,0.8);return 4.4;},explain:`${midiName(a)} to ${midiName(b)}: ${semi} half steps = <b>${lab}</b>, a ${simple} plus an octave. Hear the simple interval first, then add the octave.`,hint:'Bring the top note down an octave in your head and name that interval.'});};}
+function earTensionPlayQ(){return ()=>{const [lab,semi]=R(TENS),a=45+ri(0,8),b=a+semi,na=midiName(a).replace(/\d/,'');
+  return M({key:`etp-${lab}`,label:`play ${lab} above ${na}`,target:[a,b],octaveFree:true,maxNotes:2,hideTarget:true,names:[na,midiName(b).replace(/\d/,'')],degs:['1',lab],answerText:`${na} ${midiName(b).replace(/\d/,'')}`,prompt:`The root is <b>${na}</b>. Listen to the tension above it, then <b>play both</b>: the root, then the tension (any octave).`,visual:listenCard(`Root ${na}, then a tension`,'play root, then tension'),
+    audio:()=>{Piano.note(a,0.05,1.0,0.85);Piano.note(b,1.0,1.4,0.85);return 2.6;},explain:`${lab} above ${na} is ${midiName(b).replace(/\d/,'')}: ${IVL.find(x=>x[2]===semi-12)[1]} plus an octave.`,hint:'Find the simple interval on the neck, then the same note an octave up.'});};}
+function earTopQ(){return ()=>{const q=R(['maj7','7','m7']),root=P(rootPick(['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'])),rp=pc(root),opts={maj7:[['9',2],['♯11',6],['13',9]],'7':[['9',2],['♭9',1],['13',9],['♯11',6]],m7:[['9',2],['11',5],['13',9]]}[q],[lab,semi]=R(opts);
+  const pcs=CH[q].map(x=>mod(rp+IV[x][1],12)),v=voiceTop(pcs,mod(rp+semi,12));
+  return A({key:`etop-${q}-${lab}`,label:`${lab} on top of ${EARQ[q]}`,answer:lab,choices:['♭9','9','11','♯11','♭13','13'],factor:2,prompt:`A <b>${sym(root,q)}</b> chord with a tension as its top note. <b>Which tension</b> is on top?`,visual:listenCard(`${sym(root,q)} with a tension on top`,'root in the bass'),
+    audio:()=>{Piano.note(36+rp,0.05,2.6,0.8);Piano.chord(v.inner,0.06,2.5,0.45,0.012);Piano.note(v.top,0.08,2.6,0.95);Piano.note(36+rp,2.9,1.2,0.8);Piano.note(v.top,3.0,1.4,0.9);return 4.6;},
+    explain:`${sym(root,q)} with <b>${lab}</b> on top (${midiName(v.top).replace(/\d/,'')}): from the root ${nm(root)} that is a ${IVL.find(x=>x[2]===semi)[1]} plus an octave. Approach every tension as the interval it makes with the root.`,hint:'Sing the root (the bass), then the top note; bring it down an octave and name the simple interval.'});};}
+
+/* ============ HEAR THE MODE (8 Nov 2026) ============ */
+const MODE_CHAR={Ionian:'7',Dorian:'6',Phrygian:'♭2',Lydian:'♯4',Mixolydian:'♭7',Aeolian:'♭6',Locrian:'♭5'},MODE_CHAR_IDX={Ionian:6,Dorian:5,Phrygian:1,Lydian:3,Mixolydian:6,Aeolian:5,Locrian:4};
+const MODE_WHY={Ionian:'the plain major scale: natural 4 and 7',Dorian:'minor with a natural 6 (the bright minor)',Phrygian:'minor with a ♭2 (the Spanish colour)',Lydian:'major with a ♯4 (floating, no pull to 3)',Mixolydian:'major with a ♭7 (the dominant, blues and rock sound)',Aeolian:'natural minor: ♭3 ♭6 ♭7',Locrian:'♭2 and ♭5: no stable 5th'};
+const MAJ_OFFS=[0,2,4,5,7,9,11],MM_OFFS=[0,2,3,5,7,9,11];
+const modeOffs=(i,fam)=>{const par=fam==='mm'?MM_OFFS:MAJ_OFFS;return par.slice(i).concat(par.slice(0,i).map(x=>x+12)).map(x=>x-par[i]);};
+const charOff=(mode,offs)=>mode==='Ionian'?11:mode==='Dorian'?9:mode==='Phrygian'?1:mode==='Lydian'?6:mode==='Mixolydian'?10:mode==='Aeolian'?8:6;
+/* a drone (root and fifth, low) and a line that walks the mode and lands on its colour note, then home */
+function playMode(rm,offs,ch,len=0.38){const total=offs.length*len+2.6;Piano.note(rm-12,0.05,total,0.5);Piano.note(rm-5,0.05,total,0.35);let t=0.3;offs.concat([12]).forEach(o=>{Piano.note(rm+o,t,len*0.95,0.8);t+=len;});Piano.note(rm+ch,t+0.1,0.9,0.9);Piano.note(rm,t+1.1,1.3,0.85);return total+0.3;}
+const modeRoot=()=>{const k=rootPick(['C','D','E','F','G','A','Bb','Eb']),rp=pc(P(k));let rm=60+rp;if(rm>66)rm-=12;return {k,rp,rm};};
+function earModeQ(modes,ask){return ()=>{const mode=R(modes),i=MAJ_MODES.indexOf(mode),{k,rp,rm}=modeRoot(),offs=modeOffs(i,'maj'),ch=charOff(mode),names=modeNotes(P(k),i,'maj').map(nm);
+  const ans=ask==='char'?MODE_CHAR[mode]:mode,choices=ask==='char'?mc(ans,shuffle(['♭2','♭3','♯4','♭5','♭6','6','♭7','7'].filter(x=>x!==ans)),6):modes.slice();
+  return A({key:`em-${ask||'name'}-${mode}`,label:ask==='char'?`colour note of ${mode}`:`${mode} by ear`,answer:ans,choices,factor:2.2,
+    prompt:ask==='char'?`A drone on <b>${kname(k)}</b> and a line in one mode. Which <b>degree gives it its colour</b> (the note that tells this mode from the others)?`:`A drone on <b>${kname(k)}</b>, then a line that walks the scale and comes home. <b>Which mode</b> is it?`,visual:listenCard(`Drone on ${kname(k)}`,ask==='char'?'name the colour note':'name the mode'),
+    audio:()=>playMode(rm,offs,ch),explain:`<b>${kname(k)} ${mode}</b>: ${names.join(' ')} — ${MODE_WHY[mode]}. Colour note: <b>${MODE_CHAR[mode]}</b> (${names[MODE_CHAR_IDX[mode]]}).`,hint:'First: is the 3rd major or minor? Then listen for the one note that is not where a plain major or minor scale would put it.'});};}
+/* two-chord vamps that each belong to one mode */
+const MODE_VAMPS={Dorian:[[0,'m7'],[5,'7']],Phrygian:[[0,'m'],[1,'']],Lydian:[[0,'maj7'],[2,'']],Mixolydian:[[0,'7'],[10,'']],Aeolian:[[0,'m'],[8,''],[10,'']],Ionian:[[0,'maj7'],[5,'']]};
+function earVampQ(modes){return ()=>{const mode=R(modes),{k,rp}=modeRoot(),v=MODE_VAMPS[mode],chs=v.concat(v).map(([d,q])=>({pcs:CH[q].map(x=>mod(rp+d+IV[x][1],12)),bass:mod(rp+d,12)})),syms=v.map(([d,q])=>sym(tr(P(k),{0:1,1:2,2:2,5:4,8:6,10:7}[d],d),q));
+  return A({key:`ev-${mode}`,label:`${mode} vamp`,answer:mode,choices:modes.slice(),factor:2.2,prompt:`A two-chord vamp on <b>${kname(k)}</b>. Which <b>mode</b> does it live in?`,visual:listenCard(`Vamp on ${kname(k)}`,'name the mode'),
+    audio:()=>playChords(chs,0.8),explain:`${syms.join(' – ')} is the <b>${mode}</b> vamp: ${MODE_WHY[mode]}. The second chord carries the colour note ${MODE_CHAR[mode]}.`,hint:'Hear the first chord as home; the second chord tells you which notes the key has.'});};}
+/* one borrowed chord inside a diatonic phrase: where did the colour change, and which note is new */
+const BORROW={5:[5,'m','♭6'],7:[10,'','♭7'],9:[8,'','♭6'],2:[2,'m7♭5','♭6'],4:[3,'','♭3']};
+function earBorrowQ(ask){return ()=>{const k=rootPick(OUTER_KEYS),t=pc(P(k)),pool=[[2,'m'],[4,'m'],[5,''],[7,''],[9,'m']];let degs=[[0,'']];while(degs.length<4){const c=R(pool);if(c[0]!==degs.at(-1)[0])degs.push(c);}
+  const slots=[1,2,3].filter(j=>BORROW[degs[j][0]]);const j=R(slots),[bd,bq,note]=BORROW[degs[j][0]];const dia=degs.slice();degs=degs.map((c,i)=>i===j?[bd,bq]:c);
+  const chs=degs.map(([d,q])=>({pcs:CH[q].map(x=>mod(t+d+IV[x][1],12)),bass:mod(t+d,12)})),toks=degs.map(([d,q])=>bnum(d,q)),diaToks=dia.map(([d,q])=>bnum(d,q)),ans=ask==='note'?note:['1st','2nd','3rd','4th'][j];
+  return A({key:`eb-${ask}-${toks.join('')}`,label:ask==='note'?`borrowed note ${note}`:`borrowed chord in slot ${j+1}`,answer:ans,choices:ask==='note'?['♭3','♭6','♭7','♯4']:['1st','2nd','3rd','4th'],factor:2.2,
+    prompt:`<b>${kname(k)} major</b>: four chords, one of them <b>borrowed</b> from the parallel minor. ${ask==='note'?'Which <b>note</b> is the new colour?':'<b>Which chord</b> changed the colour?'}`,visual:listenCard(`Four chords in ${kname(k)} major`,ask==='note'?'which note is new?':'which chord is borrowed?'),
+    audio:()=>playChords(chs,0.9),explain:`${toks.join(' – ')} (diatonic would be ${diaToks.join(' – ')}): the <b>${['1st','2nd','3rd','4th'][j]}</b> chord, <b>${toks[j]}</b>, brings in <b>${note}</b> from ${kname(k)} minor. That one note is the modal change.`,hint:'Sing the major scale under the chords; the borrowed chord has a note that rubs against it.'});};}
+function earMMModeQ(){return ()=>{const picks=[['melodic minor',0],['Lydian dominant',3],['Locrian ♮2',5],['altered',6]],[mode,i]=R(picks),{k,rp,rm}=modeRoot(),offs=modeOffs(i,'mm'),ch={0:11,3:6,5:2,6:8}[i],names=modeNotes(P(k),i,'mm').map(nm);
+  return A({key:`emm-${i}`,label:`${mode} by ear`,answer:mode,choices:picks.map(p=>p[0]),factor:2.5,prompt:`A drone on <b>${kname(k)}</b> and a line from one melodic-minor mode. Which is it?`,visual:listenCard(`Drone on ${kname(k)}`,'melodic-minor modes'),
+    audio:()=>playMode(rm,offs,ch),explain:`<b>${kname(k)} ${mode}</b>: ${names.join(' ')}. ${({0:'minor 3rd with a natural 6 and 7: minor-major.',3:'Mixolydian with a ♯4: the 7♯11 sound.',5:'half-diminished with a natural 9.',6:'every alteration: ♭9 ♯9 ♯11 ♭13 over a dominant.'})[i]}`,hint:'Is the 3rd minor or major? Then find the 4th and the 7th.'});};}
+/* play the colour note of a mode over its vamp (microphone) */
+function modePlayQ(modes){return ()=>{const mode=R(modes),i=MAJ_MODES.indexOf(mode),{k,rp}=modeRoot(),v=MODE_VAMPS[mode],chs=v.concat(v).map(([d,q])=>({pcs:CH[q].map(x=>mod(rp+d+IV[x][1],12)),bass:mod(rp+d,12)})),semi=charOff(mode),m=52+mod(rp+semi-4,12),n=modeNotes(P(k),i,'maj')[MODE_CHAR_IDX[mode]];
+  return M({key:`mp-${mode}`,label:`play the colour note of ${mode}`,target:[m],octaveFree:true,maxNotes:1,hideTarget:true,degs:[MODE_CHAR[mode]],names:[nm(n)],answerText:nm(n),prompt:`A <b>${kname(k)} ${mode}</b> vamp. <b>Play the colour note</b> of the mode (degree ${MODE_CHAR[mode]}), any octave.`,visual:listenCard(`${kname(k)} ${mode} vamp`,`play degree ${MODE_CHAR[mode]}`),
+    audio:()=>playChords(chs,0.8),explain:`${kname(k)} ${mode}: the colour note is <b>${nm(n)}</b> (${MODE_CHAR[mode]}): ${MODE_WHY[mode]}.`,hint:'Find the root on the neck first, then count the degree up from it.'});};}
+
 /* ============ HEAR THE INTERVAL ============ */
 const IVL=[['m2','minor 2nd',1],['M2','major 2nd',2],['m3','minor 3rd',3],['M3','major 3rd',4],['P4','perfect 4th',5],['TT','tritone',6],['P5','perfect 5th',7],['m6','minor 6th',8],['M6','major 6th',9],['m7','minor 7th',10],['M7','major 7th',11],['P8','octave',12]];
 const IVREF={m2:'Jaws / Für Elise opening',M2:'Happy Birthday (first two notes)',m3:'Greensleeves / brahms lullaby',M3:'Oh When the Saints',P4:'Here Comes the Bride / Amazing Grace',TT:'The Simpsons / Maria',P5:'Star Wars / Twinkle Twinkle',m6:'The Entertainer (3rd–4th notes) / Love Story',M6:'My Bonnie / NBC chime',m7:'Somewhere (West Side Story)',M7:'Take On Me (chorus) / Superman (2nd–3rd)',P8:'Somewhere Over the Rainbow'};
@@ -1030,7 +1125,15 @@ const PROGS={
  'ii – V – I (plain)':[[2,'m7'],[7,'7'],[0,'maj7'],[0,'maj7']],'ii – ♭II7 – I (tritone sub)':[[2,'m7'],[1,'7'],[0,'maj7'],[0,'maj7']],'iv – ♭VII7 – I (backdoor)':[[5,'m7'],[10,'7'],[0,'maj7'],[0,'maj7']],'I – VI7 – ii – V (secondary dominant)':[[0,'maj7'],[9,'7'],[2,'m7'],[7,'7']],
  'I – vi – ii – V | iii – vi – ii – V':[[0,'maj7'],[9,'m7'],[2,'m7'],[7,'7'],[4,'m7'],[9,'m7'],[2,'m7'],[7,'7']],'I – VI7 – ii – V7 | I – VI7 – ii – V7':[[0,'maj7'],[9,'7'],[2,'m7'],[7,'7'],[0,'maj7'],[9,'7'],[2,'m7'],[7,'7']],
  'I – ♯i°7 – ii – ♯ii°7 | iii – VI7 – ii – V7':[[0,'maj7'],[1,'dim7'],[2,'m7'],[3,'dim7'],[4,'m7'],[9,'7'],[2,'m7'],[7,'7']],'I – ♭III7 – ♭VI7 – ♭II7 (Dameron turnaround)':[[0,'maj7'],[3,'7'],[8,'7'],[1,'7'],[0,'maj7'],[3,'7'],[8,'7'],[1,'7']]};
+Object.assign(PROGS,{   /* 8 Nov 2026: pop clichés and root-motion sets (teacher: progressions move by 4ths, 3rds or steps) */
+ 'vi – IV – I – V':[[9,'m'],[5,''],[0,''],[7,'']],'I – ♭VII – IV – I':[[0,''],[10,''],[5,''],[0,'']],'I – vi – IV – ii':[[0,''],[9,'m'],[5,''],[2,'m']],
+ 'IV – V – iii – vi':[[5,'maj7'],[7,'7'],[4,'m7'],[9,'m7']],'I – V – vi – iii | IV – I – IV – V':[[0,''],[7,''],[9,'m'],[4,'m'],[5,''],[0,''],[5,''],[7,'']],
+ 'vi – ii – V – I':[[9,'m7'],[2,'m7'],[7,'7'],[0,'maj7']],'iii – vi – ii – V':[[4,'m7'],[9,'m7'],[2,'m7'],[7,'7']],'I – ii – iii – IV':[[0,''],[2,'m'],[4,'m'],[5,'']],'I – ♭VII – ♭VI – ♭VII':[[0,''],[10,''],[8,''],[10,'']]});
 const PROG_MINOR=new Set(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7']);
+const POP_PROGS=['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','I – ii – V – I','I – vi – V – I','I – iii – V – I','vi – IV – I – V','I – ♭VII – IV – I','I – vi – IV – ii','IV – V – iii – vi'];
+const SEV_PROGS=['ii – V – I','I – VI7 – ii – V (secondary dominant)','iv – ♭VII7 – I (backdoor)','ii – ♭II7 – I (tritone sub)','vi – ii – V – I','iii – vi – ii – V'];
+const MIN_PROGS=['i – iv – V7 – i','i – VI – III – VII','i – ♭VII – ♭VI – V7'];
+const MOTION_SETS={'by 4ths (jazz, blues)':['vi – ii – V – I','iii – vi – ii – V'],'by 3rds (pop, doo-wop)':['I – vi – IV – ii','I – V – vi – iii | IV – I – IV – V'],'by steps (rock, modal)':['I – ii – iii – IV','I – ♭VII – ♭VI – ♭VII']};
 function progChords(k,name){const t=pc(P(k));return PROGS[name].map(([d,q])=>({pcs:CH[q].map(x=>mod(t+d+IV[x][1],12)),bass:mod(t+d,12)}));}
 function progSyms(k,name){const root=P(k),minor=PROG_MINOR.has(name);return PROGS[name].map(([d,q])=>{const n=minor?[0,2,3,5,7,8,10,11].indexOf(d):-1;let r;
   if(d===0)r=root;else{const step={1:1,2:1,3:2,4:2,5:3,7:4,8:5,9:5,10:6,11:6}[d];r=tr(root,step+1,d);if(Math.abs(r.a)>1){const e=respell(r);if(e)r=e;}}return sym(r,q);});}
@@ -1044,7 +1147,7 @@ function earProg(names,ask){return ()=>{const name=R(names),k=rootPick(names.som
     reveal:`<div class="reveal2"><div class="muted">${progName(name).replace(/\s*\(.*/,'')} in ${keyTxt}: <b>${syms.join(' – ')}</b></div></div>`,
     explain:`<b>${progName(name)}</b> in ${keyTxt}: ${syms.join(' – ')}. ${PROG_NOTES[name.replace(/\s*\(.*/,'').trim()]||''}`,
     hint:'Find the tonic first. Then ask of each chord: is the bass a step, a 4th or a 5th away from home, and is the chord major or minor?'});};}
-const PROG_NOTES={'ii – V – I':'The bass falls in 5ths: minor, dominant, home.','I – vi – IV – V':'The 50s progression: home, the relative minor, then IV–V pulls back.','I – V – vi – IV':'The pop loop: V goes up to VIm instead of home (a deceptive move).','I – IV – V – I':'Plain: subdominant, dominant, home.','ii – ♭II7 – I':'The tritone sub shares the 3rd and 7th of V7; the bass walks down by half step: D – D♭ – C.','iv – ♭VII7 – I':'Backdoor: IVm7 and ♭VII7 come from the parallel minor and resolve up a whole step.','I – VI7 – ii – V':'VI7 is V7 of IIm7: a dominant where the diatonic VIm7 would be minor.','i – iv – V7 – i':'Minor with a major V7, which uses the raised 7th of harmonic minor.','i – VI – III – VII':'Natural minor only: all diatonic, so it sounds like the relative major.','ii° – V7 – i':'The minor II–V: half-diminished (as a triad, diminished) to V7.','i – ♭VII – ♭VI – V7':'Andalusian cadence: the bass walks down by step to V.','I – ♯i°7 – ii – ♯ii°7':'Diminished passing chords fill the half steps between I, IIm and IIIm.','I – ♭III7 – ♭VI7 – ♭II7':'Each dominant is a tritone sub of the usual VI7–II7–V7 chain.','I – vi – ii – V | iii – vi – ii – V':'Two turnarounds; the second starts on IIIm7 in place of IMaj7.','I – VI7 – ii – V7 | I – VI7 – ii – V7':'Rhythm-changes style turnaround with VI7 as a secondary dominant.'};
+const PROG_NOTES={'vi – IV – I – V':'The pop loop started from VIm: the same four chords as I–V–VIm–IV, rotated.','I – ♭VII – IV – I':'Mixolydian rock: ♭VII is borrowed from the parallel minor; the bass moves by steps and 4ths.','I – vi – IV – ii':'Falling 3rds all the way: I, VIm, IV, IIm share two notes with their neighbours.','IV – V – iii – vi':'The “royal road”: IV–V then a deceptive IIIm–VIm; the bass moves a step, a 3rd down, a 4th up.','I – V – vi – iii | IV – I – IV – V':'Pachelbel: a descending 3rds sequence, I–V–VIm–IIIm, then IV–I–IV–V back home.','vi – ii – V – I':'Pure cycle of 4ths: every root rises a 4th (falls a 5th) into the next.','iii – vi – ii – V':'The turnaround as a cycle of 4ths starting on IIIm.','I – ii – iii – IV':'Stepwise: the bass walks up the scale.','I – ♭VII – ♭VI – ♭VII':'Stepwise with borrowed chords: the Aeolian rock move.','ii – V – I':'The bass falls in 5ths: minor, dominant, home.','I – vi – IV – V':'The 50s progression: home, the relative minor, then IV–V pulls back.','I – V – vi – IV':'The pop loop: V goes up to VIm instead of home (a deceptive move).','I – IV – V – I':'Plain: subdominant, dominant, home.','ii – ♭II7 – I':'The tritone sub shares the 3rd and 7th of V7; the bass walks down by half step: D – D♭ – C.','iv – ♭VII7 – I':'Backdoor: IVm7 and ♭VII7 come from the parallel minor and resolve up a whole step.','I – VI7 – ii – V':'VI7 is V7 of IIm7: a dominant where the diatonic VIm7 would be minor.','i – iv – V7 – i':'Minor with a major V7, which uses the raised 7th of harmonic minor.','i – VI – III – VII':'Natural minor only: all diatonic, so it sounds like the relative major.','ii° – V7 – i':'The minor II–V: half-diminished (as a triad, diminished) to V7.','i – ♭VII – ♭VI – V7':'Andalusian cadence: the bass walks down by step to V.','I – ♯i°7 – ii – ♯ii°7':'Diminished passing chords fill the half steps between I, IIm and IIIm.','I – ♭III7 – ♭VI7 – ♭II7':'Each dominant is a tritone sub of the usual VI7–II7–V7 chain.','I – vi – ii – V | iii – vi – ii – V':'Two turnarounds; the second starts on IIIm7 in place of IMaj7.','I – VI7 – ii – V7 | I – VI7 – ii – V7':'Rhythm-changes style turnaround with VI7 as a secondary dominant.'};
 
 /* ============ GUIDE TONES ON THE NECK ============ */
 const GT_DEG={P1:'R',m3:'♭3',M3:'3',P5:'5',d5:'♭5',A5:'♯5',m7:'♭7',M7:'7',d7:'𝄫7',M6:'6'};
@@ -1359,7 +1462,7 @@ const micLat=bp=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate,bp=!!opts.bp&&!opts.onsets&&BP.state==='ready';
   LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
     beat:opts.beat||0,beatStart:opts.beatStart||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,chord:opts.chord||0,attacks:[],curve:!!opts.curve,
-    onsets:!!opts.onsets,ons:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat(bp),bp:null};
+    onsets:!!opts.onsets,ons:[],onsLv:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat(bp),bp:null};
   if(bp){const src=c.createMediaStreamSource(MIC),C={src,sr,buf:new Float32Array(Math.ceil(sr*(LS.cap/1000+2))),n:0,off:null,busy:false,last:0,notes:[]};
     const put=d=>{const k=Math.min(d.length,C.buf.length-C.n);C.buf.set(d.subarray(0,k),C.n);C.n+=k;};
     if(BP.worklet){// sample frames map to listen time through the audio clock
@@ -1376,7 +1479,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     if(LS.onsets){const n=LS.frames.length,prev=n>=3?Math.min(LS.frames[n-1].rms,LS.frames[n-2].rms,LS.frames[n-3].rms):1;
       // the click as the mic hears it (speakers, no headphones): measured in the count-in, ignored later unless clearly louder
       const nearClick=LS.clicks.some(t=>el>=t+LS.lat-60&&el<=t+LS.lat+120);if(el<LS.calEnd&&nearClick)LS.clickPk=Math.max(LS.clickPk,r);
-      if(el>=300&&r>LS.thr&&r>1.8*prev&&el-LS.lastOn>=90&&!(nearClick&&r<LS.clickPk*1.6)){LS.ons.push(el-(LS.lat=micLat(false)));   /* re-read at each onset: the device reports its real output latency only once audio is flowing */LS.lastOn=el;}
+      if(el>=300&&r>LS.thr&&r>1.8*prev&&el-LS.lastOn>=90&&!(nearClick&&r<LS.clickPk*1.6)){LS.ons.push(el-(LS.lat=micLat(false)));LS.onsLv.push(20*Math.log10(Math.max(r,1e-6)));   /* re-read at each onset: the device reports its real output latency only once audio is flowing; the level (dBFS) for accents */LS.lastOn=el;}
       LS.frames.push({rms:r,m:null,t:el});drawLive(r);if(LS.limit?el>LS.limit:el>40000)return stopListening();requestAnimationFrame(step);return;}   // a given length rules (checkups run past 40 s)
     const C=LS.bp;
     if(C&&LS.chord){LS.frames.push({rms:r,m:null,t:el});const n=LS.frames.length,pv=n>=4?Math.min(LS.frames[n-2].rms,LS.frames[n-3].rms,LS.frames[n-4].rms):1;
@@ -2331,7 +2434,7 @@ function dyadStaff(n1,m1,n2,m2){return noteStaff(n1,m1)+noteStaff(n2,m2);}
 
 /* ============ PLAY MODE: answer mark-on-neck questions with the guitar (strict: exact pitches, low to high) ============ */
 const spotMidi=sp=>OPEN[sp.s]+sp.f;
-const PLAY_GAMES=['fretboard','hunt','sight','triads','guidetones','neckiv','drop2','shells','voicelead','walking','eardeg','chordscale','repertoire','earchord','eariv','earprog'];
+const PLAY_GAMES=['outer','earmode','fretboard','hunt','sight','triads','guidetones','neckiv','drop2','shells','voicelead','walking','eardeg','chordscale','repertoire','earchord','eariv','earprog'];
 function toPlay(q){let targets=null,how='',strum=false;
   /* every spot, string by string: the same pitch on another string is its own note, so re-attacks count (q.repeats) */
   if(q.ui==='multi'&&q.playAll){const fret=q.order==='fret',sp=q.answer.slice().sort(fret?(a,b)=>a.f-b.f||b.s-a.s:(a,b)=>b.s-a.s||a.f-b.f);
@@ -2356,6 +2459,9 @@ function playVisual(q,done){const dots=[];if(q.fixedDots)dots.push(...q.fixedDot
 /* ---- continuous level specs (used by level.c) ---- */
 const subdivBar=(M,k)=>{const on=[],ev=[],fr=k===1?[0]:k===2?[0,.5]:k===3?[0,1/3,2/3]:[0,.25,.5,.75];for(let b=0;b<M;b++)fr.forEach(f=>{on.push(b+f);ev.push({t:b+f,d:1/k,tup:k===3?b+1:undefined});});return {on,ev,label:['','quarters','eighths','triplets','sixteenths'][k]};};
 const cSub=(k,x)=>Object.assign({bar:()=>subdivBar(4,k)},x||{});
+/* accent levels (mic only): the discrete question is never played, the groove spec carries acc(bar,beat,frac) */
+function accentQ(k,strong,txt){return ()=>{const bpm=Math.min(rbpm(),140),on=[];for(let i=0;i<8;i++)for(let j=0;j<k;j++)on.push(i+j/k);
+  return T({key:`acc-${k}-${strong}`,label:`accents: ${txt}`,bpm,len:8,onsets:on,mic:true,clicks:[0,1,2,3],prompt:`Strum muted strings, ${k===1?'quarters':'eighths'}, and <b>accent ${txt}</b>.`,visual:rhySVG(subdivBar(4,k).ev,1),answerText:`${on.length} strums, ${txt} louder`,explain:`Accents are what make a rhythm speak: ${txt} louder, the rest even.`,hint:'Dig in on the strong beats and keep the others light.'});};}
 const cCells=(cells,swing,M,x)=>Object.assign({meter:M||4,swing:!!swing,bar:()=>{const r=rhyBar(cells,1,swing,M||4);return {on:r.on,ev:r.ev};}},x||{});
 const swingBar=()=>({on:[0,.67,1,1.67,2,2.67,3,3.67],ev:Array.from({length:8},(_,i)=>({t:i/2,d:.5})),label:'swing eighths'}),offBar=()=>({on:[.5,1.5,2.5,3.5],ev:[0,1,2,3].flatMap(b=>[{t:b,d:.5,rest:1},{t:b+.5,d:.5}]),label:'off-beats only'});
 const hemiBar=k=>k%2===0?{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],label:'hemiola, bar 1'}:{on:[.5,2,3.5],ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],label:'hemiola, bar 2'};
@@ -2466,7 +2572,9 @@ const GAMES=[
   {n:'Falling',d:'All intervals, descending',g:[earInterval(IVL.map(x=>x[0]),'desc')]},
   {n:'Harmonic',d:'Both notes together',g:[earInterval(IVL.map(x=>x[0]),'harm')]},
   {n:'Mixed',d:'Rising or falling, you decide which',g:[earInterval(IVL.map(x=>x[0]),'mixed'),earInterval(IVL.map(x=>x[0]),'harm')]},
-  {n:'Hear it, play it',d:'Two notes, the first one named; play both (guitar)',g:[earIvPlayQ(IVL.map(x=>x[0])),earIvPlayQ(IVL.map(x=>x[0]),'desc')]}]},
+  {n:'Hear it, play it',d:'Two notes, the first one named; play both (guitar)',g:[earIvPlayQ(IVL.map(x=>x[0])),earIvPlayQ(IVL.map(x=>x[0]),'desc')]},
+  {n:'Tensions above the root',d:'♭9 9 11 ♯11 ♭13 13: a simple interval plus an octave',g:[earTensionQ()]},
+  {n:'Play the tension',d:'The root is named; hear the tension, play both (guitar)',g:[earTensionPlayQ()]}]},
  {id:'earchord',cat:'ear',name:'Hear the Chord',area:'Chord quality',desc:'Name the quality of a chord from its sound: triads, sevenths, sixths, sus and extensions.',levels:[
   {n:'Major or minor',d:'Triads, block then broken',g:[earChord(['','m'],1)]},
   {n:'All four triads',d:'Adds diminished and augmented',g:[earChord(['','m','dim','aug'],1)]},
@@ -2476,7 +2584,8 @@ const GAMES=[
   {n:'Extensions',d:'9 · maj9 · m9 · 7♭9 · 7♯9 · 13',g:[earChord(['9','maj9','m9','7♭9','7♯9','13']),earChord(['maj7','7','m7','m7♭5','dim7','m(maj7)','6','m6'])]},
   {n:'Inversions & voicings',d:'Triad inversions by ear; drop-2 voicings in guitar range',g:[earInvQ(),earD2Q()]},
   {n:'Quality in context',d:'Which qualities did the II–V–I have?',g:[earCtxQ(),earD2Q()]},
-  {n:'Hear it, play it',d:'Hear a chord with its root given; play its notes on the guitar',g:[earChordPlayQ(['','m','dim','aug','maj7','7','m7','m7♭5','dim7'])]}]},
+  {n:'Hear it, play it',d:'Hear a chord with its root given; play its notes on the guitar',g:[earChordPlayQ(['','m','dim','aug','maj7','7','m7','m7♭5','dim7'])]},
+  {n:'Which tension is on top?',d:'maj7, 7 and m7 with 9, 11, ♯11, ♭9 or 13 as the top note',g:[earTopQ()]}]},
  {id:'earprog',cat:'ear',name:'Hear the Progression',area:'Harmonic hearing',desc:'Chords on the piano: name the progression, the chord that moved or the blues form, and write it down in Berklee numerals. Diatonic first, then the blues, minor keys, substitutions and turnarounds.',levels:[
   {n:'Four classics',d:'I–IV–V–I · I–VIm–IV–V · I–V–VIm–IV · IIm7–V7–IMaj7; name them, then write them',g:[earProg(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I']),earProg(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I']),earDictProgQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I'])]},
   {n:'Which chord moved?',d:'I – ? – V – I: IIm, IV, VIm or IIIm',g:[earProg(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'],'second'),earProg(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'],'second'),earDictProgQ(['I – ii – V – I','I – IV – V – I ','I – vi – V – I','I – iii – V – I'])]},
@@ -2488,7 +2597,28 @@ const GAMES=[
   {n:'Blues & rhythm changes',d:'All five forms: adds the minor blues and rhythm changes A',g:[earFormQ()]},
   {n:'Spot the substitute',d:'Which bar of the turnaround carries the sub?',g:[earWhichBarQ(),earFormQ()]},
   {n:'Play the bass line',d:'Hear the chords, play the root of each on the guitar',g:[earProgPlayQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I','I – ii – V – I','I – vi – V – I','I – iii – V – I','i – iv – V7 – i','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)'])]},
-  {n:'Write it down',d:'Enter the numerals in order, major and minor keys',g:[earDictProgQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I','I – ii – V – I','I – vi – V – I','I – iii – V – I']),earDictProgQ(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7'])]}]},
+  {n:'Write it down',d:'Enter the numerals in order, major and minor keys',g:[earDictProgQ(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I','I – ii – V – I','I – vi – V – I','I – iii – V – I']),earDictProgQ(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7'])]},
+  {n:'Root motion',d:'Two chords: did the bass move a 4th, a 3rd or a step? Then whole phrases by 4ths, 3rds or steps',g:[earMotionQ(),earMotionQ('phrase')]},
+  {n:'Pop clichés',d:'VIm–IV–I–V, I–♭VII–IV, falling 3rds, the royal road, Pachelbel: name them, write them',g:[earProg(['vi – IV – I – V','I – ♭VII – IV – I','I – vi – IV – ii','IV – V – iii – vi','I – V – vi – IV','I – vi – IV – V']),earDictProgQ(['vi – IV – I – V','I – ♭VII – IV – I','I – vi – IV – ii','IV – V – iii – vi','I – V – vi – iii | IV – I – IV – V'])]},
+  {n:'Song examples',d:'Eight chords with a melody on top, like a verse: write the numerals',g:[earSongQ()]}]},
+ {id:'outer',cat:'ear',name:'Bass & Top',area:'Outer voices',desc:'Chords with a clear bass and a melody note on top. Hear the bass line as degrees, the top voice as degrees, then the top note as a chord tone or tension of its chord (soprano–bass polarity). Then play both lines on the guitar.',levels:[
+  {n:'Bass line, triads',d:'Four chords from the pop set: write the bass as scale degrees',g:[outerQ('bass',POP_PROGS)]},
+  {n:'Bass line, sevenths & minor',d:'II–V–I, secondary dominants, backdoor, tritone sub, minor keys',g:[outerQ('bass',SEV_PROGS),outerQ('bass',MIN_PROGS)]},
+  {n:'The top note',d:'A cadence, then one chord: which scale degree is on top?',g:[outerQ('top1',POP_PROGS)]},
+  {n:'The top line',d:'Four chords: write the top voice as scale degrees',g:[outerQ('top',POP_PROGS),outerQ('top',SEV_PROGS)]},
+  {n:'Top note to its chord',d:'Root, 3rd, 5th, 7th, or a tension (9, 11, 13, ♯11, ♭9)?',g:[outerQ('ct',POP_PROGS.concat(SEV_PROGS))]},
+  {n:'Both voices',d:'Write the bass line, then the top line',g:[outerQ('both',POP_PROGS),outerQ('both',SEV_PROGS)]},
+  {n:'Play the bass',d:'Hear the chords, play the bass line on the guitar',g:[outerQ('playbass',POP_PROGS.concat(SEV_PROGS,MIN_PROGS))]},
+  {n:'Play the top',d:'Hear the chords, play the top voice on the guitar',g:[outerQ('playtop',POP_PROGS.concat(SEV_PROGS))]}]},
+ {id:'earmode',cat:'ear',name:'Hear the Mode',area:'Modes by ear',desc:'A drone and a line, or a two-chord vamp: name the mode, then the one note that gives it its colour. Then hear where a progression changes mode (a borrowed chord) and which note changed. Play the colour note over the vamp.',levels:[
+  {n:'Four colours',d:'Ionian, Dorian, Mixolydian, Aeolian over a drone',g:[earModeQ(['Ionian','Dorian','Mixolydian','Aeolian'])]},
+  {n:'All seven modes',d:'Adds Phrygian, Lydian, Locrian',g:[earModeQ(MAJ_MODES)]},
+  {n:'The colour note',d:'Which degree tells this mode from the others: ♭2 ♯4 ♭7 6 ♭6 …',g:[earModeQ(MAJ_MODES,'char')]},
+  {n:'Vamps',d:'Two-chord vamps: Im7–IV7 is Dorian, I7–♭VII Mixolydian, IMaj7–II Lydian…',g:[earVampQ(['Dorian','Phrygian','Lydian','Mixolydian','Aeolian','Ionian'])]},
+  {n:'Where did it change?',d:'Four chords in major, one borrowed from minor: which chord?',g:[earBorrowQ('which')]},
+  {n:'Which note changed?',d:'The borrowed chord brings in ♭3, ♭6 or ♭7: which?',g:[earBorrowQ('note'),earBorrowQ('which')]},
+  {n:'Play the colour note',d:'Hear the vamp, play the degree that makes the mode (guitar)',g:[modePlayQ(['Dorian','Phrygian','Lydian','Mixolydian','Aeolian'])]},
+  {n:'Melodic-minor modes',d:'Melodic minor, Lydian dominant, Locrian ♮2, altered over a drone',g:[earMMModeQ()]}]},
  {id:'guidetones',cat:'neck',name:'Guide Tones on the Neck',area:'Chord tones in position',desc:'Mark the 3rd and 7th (then every chord tone) of a chord inside one position, or across the whole neck.',levels:[
   {n:'Root and 3rd',d:'Major and minor, in a 5-fret position, count shown',g:[guideTonesQ(['','m'],'r3',0,1)]},
   {n:'3rd and 7th',d:'maj7 · 7 · m7 in position, count shown',g:[guideTonesQ(['maj7','7','m7'],'37',0,1)]},
@@ -2606,7 +2736,10 @@ const GAMES=[
   {n:'Drop-outs',d:'The click keeps leaving: two, four, then eight bars alone',g:[twoFourQ('drop'),twoFourQ('drop4'),twoFourQ('drop8')],c:cSub(1,{click:bar=>{const c=bar%20;return c<2||(c>=4&&c<6)||(c>=10&&c<12);},note:'The click drops out for 2, then 4, then 8 bars; keep the quarters going.'})},
   {n:'Swing and off-beats',d:'Long–short swing eighths; only the “and”',g:[subdivQ('swing'),subdivQ('off')],c:{swing:true,bar:k=>k%8<4?swingBar():offBar(),note:'Four bars of swing eighths, four bars of off-beats only, round and round.'}},
   {n:'Ahead, on, behind',d:'Place your quarters on purpose: your centre, then 20 ms ahead of it, then 25 ms behind it',g:[feelQ(0),feelQ(-20),feelQ(25)],c:cSub(1,{click:(bar,b)=>b===1||b===3,feel:bar=>[0,-20,25][Math.floor(bar/16)%3],note:'Sixteen bars each; the tile shows your lean against your own centre.'})},
-  {n:'Extremes',d:'50 bpm and 150+, eight bars each',g:[twoFourQ('slow'),twoFourQ('fast')],c:cSub(1,{click:(bar,b)=>b===1||b===3,bpm2:(bar,b0)=>bar%16<8?50:Math.max(150,b0),note:'Eight bars at 50 bpm, then eight at 150 or your tempo if higher.'})}]},
+  {n:'Extremes',d:'50 bpm and 150+, eight bars each',g:[twoFourQ('slow'),twoFourQ('fast')],c:cSub(1,{click:(bar,b)=>b===1||b===3,bpm2:(bar,b0)=>bar%16<8?50:Math.max(150,b0),note:'Eight bars at 50 bpm, then eight at 150 or your tempo if higher.'})},
+  {n:'Accent on 1',d:'Quarters, strummed: beat 1 clearly louder than 2, 3 and 4',g:[accentQ(1,'1','beat 1')],c:cSub(1,{acc:(bar,b,f)=>b===0&&f===0,note:'Strum muted strings: make beat 1 at least 5 dB louder than the other beats, and keep those even.'})},
+  {n:'Backbeat: 2 and 4',d:'Quarters, strummed: 2 and 4 louder than 1 and 3',g:[accentQ(1,'24','2 and 4')],c:cSub(1,{acc:(bar,b,f)=>(b===1||b===3)&&f===0,note:'The backbeat: 2 and 4 at least 5 dB louder than 1 and 3.'})},
+  {n:'Push: the and of 4',d:'Eighths, strummed: only the and of 4 accented',g:[accentQ(2,'a4','the and of 4')],c:cSub(2,{acc:(bar,b,f)=>b===3&&Math.abs(f-.5)<1e-6,note:'Eighths, all even, except the and of 4: that one at least 5 dB louder.'})}]},
  {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths, 12/8, then whole etudes. Tap only: the paper side (counting, dictation) is in Rhythm Theory & Dictation. Flow mode for endless reading.',levels:[
   {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)],c:cCells(['w','h','q','r','hr'])},
   {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2)],c:cCells(['q','h','qe','tie','r'])},
@@ -2752,6 +2885,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
     g.pl=(g.pl||[]).filter(e=>{if(e.n===8&&'dr' in e&&e.t<cut){rn++;if(e.ok)rc++;const lc=rl[e.lv]||(rl[e.lv]={s:0,g:0});lc[e.m?'g':'s']++;return false;}return true;});
     g.sessions=(g.sessions||[]).filter(s=>{if(s.groove&&s.t<cut){tm+=s.dur||0;return false;}return true;});g.time=Math.max(0,(g.time||0)-tm);g.n=Math.max(0,g.n-rn);g.c=Math.max(0,g.c-rc);
     if(g.lc)Object.keys(rl).forEach(L=>{if(g.lc[L]){g.lc[L].s=Math.max(0,g.lc[L].s-rl[L].s);g.lc[L].g=Math.max(0,g.lc[L].g-rl[L].g);}});g.mig={...(g.mig||{}),gh2:1};saveLocal();}
+  if(id==='pulse'&&!(g.mig&&g.mig.pu1)){g.opts=Object.assign({},g.opts||{},{tapMic:true});g.mig={...(g.mig||{}),pu1:1};saveLocal();}   /* 8 Nov 2026: strumming is the default (the keyboard has no dynamics and its own latency) */
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}
@@ -2878,33 +3012,33 @@ function quit(){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)s
    bars, the skill tree and the standards keep working. Spec: {bar(k,M)→{on:[beat offsets],ev:notation,label,chord}, click(bar,b)→bool,
    meter, bpm(user)→bpm, bpm2(bar,bpm0)→bpm per bar, extra(bar,b)→[offsets] (a high note instead of a click), feel(bar)→target ms,
    swing, ts, noTup, note}. */
-const GRV={hold:96,win:16,win2:64,max:300,lean:15,fireOn:8,mile:16};   /* hold: hits in a row to unlock (raised from 64 on 6 Nov 2026: too easy); fire from 8 in a row, milestones every 16 */
+const GRV={hold:96,win:16,win2:64,max:300,lean:15,fireOn:8,mile:16,accDb:5};   /* accDb: strong beats this much louder than the weak ones (mic levels) */   /* hold: hits in a row to unlock (raised from 64 on 6 Nov 2026: too easy); fire from 8 in a row, milestones every 16 */
 let GR=null;
 const grooveSpec=(gid,L)=>{const lv=GBY[gid]&&GBY[gid].levels[L-1];return lv&&lv.c?lv.c:null;};
 function grooveStart(gid,L){const x=GBY[gid],g=G(gid),c=grooveSpec(gid,L),o=Object.assign({},MIC_DEF,g.opts||{}),mic=!!x.mic||!!o.tapMic,bpm0=c.bpm?c.bpm(o.bpm):o.bpm,M=c.meter||4,std=(STD[gid]||{}).ab||30;
   if(S){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);S=null;}g.last=L;
-  GR={gid,L,c,M,mic,std,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,met:{},feelSet:c.feel?[...new Set(Array.from({length:64},(_,k)=>c.feel(k)))].filter(f=>f!==0):[],wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
+  GR={gid,L,c,M,mic,std,noMic:!!c.acc&&!mic,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,met:{},feelSet:c.feel?[...new Set(Array.from({length:64},(_,k)=>c.feel(k)))].filter(f=>f!==0):[],wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
   let t=0;const nb=Math.ceil(GRV.max*Math.max(bpm0,160)/60)+8;for(let i=0;i<nb;i++){const bar=Math.floor(i/M),b=i%M,bpm=c.bpm2?c.bpm2(bar,bpm0):bpm0,dur=60000/bpm;GR.beats.push({i,t,bar,b,dur,bpm,click:c.click?!!c.click(bar,b):true,extra:c.extra?c.extra(bar,b):null});t+=dur;}
   grooveBars(8);view={name:'groove'};render();Piano.load();}
 function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.length;if(!GR.beats[k*GR.M])break;const bar=GR.c.bar(k,GR.M);GR.bars.push(bar);
-  (bar.on||[]).forEach(o=>{const bi=k*GR.M+Math.floor(o+1e-6),frac=o-Math.floor(o+1e-6),bt=GR.beats[bi];if(!bt)return;GR.onsets.push({t:bt.t+frac*bt.dur,bar:k,o,hit:null,off:null,tap:null});});}}
+  (bar.on||[]).forEach(o=>{const bi=k*GR.M+Math.floor(o+1e-6),frac=o-Math.floor(o+1e-6),bt=GR.beats[bi];if(!bt)return;GR.onsets.push({t:bt.t+frac*bt.dur,bar:k,o,hit:null,off:null,tap:null,lv:null,acc:GR.c.acc?(GR.c.acc(k,Math.floor(o+1e-6),frac)?1:0):0});});}}
 const grooveTol=()=>tapTol(60/GR.bpm)*1000;
 /* the click reaches the ears this much after it is scheduled: reported by the audio device, not inferred from the player */
 function outLat(){try{const c=Piano.ac();return Math.round(((c.outputLatency||0)+(c.baseLatency||0))*1000);}catch(e){return 0;}}
-function grooveGo(){if(!GR||GR.started)return;const go=()=>{if(!GR||GR.started)return;const lead=600;
+function grooveGo(){if(!GR||GR.started||GR.noMic)return;const go=()=>{if(!GR||GR.started)return;const lead=600;
     if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t);startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
     GR.lat=GR.raw?0:outLat();   /* read once the audio device is running: before that the browser reports a smaller number */
     GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.wall=Date.now();GR.ons=0;render();grooveLoop();};
   if(GR.mic)ensureMic().then(ok=>{if(!ok){GR.mic=false;}Piano.ready?go():Piano.load().then(go);});else Piano.ready?go():Piano.load().then(go);}
 function grooveSched(now){const c=Piano.ac(),ac0=c.currentTime,horizon=now+4000;for(;GR.sched<GR.beats.length;GR.sched++){const b=GR.beats[GR.sched];if(b.t>horizon)break;const at=ac0+(b.t-now)/1000;if(at<ac0-0.05)continue;
     if(b.click)Piano.tick(at-ac0,b.b===0);if(b.extra)b.extra.forEach(f=>Piano.note(79,at-ac0+f*b.dur/1000,0.18,0.55));}}
-function grooveMatch(t){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
+function grooveMatch(t,lv){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
   for(let i=Math.max(0,GR.res-4);i<GR.onsets.length&&!best;i++){const o=GR.onsets[i];if(o.hit===null&&Math.abs(t-o.t)<=tol){best=o;break;}}
-  if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;}else{GR.extras.push(t);GR.hold=0;}}
+  if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;best.lv=lv==null?null:lv;}else{GR.extras.push(t);GR.hold=0;}}
 function grooveHit(){if(!GR||!GR.started)return;grooveMatch(performance.now()-GR.t0-GR.lat);const b=document.getElementById('gtap');if(b){b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),90);}}
 function grooveLoop(){if(!GR||!GR.started||GR.done)return;GR.raf=requestAnimationFrame(grooveLoop);const now=performance.now()-GR.t0;grooveSched(now);
   if(!GR.raw&&now<3000){const l=outLat();if(l!==GR.lat){GR.lat=l;const el=document.getElementById('glat');if(el)el.textContent=`tap · click reaches you ${l} ms late, taps corrected by −${l} ms`;}}   /* the device reports its real latency only once audio is flowing */
-  if(GR.mic&&LS){while(GR.ons<LS.ons.length){grooveMatch(LS.ons[GR.ons]-(GR.t0-LS.t0));GR.ons++;}}
+  if(GR.mic&&LS){while(GR.ons<LS.ons.length){grooveMatch(LS.ons[GR.ons]-(GR.t0-LS.t0),LS.onsLv[GR.ons]);GR.ons++;}}
   const tol=grooveTol();GR.bi=Math.max(0,Math.floor(now/((60000/GR.bpm)*GR.M)));grooveBars(8);
   /* resolve expected hits whose window has passed */
   while(GR.res<GR.onsets.length&&GR.onsets[GR.res].t+tol<now){const o=GR.onsets[GR.res];if(o.hit===null)o.hit=false;GR.res++;grooveRecord(o);}
@@ -2923,7 +3057,10 @@ function grooveRecord(o){const g=G(GR.gid),st=GR.stats;
 /* what the unlock needs now: 64 in a row, tightness over them within the standard; feel levels also every ahead/behind target placed */
 function grooveMeets(){const n=Math.min(GR.hold,GRV.hold),hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit),t=hs.length>=4?spread(hs.map(adjOff)):null,h16=hs.slice(-GRV.win),t16=h16.length>=4?spread(h16.map(adjOff)):null;
   const feelOk=!GR.c.feel||GR.feelSet.every(f=>GR.met[f]),tight=t!==null&&t<=GR.std,end=t16!==null&&t16<=GR.std;   /* tight over the whole run and still tight at its end */
-  return {t,t16,n:hs.length,tight,end,feelOk,ok:GR.hold>=GRV.hold&&tight&&end&&feelOk};}
+  const acc=GR.c.acc?accentDb(hs):null,accOk=!GR.c.acc||(acc!==null&&acc>=GRV.accDb);
+  return {t,t16,n:hs.length,tight,end,feelOk,acc,accOk,ok:GR.hold>=GRV.hold&&tight&&end&&feelOk&&accOk};}
+/* accent: mean level of the strong hits minus the weak ones, dB (null until four of each were heard) */
+function accentDb(hs){const s=hs.filter(o=>o.acc&&o.lv!=null).map(o=>o.lv),w=hs.filter(o=>!o.acc&&o.lv!=null).map(o=>o.lv);if(s.length<4||w.length<4)return null;const m=a=>a.reduce((x,y)=>x+y,0)/a.length;return m(s)-m(w);}
 function grooveUnlock(){const g=G(GR.gid);if(!GR.unlocked&&GR.hold>=GRV.hold&&grooveMeets().ok&&g.lvl===GR.L&&GR.L<GBY[GR.gid].levels.length){g.lvl++;GR.unlocked=true;saveGame(GR.gid);render();}}
 function grooveLean(n){const hs=GR.onsets.slice(Math.max(0,GR.res-n),GR.res).filter(o=>o.hit);return hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null;}
 /* People tapping to a click land 20–60 ms before it while feeling dead on: tightness is the spread around the window's own mean,
@@ -2933,14 +3070,14 @@ const adjOff=o=>o.off-(GR.c.feel?GR.c.feel(o.bar):0);
 const spread=offs=>{if(!offs.length)return 0;const m=offs.reduce((a,b)=>a+b,0)/offs.length;return offs.reduce((a,b)=>a+Math.abs(b-m),0)/offs.length;};
 function grooveStats(){const st=GR.stats,w=n=>{const os=GR.onsets.slice(Math.max(0,GR.res-n),GR.res),hs=os.filter(o=>o.hit);return {t:hs.length?spread(hs.map(adjOff)):null,l:hs.length?hs.reduce((a,o)=>a+o.off,0)/hs.length:null,miss:os.length-hs.length,n:os.length};},a=w(GRV.win),b=w(GRV.win2);
   st.t16=a.t;st.l16=a.l;st.miss16=a.miss;st.t64=b.t;st.l64=b.l;st.miss64=b.miss;st.n=GR.res;st.hits=GR.onsets.slice(0,GR.res).filter(o=>o.hit).length;
-  const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold'),mt=grooveMeets();if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';hb.className=mt.t===null||(mt.tight&&mt.end)?'good':'';}
-  const hc=document.getElementById('gholdc');if(hc)hc.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold} in a row · tightness over them ${mt.t===null?'—':Math.round(mt.t)+' ms'}, over the last ${GRV.win} ${mt.t16===null?'—':Math.round(mt.t16)+' ms'} (need ≤ ${GR.std} ms)${GR.c.feel?` · ${GR.feelSet.map(f=>`${fmtMs(f)} ${GR.met[f]?'✓':GR.met[f]===false?'✗':'…'}`).join(' ')}`:''}`;const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
+  const el=document.getElementById('gstats');if(el)el.innerHTML=grooveStatsHTML();const hb=document.getElementById('ghold'),mt=grooveMeets();if(hb){hb.style.width=Math.min(100,GR.hold/GRV.hold*100)+'%';hb.className=mt.t===null||(mt.tight&&mt.end&&mt.accOk)?'good':'';}
+  const hc=document.getElementById('gholdc');if(hc)hc.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold} in a row · tightness over them ${mt.t===null?'—':Math.round(mt.t)+' ms'}, over the last ${GRV.win} ${mt.t16===null?'—':Math.round(mt.t16)+' ms'} (need ≤ ${GR.std} ms)${GR.c.acc?` · accent ${mt.acc===null?'—':(mt.acc>=0?'+':'')+mt.acc.toFixed(1)+' dB'} (need ≥ ${GRV.accDb})`:''}${GR.c.feel?` · ${GR.feelSet.map(f=>`${fmtMs(f)} ${GR.met[f]?'✓':GR.met[f]===false?'✗':'…'}`).join(' ')}`:''}`;const ht=document.getElementById('gholdt');if(ht)ht.textContent=`${Math.min(GR.hold,GRV.hold)}/${GRV.hold}`;
   const nb=document.getElementById('gnow');if(nb)nb.innerHTML=grooveNowHTML();fireSync();}
 const fmtMs=v=>v==null?'—':(v>0?'+':v<0?'−':'')+Math.abs(Math.round(v))+' ms';
 function grooveStatsHTML(){const st=GR.stats,c=(v,lim)=>v==null?'':v<=lim?'good':v>lim*2?'bad':'';
   return `<div class="tile" title="average distance of each hit from your own lean"><span>Tightness · last 16</span><b class="${c(st.t16,GR.std)}">${st.t16==null?'—':Math.round(st.t16)+' ms'}</b></div><div class="tile"><span>Tightness · last 64</span><b class="${c(st.t64,GR.std)}">${st.t64==null?'—':Math.round(st.t64)+' ms'}</b></div>
    ${GR.feel!=null&&GR.feel!==0?`<div class="tile" title="your lean now minus your centre (measured in the dead-centre bars)"><span>vs your centre (aim ${fmtMs(GR.feel)})</span><b class="${st.l16!=null&&GR.base!=null?(Math.abs(st.l16-GR.base-GR.feel)<=GRV.lean?'good':'bad'):''}">${GR.base==null||st.l16==null?'—':fmtMs(st.l16-GR.base)}</b></div>`:`<div class="tile" title="where you sit against the click: − before it, + after it. Shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on"><span>Lean · last 16${GR.feel===0?' (your centre)':''}</span><b>${fmtMs(st.l16)}</b></div>`}<div class="tile"><span>Missed · last 16</span><b class="${st.miss16?'bad':'good'}">${st.miss16}</b></div>
-   <div class="tile"><span>Hits</span><b>${st.hits}/${st.n}</b></div><div class="tile"><span>Extra hits</span><b class="${GR.extras.length?'bad':''}">${GR.extras.length}</b></div>`;}
+   ${GR.c.acc?(()=>{const a=accentDb(GR.onsets.slice(Math.max(0,GR.res-GRV.win),GR.res).filter(o=>o.hit));return `<div class="tile" title="strong hits minus weak hits, mean level in dB over the last 16"><span>Accent · last 16</span><b class="${a===null?'':a>=GRV.accDb?'good':'bad'}">${a===null?'—':(a>=0?'+':'')+a.toFixed(1)+' dB'}</b></div>`;})():''}<div class="tile"><span>Hits</span><b>${st.hits}/${st.n}</b></div><div class="tile"><span>Extra hits</span><b class="${GR.extras.length?'bad':''}">${GR.extras.length}</b></div>`;}
 function grooveNowHTML(){const k=GR.bi,bar=GR.bars[k],nx=GR.bars[k+1];if(!bar)return '';const o={swing:GR.c.swing,meter:GR.M,ts:GR.c.ts,noTup:GR.c.noTup};
   return `<div class="gbars"><div class="gbar now">${bar.chord?`<div class="gchord">${bar.chord}</div>`:''}${bar.ev?rhySVG(bar.ev,1,o):''}<div class="muted" style="font-size:12px">${bar.label||''}</div></div>${nx?`<div class="gbar next">${nx.chord?`<div class="gchord">${nx.chord}</div>`:''}${nx.ev?rhySVG(nx.ev,1,o):''}<div class="muted" style="font-size:12px">next${nx.label?': '+nx.label:''}</div></div>`:''}</div>`;}
 /* the sliding timeline: the last 2.5 bars to the left of “now”, the next 1.5 to the right */
@@ -2961,13 +3098,13 @@ const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
   steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['sing',3,5],['eariv',6,8],['triads',10,11],['sight',10,13],['pulse',10,11],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',6,8],['triads',10,11],['sight',10,13],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,10],['earprog',6,14],['outer',7,8],['earmode',4,7],['eariv',9,10],['eardeg',8,9],['sing',6,9],['cr',7,10],['triads',12,13],['neckiv',4,7],['guidetones',5,6],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
-  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,8],['drop2',13,14],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11]]}];
+  steps:[['chordscale',5,7],['spelling',9,10],['shells',5,8],['drop2',13,14],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11],['earmode',8,8]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
    Four tracks; each node bundles level ranges from one or more games, all in one PATH stage (its column). pre = skills it builds on.
    Locks are soft: a locked skill still opens. Goals are the payoff skills that still need a feature (shown as “coming”).
@@ -2983,7 +3120,7 @@ const SKILLS=[
  {id:'r2',tr:'time',n:'Reading II',d:'3/4 and 2/4, triplets, syncopation, tapped.',req:[['rhyread',6,9]],pre:['r1']},
  {id:'y2',tr:'time',n:'Rhythm on paper II',d:'Counting syncopation, dictation with triplets, swing vocabulary.',req:[['rhytheory',5,7]],pre:['y1']},
  {id:'k1',tr:'time',n:'First comping',d:'Freddie Green four and the Charleston, strummed to the click.',req:[['comping',1,2]],pre:['t2']},
- {id:'t5',tr:'time',n:'Time feel',d:'Ahead, on and behind the beat on purpose; 50 and 240 bpm.',req:[['pulse',10,11]],pre:['t3']},
+ {id:'t5',tr:'time',n:'Time feel & accents',d:'Ahead, on and behind the beat on purpose; 50 and 150 bpm; accents on 1, on 2 and 4, on the and of 4 (strummed).',req:[['pulse',10,14]],pre:['t3']},
  {id:'r3',tr:'time',n:'Reading III',d:'Sixteenths, dotted eighths, 12/8, eight-bar etudes.',req:[['rhyread',10,14]],pre:['r2']},
  {id:'y3',tr:'time',n:'Dictation III',d:'Swing and sixteenth figures written from hearing.',req:[['rhytheory',8,9]],pre:['y2']},
  {id:'j1',tr:'time',n:'Jazz cells',d:'Charleston and its displacements, pushes, dotted chains, quarter-note triplets, phrase placement.',req:[['jazzrhy',1,6]],pre:['r2','t3','y2']},
@@ -3037,12 +3174,19 @@ const SKILLS=[
  {id:'h12',tr:'harm',n:'Hear sevenths & cadences',d:'The seventh qualities by ear; minor progressions and II–V–I substitutes.',req:[['earchord',3,4],['earprog',4,5]],pre:['h8','c3']},
  {id:'h13',tr:'harm',n:'Substitutions',d:'Secondary dominants, tritone subs, backdoor, borrowed and passing chords; full analysis.',req:[['analysis',8,12]],pre:['h11']},
  {id:'h14',tr:'harm',n:'Chord–scale',d:'The scale for each chord, modes in a key, melodic-minor modes.',req:[['chordscale',1,4]],pre:['h11','h5']},
- {id:'h15',tr:'harm',n:'Hear everything',d:'Sixths, sus, extensions, voicings by ear; turnarounds, forms and dictation of changes.',req:[['earchord',5,9],['earprog',6,11]],pre:['h12']},
+ {id:'h15',tr:'harm',n:'Hear everything',d:'Sixths, sus, extensions, voicings and the tension on top by ear; turnarounds, forms, root motion, pop clichés and song examples written down.',req:[['earchord',5,10],['earprog',6,14]],pre:['h12']},
  {id:'h16',tr:'harm',n:'Long dictation',d:'Chromatic degrees, bass lines and five-note lines.',req:[['eardeg',8,9]],pre:['h6']},
  {id:'h17',tr:'harm',n:'First tunes',d:'Blues in F and B♭, minor and Bird blues, rhythm changes.',req:[['repertoire',1,3]],pre:['h11']},
  {id:'h18',tr:'harm',n:'Sing lines',d:'Chromatic degrees, short lines, bass and guide-tone lines.',req:[['sing',6,9]],pre:['h10']},
  {id:'h19',tr:'harm',n:'Advanced scales',d:'Symmetric and bebop scales, harmonic minor over V, avoid notes.',req:[['chordscale',5,7]],pre:['h14']},
  {id:'h20',tr:'harm',n:'Standards',d:'The first eight bars of six standards; which form, what comes next, numerals.',req:[['repertoire',4,8]],pre:['h17','h13']},
+ {id:'h21',tr:'harm',n:'Bass lines by ear',d:'The bass of four chords as scale degrees: triads, sevenths, minor keys.',req:[['outer',1,2]],pre:['h2']},
+ {id:'h22',tr:'harm',n:'Outer voices',d:'The top note as a degree and as a chord tone or tension; both lines written.',req:[['outer',3,6]],pre:['h21','h12']},
+ {id:'h23',tr:'harm',n:'Outer voices played',d:'Play the bass line and the top voice of what you hear.',req:[['outer',7,8]],pre:['h22']},
+ {id:'h24',tr:'harm',n:'Modes by ear I',d:'Ionian, Dorian, Mixolydian, Aeolian; all seven; the colour note.',req:[['earmode',1,3]],pre:['h8']},
+ {id:'h25',tr:'harm',n:'Modes by ear II',d:'Vamps, borrowed chords: where the mode changed and which note; play the colour note.',req:[['earmode',4,7]],pre:['h24','h14']},
+ {id:'h26',tr:'harm',n:'Melodic-minor modes by ear',d:'Melodic minor, Lydian dominant, Locrian ♮2, altered.',req:[['earmode',8,8]],pre:['h25','h19']},
+ {id:'h27',tr:'harm',n:'Tensions as intervals',d:'♭9 9 11 ♯11 ♭13 13 above a root, heard and played.',req:[['eariv',9,10]],pre:['h9']},
  {id:'hg',tr:'harm',goal:true,n:'Learn a standard by ear',d:'Hear a tune’s changes and melody and write them down. Needs the tune-learning workflow.',pre:['h20','h15']}];
 const SKBY=Object.fromEntries(SKILLS.map(n=>[n.id,n]));
 const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
@@ -3052,7 +3196,7 @@ const skCol=n=>n.goal?PATH.length:Math.max(...n.req.map(([g,a])=>stageOf(g,a)));
    A level is at standard when its accuracy and its game's speed measure (when the level has one) both meet it; a skill is green when all its levels are. */
 const STD_N=12;
 /* guitar speed standards (seconds) where the game has no own: rt = from listening to your first right note or strum, gp = from one played note to the next */
-const GSTD={chordscale:{gp:1.2},repertoire:{rt:4,gp:3},earchord:{gp:1.5},eariv:{gp:1.5},earprog:{gp:2},fretboard:{rt:2},sight:{rt:3,gp:1.5},hunt:{rt:2.5},triads:{rt:4},drop2:{rt:5},shells:{rt:4,gp:2.5},guidetones:{rt:2.5,gp:1.5},neckiv:{rt:2.5,gp:1.5},voicelead:{rt:3,gp:1.5},walking:{gp:1.2},eardeg:{rt:3},cr:{rt:3,gp:1.2},arp:{rt:2.5}};
+const GSTD={outer:{rt:3,gp:2},earmode:{rt:3},chordscale:{gp:1.2},repertoire:{rt:4,gp:3},earchord:{gp:1.5},eariv:{gp:1.5},earprog:{gp:2},fretboard:{rt:2},sight:{rt:3,gp:1.5},hunt:{rt:2.5},triads:{rt:4},drop2:{rt:5},shells:{rt:4,gp:2.5},guidetones:{rt:2.5,gp:1.5},neckiv:{rt:2.5,gp:1.5},voicelead:{rt:3,gp:1.5},walking:{gp:1.2},eardeg:{rt:3},cr:{rt:3,gp:1.2},arp:{rt:2.5}};
 const gStd=gid=>({rt:(GSTD[gid]||{}).rt||3,gp:(STD[gid]&&STD[gid].gp)||(GSTD[gid]||{}).gp||1.5});
 const STD={
  fretboard:{acc:.95,flu:.6,why:'name any note on the neck instantly'},
@@ -3063,6 +3207,7 @@ const STD={
  spelling:{acc:.95,flu:.6,ex:'about 1.4 s for a triad, 1.9 s for a seventh chord, 2.3 s for a 9th chord, root given',why:'any chord spelled from memory as fast as you can say it'},
  drop2:{acc:.9,flu:.5,why:'name and place every drop-2 grip in any key'},
  eardeg:{acc:.9,why:'hear every degree in a key the first time'},
+ outer:{acc:.9,why:'hear the bass and the top of every chord as degrees'},earmode:{acc:.9,why:'name a mode and its colour note at once'},
  eariv:{acc:.9,why:'name any interval by ear, rising, falling or together'},
  earchord:{acc:.9,why:'name a chord quality on first hearing'},
  earprog:{acc:.85,why:'follow and write down the changes of a progression'},
@@ -3091,11 +3236,11 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
    Weeks vary so every game comes round and the essentials recur weekly. Day index = days since the plan was first opened, modulo 28. */
 const PLAN=[
  ['Mixed',['pulse','fretboard','eardeg']],['Reading',['sight','rhyread','rhytheory']],['Harmony',['spelling','intervals','triads']],['Ear',['eariv','earchord','sing']],['Jazz',['shells','jazzrhy','arp']],['Play',['cr','comping','hunt']],['Review',['earprog','analysis','bends']],
- ['Mixed',['pulse','hunt','eariv']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','drop2']],['Ear',['eardeg','earprog','sing']],['Jazz',['voicelead','jazzrhy','walking']],['Play',['cr','comping','bends']],['Review',['sight','rhytheory','chordscale']],
- ['Mixed',['pulse','fretboard','earchord']],['Reading',['sight','rhyread','rhytheory']],['Chords',['triads','shells','drop2']],['Ear',['eariv','eardeg','sing']],['Jazz',['arp','chordscale','repertoire']],['Play',['cr','comping','hunt']],['Review',['intervals','analysis','earprog']],
- ['Mixed',['pulse','hunt','eardeg']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','voicelead']],['Ear',['earchord','earprog','sing']],['Jazz',['shells','jazzrhy','walking']],['Play',['cr','comping','bends']],['Repertoire',['repertoire','drop2','arp']]];
+ ['Mixed',['pulse','hunt','eariv']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','drop2']],['Ear',['eardeg','outer','sing']],['Jazz',['voicelead','jazzrhy','walking']],['Play',['cr','comping','bends']],['Review',['sight','rhytheory','chordscale']],
+ ['Mixed',['pulse','fretboard','earchord']],['Reading',['sight','rhyread','rhytheory']],['Chords',['triads','shells','drop2']],['Ear',['eariv','earmode','sing']],['Jazz',['arp','chordscale','repertoire']],['Play',['cr','comping','hunt']],['Review',['intervals','analysis','earprog']],
+ ['Mixed',['pulse','hunt','eardeg']],['Neck',['fretboard','neckiv','guidetones']],['Harmony',['spelling','analysis','voicelead']],['Ear',['earchord','outer','earmode']],['Jazz',['shells','jazzrhy','walking']],['Play',['cr','comping','bends']],['Repertoire',['repertoire','drop2','arp']]];
 const DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const SHORTN={analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
+const SHORTN={outer:'Bass & Top',earmode:'Modes by ear',analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
 /* ticks are the user's own: STORE.plan[i] = [bool,bool,bool] per session; nothing is tracked by date */
 const planTicks=i=>((STORE.plan||{})[i])||[false,false,false];
 /* ============ VIEWS ============ */
@@ -3300,7 +3445,7 @@ function vGroove(){const x=GBY[GR.gid],lv=x.levels[GR.L-1],g=G(GR.gid);
    <div class="gholdwrap"><span class="eyebrow">Hold to unlock</span><div class="bar2"><i id="ghold" class="good" style="width:${Math.min(100,GR.hold/GRV.hold*100)}%"></i></div><span id="gholdc" class="muted" style="font-size:12px"></span></div>
    <canvas id="gtl" class="gtl" width="900" height="110"></canvas>
    <div class="big gstats" id="gstats">${grooveStatsHTML()}</div>
-   <div class="ctrls">${GR.started?(GR.mic?`<span class="status live">Listening… strum on the hits</span>`:`<button class="btn rec big tapbtn" id="gtap" data-act="gtap">TAP (Space)</button>`):`<button class="btn primary big" data-act="gstart">▶ Start (Space)</button>`}<button class="btn" data-act="gend">End session</button><span class="muted" style="font-size:12px"><span id="glat">${GR.mic?'microphone (corrected by the device’s reported latency)':GR.raw?'tap · raw, no correction':GR.lat?`tap · click reaches you ${GR.lat} ms late, taps corrected by −${GR.lat} ms`:'tap · no output latency reported yet'}</span> · ends by itself after ${GRV.max/60} min</span></div>
+   <div class="ctrls">${GR.noMic?`<span class="status">This level listens for how hard you play: it needs the microphone. Turn on <b>Strum muted strings</b> in the lobby.</span>`:GR.started?(GR.mic?`<span class="status live">Listening… strum on the hits</span>`:`<button class="btn rec big tapbtn" id="gtap" data-act="gtap">TAP (Space)</button>`):`<button class="btn primary big" data-act="gstart">▶ Start (Space)</button>`}<button class="btn" data-act="gend">End session</button><span class="muted" style="font-size:12px"><span id="glat">${GR.mic?'microphone (corrected by the device’s reported latency)':GR.raw?'tap · raw, no correction':GR.lat?`tap · click reaches you ${GR.lat} ms late, taps corrected by −${GR.lat} ms`:'tap · no output latency reported yet'}</span> · ends by itself after ${GRV.max/60} min</span></div>
    ${micErr&&GR.mic?`<div class="warn">${micErr}</div>`:''}</section>`;}
 function vPathPage(){return `<div class="head"><div><div class="eyebrow">What to play, and where you stand</div><h1>Plan</h1></div></div>${vPlan()}${vTree()}`;}
 function vHome(){let N=0,Cc=0,sess=0,T=0;GAMES.forEach(x=>{const g=G(x.id);N+=g.n;Cc+=g.c;sess+=g.sessions.length;T+=g.time;});const only=view.cat||null;
@@ -3363,6 +3508,12 @@ const LESSONS={
  drop2:{how:['Learn the four inversions of Cmaj7 on strings 2–5 first; everything else is a small change from them.','Name each grip “from close”: which close inversion it was dropped from.','Play the II–V–I combos from your sheet slowly, holding common tones.'],
   rules:['Seventh chords have four positions: root, 1st (3rd in the bass), 2nd (5th), 3rd (7th in the bass, e.g. C7/B♭).','On the neck: find the root first (it is not always the lowest string), then the 3rd and the 7th.','Drop-2 lowers the second voice from the top of a close voicing by an octave.','Quality changes move single notes: maj7 → 7 lowers the 7th one fret; 7 → m7 lowers the 3rd one fret; m7 → m7♭5 lowers the 5th.','Each chord has four inversions on each string set; the top note is the one you hear as melody.','In II–V–I, voices move by step or hold: the 7th of each chord falls to the 3rd of the next.'],
   take:'Drop-2 is the standard four-note comping and chord-melody voicing. With four inversions per set you can play any chord under any melody note.'},
+ outer:{how:['Hum the lowest note of each chord first: the bass gives the numeral.','Then hum the highest note: that is the melody the chord carries.','Name the top note twice: as a degree of the key, and as what it is to its chord (3rd, 7th, 9th…).','Bass and top move against each other: when they go in opposite directions the progression sings.'],
+  rules:['The bass is the root most of the time; when it is not, you hear an inversion.','Chord tones on top sound settled; tensions (9, 11, 13) float and want to move.','A 9th is a 2nd an octave up, an 11th a 4th, a 13th a 6th: hear tensions as intervals from the root.','The outer voices are what a listener hears first: melody and bass, soprano and bass.'],
+  take:'Hearing the outer voices is how you follow a song you have never seen: the bass tells you the chords, the top tells you the melody’s place in them.'},
+ earmode:{how:['First decide: is the 3rd major or minor? That halves the choices.','Then hunt for the one note that is not where plain major or minor puts it: ♯4, ♭2, ♭7, a natural 6 in minor.','In a vamp, hear the first chord as home and ask what notes the second chord adds.','When one chord in a phrase sounds darker, a note was borrowed from the parallel minor: find it.'],
+  rules:['Ionian: major. Lydian: major with ♯4. Mixolydian: major with ♭7.','Aeolian: natural minor. Dorian: minor with a natural 6. Phrygian: minor with ♭2. Locrian: ♭2 and ♭5.','Each mode has one colour note; the rest is major or minor.','Borrowed chords (IVm, ♭VII, ♭VI, IIm7♭5, ♭III) bring ♭3, ♭6 or ♭7 into a major key.'],
+  take:'Modes are colours: once you can hear which note makes the colour, you can hear a tune change mode on one chord, and play that note on purpose.'},
  eardeg:{how:['After the cadence, sing the tonic before you answer.','Walk up or down the scale from the tonic to the note, in your head or out loud.','Feel the pull: each degree has its own tension.'],
   rules:['1 is home; 3 and 5 are stable; 2, 4 and 6 lean on their neighbours.','7 pulls up to 1; 4 pulls down to 3; 6 falls to 5; 2 resolves to 1 or 3.','♭3 and ♭7 are the blue notes; ♯4 leans hard up to 5.','In minor, 3 is ♭3 and 6 is ♭6; a raised 7 means harmonic minor.'],
   take:'Hearing degrees is the core of playing by ear: once you know where a note sits in the key, you can play what you hear.'},
@@ -3454,7 +3605,7 @@ const LOBBY_NOTES={
 <p><b>9. Minor II–V–I.</b> IIm7♭5 – V7(♭9) – Im7: the m7♭5 in front of a dominant tells you the target is minor.</p>
 <p><b>Order of work:</b> write the key → write each root as a numeral → mark the qualities → circle anything non-diatonic → name it by what it resolves to.</p></details>`,
  voicelead:'Guide tones are the 3rd and 7th. From chord to chord they move by the smallest step: the 7th falls a half step to the next 3rd; the 3rd stays and becomes the next 7th.',
- pulse:'Continuous: the click never stops. The hold bar counts hits in a row without a miss or an extra; the level unlocks when your tightness over that run, and over its last 16 hits, is within the standard (the average spread around your own placement: a moving average, not hit by hit). The fire shows the run. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
+ pulse:'Continuous: the click never stops. Strumming muted strings into the mic is the default: a keyboard has no dynamics and adds its own delay; the mic hears how hard you play, which the accent levels (12–14) need. The hold bar counts hits in a row without a miss or an extra; the level unlocks when your tightness over that run, and over its last 16 hits, is within the standard (the average spread around your own placement: a moving average, not hit by hit). The fire shows the run. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
  rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
  rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click, every note for its written length; you write the bar value by value (w h q e s, dot, rest, triplet, tie) and it is drawn as you go. Graded on the sound: where the notes start and where the silences are, so a tie and a longer value both count.',
  jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};

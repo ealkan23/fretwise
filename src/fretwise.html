@@ -637,6 +637,8 @@ function altExplain(root,q,ns){const M=chord(root,''),R=nm(root),sp=a=>a.map(nm)
   if(q==='aug')return `${maj} → raise the 5th (${nm(M[2])}→${nm(ns[2])}) → <b>${sp(ns)}</b>.`;
   if(q==='sus2'||q==='sus4')return `${maj} → replace the 3rd with the ${q==='sus2'?'2nd':'4th'} (${nm(ns[1])}) → <b>${sp(ns)}</b>. No 3rd, so neither major nor minor.`;
   if(q==='add9')return `${maj} + the 9th (${nm(ns[3])}), no 7th → <b>${sp(ns)}</b>.`;
+  const EXT_BASE={'9':'7',m9:'m7',maj9:'maj7','11':'7',m11:'m7','13':'7','7♭9':'7','7♯9':'7'};   /* extensions: the seventh chord plus its tensions (9 Nov 2026: this branch was missing and L9 threw silently) */
+  if(EXT_BASE[q]){const b=EXT_BASE[q],B=chord(root,b),ext=iv=>({M9:'9th',m9:'♭9',A9:'♯9',P11:'11th',A11:'♯11',M13:'13th',m13:'♭13'})[iv]||iv;return `${R}${b} = <b>${sp(B)}</b>, + the ${CH[q].slice(B.length).map(ext).join(' and ')}: ${sp(ns.slice(B.length))} → <b>${sp(ns)}</b>. Guitarists usually drop the 5th (and the root when a bass plays it) to make room.`;}
   const t=TRI_OF[q],T=chord(root,t);return `${R}${t} triad ${t===''?'':`(${maj}, ${t==='m'?'lower the 3rd':'lower the 3rd and 5th'}) `}= <b>${sp(T)}</b>, + the ${ADDED[q]}: ${nm(ns[3])} → <b>${sp(ns)}</b>.`;}
 /* spell a chord note by note (ui 'spell'). cycle: roots come around the cycle of fourths, one per question */
 function recallQ(qs,roots,max,o={}){return ()=>{let root,q,ns;

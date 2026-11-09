@@ -77,6 +77,9 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
 /* the plan: 28 days of three existing games, every game at least once, no game twice in a day */
 {const seen=new Set();if(PLAN.length!==28){bad++;console.log('PLAN days',PLAN.length);}PLAN.forEach(([th,gs],i)=>{if(gs.length!==3||new Set(gs).size!==3){bad++;console.log('PLAN day',i,gs);}gs.forEach(g=>{if(!GBY[g]){bad++;console.log('PLAN unknown game',g);}seen.add(g);});});
  GAMES.forEach(x=>{if(!seen.has(x.id)){bad++;console.log('PLAN never plays',x.id);}});}
+/* full notes under every lesson card: present, at least three sections, Berklee numerals only, no code leaks */
+GAMES.forEach(x=>{const N=LESSON_NOTES[x.id];if(!N||N.length<3){bad++;console.log('LESSON_NOTES missing/short',x.id);return;}const txt=' '+N.map(n=>n.h+' '+n.p.map(p=>Array.isArray(p)?p.join(' '):p).join(' ')).join(' ')+' ';
+  const lc=txt.match(/[^A-Za-z](ii|iii|iv|vi|vii)[^A-Za-z]/);if(lc){bad++;console.log('LESSON_NOTES lower-case numeral',x.id,lc[0]);}if(/[^A-Za-z]undefined[^A-Za-z]|[^A-Za-z]NaN[^A-Za-z]|=>|function[(]/.test(txt)){bad++;console.log('LESSON_NOTES code leak',x.id);}});
 /* continuous levels: every spec yields sane bars (hits ascending inside the bar, notation present), clicks boolean, tempos numeric */
 GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.meter||4;for(let k=0;k<24;k++){let b;try{b=c.bar(k,M);}catch(e){bad++;console.log('GROOVE throws',x.id,i+1,e.message);return;}
   if(!b||!Array.isArray(b.on)||!Array.isArray(b.ev)){bad++;console.log('GROOVE bar shape',x.id,i+1,k);return;}for(let j=0;j<b.on.length;j++){const o=b.on[j];if(!(o>=0&&o<M)||(j&&o<=b.on[j-1])){bad++;console.log('GROOVE hits',x.id,i+1,k,JSON.stringify(b.on));return;}}

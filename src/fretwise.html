@@ -3266,14 +3266,15 @@ function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.len
 const grooveTol=()=>tapTol(60/GR.bpm)*1000;
 /* the click reaches the ears this much after it is scheduled: reported by the audio device, not inferred from the player */
 function outLat(){try{const c=Piano.ac();return Math.round(((c.outputLatency||0)+(c.baseLatency||0))*1000);}catch(e){return 0;}}
-function grooveGo(){if(!GR||GR.started||GR.noMic)return;const go=()=>{if(!GR||GR.started)return;const lead=600;
-    if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t);startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
+function grooveGo(){if(!GR||GR.started||GR.noMic)return;const go=()=>{if(!GR||GR.started)return;const cin=GR.M*GR.beats[0].dur,lead=600+cin;   /* one empty bar of clicks (1-2-3-4) before the first written bar: time to hear the tempo, and for the audio device to report its real latency */
+    GR.cin=cin;
+    if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t).concat(Array.from({length:GR.M},(_,i)=>600+i*GR.beats[0].dur));startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
     GR.lat=GR.raw?0:outLat();   /* read once the audio device is running: before that the browser reports a smaller number */
-    GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.wall=Date.now();GR.ons=0;render();grooveLoop();};
+    GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.wall=Date.now();GR.ons=0;{const off=(GR.t0-performance.now()-cin)/1000;for(let i=0;i<GR.M;i++)Piano.tick(Math.max(0,off+i*GR.beats[0].dur/1000),i===0);}render();grooveLoop();};
   if(GR.mic)ensureMic().then(ok=>{if(!ok){GR.mic=false;}Piano.ready?go():Piano.load().then(go);});else Piano.ready?go():Piano.load().then(go);}
 function grooveSched(now){const c=Piano.ac(),ac0=c.currentTime,horizon=now+4000;for(;GR.sched<GR.beats.length;GR.sched++){const b=GR.beats[GR.sched];if(b.t>horizon)break;const at=ac0+(b.t-now)/1000;if(at<ac0-0.05)continue;
     if(b.click)Piano.tick(at-ac0,b.b===0);if(b.extra)b.extra.forEach(f=>Piano.note(79,at-ac0+f*b.dur/1000,0.18,0.55));}}
-function grooveMatch(t,lv,press){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
+function grooveMatch(t,lv,press){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();if(t<-tol)return;   /* during the count-in nothing is expected and nothing counts */let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
   for(let i=Math.max(0,GR.res-4);i<GR.onsets.length&&!best;i++){const o=GR.onsets[i];if(o.hit===null&&Math.abs(t-o.t)<=tol){best=o;break;}}
   if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;best.lv=lv==null?null:lv;if(press&&GR.holdLen&&best.dur!=null&&best.dur>=GR_LEN.from)GR.heldOn=best;}else{GR.extras.push(t);grooveBreak(GR.bi+1);}}
 /* the run of clean bars breaks: the next bar starts a new one */
@@ -3341,6 +3342,7 @@ function grooveDraw(now){const cv=document.getElementById('gtl');if(!cv)return;c
     if(o.hit&&o.tap!=null&&(GR.heldOn===o||o.len)){const a=X(o.tap),b=GR.heldOn===o?X(now):X(o.tap+(o.len==='short'?Math.min(o.dur*beat*GR_LEN.min,o.dur*beat):o.dur*beat));ctx.fillStyle=col('--fg');ctx.globalAlpha=0.5;ctx.fillRect(a,y-11,Math.max(2,b-a),3);ctx.globalAlpha=1;}}
   for(const o of GR.onsets){if(o.t<x0-beat||o.t>x0+span+beat)continue;const x=X(o.t),y=H/2-6;ctx.beginPath();ctx.arc(x,y,6,0,6.283);ctx.fillStyle=o.hit===null?col('--sunk'):o.hit?(Math.abs(o.off)<=GR.std?col('--good'):col('--brass')):col('--bad');ctx.fill();ctx.strokeStyle=col('--fg');ctx.lineWidth=1;ctx.stroke();
     if(o.hit){const tx=X(o.tap);ctx.fillStyle=col('--fg');ctx.beginPath();ctx.arc(tx,y-14,3,0,6.283);ctx.fill();}}
+  if(now<0&&GR.cin){const d=GR.beats[0].dur,k=Math.max(1,Math.min(GR.M,Math.floor((now+GR.cin)/d)+1));ctx.fillStyle=col('--brass');ctx.font='700 30px sans-serif';ctx.textAlign='center';ctx.fillText(Array.from({length:GR.M},(_,i)=>i+1===k?`[${i+1}]`:String(i+1)).join('   '),W/2,H/2+4);ctx.font='12px sans-serif';ctx.fillStyle=col('--muted');ctx.fillText('count-in: listen, come in on the next 1',W/2,H-6);}
   for(const t of GR.extras){if(t<x0-beat||t>x0+span+beat)continue;ctx.fillStyle=col('--bad');ctx.beginPath();ctx.arc(X(t),H/2-20,3,0,6.283);ctx.fill();}
   const nx=X(now);ctx.strokeStyle=col('--brass');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(nx,4);ctx.lineTo(nx,H-16);ctx.stroke();}
 function grooveEnd(quiet){if(!GR)return;const g=G(GR.gid),st=GR.stats;cancelAnimationFrame(GR.raf);if(LS)stopListening(true);Piano.tickStop();Piano.hush();GR.done=true;GR.started=false;

@@ -3282,20 +3282,34 @@ function grooveStart(gid,L){const x=GBY[gid],g=G(gid),c=grooveSpec(gid,L),o=Obje
   if(S){cancelAnimationFrame(raf);clearTimeout(autoT);tapAbort();if(LS)stopListening(true);S=null;}g.last=L;
   GR={gid,L,c,M,mic,std,noMic:!!c.acc&&!mic,holdLen:!mic&&(gid==='rhyread'||gid==='jazzrhy'),heldOn:null,lenBad:0,holdFrom:0,barDone:0,bpm:bpm0,beats:[],onsets:[],extras:[],bars:[],bi:0,t0:0,started:false,done:false,hold:0,best:0,unlocked:false,res:0,win:[],sched:0,raw:!!o.raw,lat:o.raw?0:outLat(),feel:c.feel?c.feel(0):null,base:null,feelAt:0,met:{},feelSet:c.feel?[...new Set(Array.from({length:64},(_,k)=>c.feel(k)))].filter(f=>f!==0):[],wall:0,stats:{t16:null,l16:0,t64:null,l64:0,miss16:0,hits:0,n:0},sum:null};
   let t=0;const nb=Math.ceil(GRV.max*Math.max(bpm0,160)/60)+8;for(let i=0;i<nb;i++){const bar=Math.floor(i/M),b=i%M,bpm=c.bpm2?c.bpm2(bar,bpm0):bpm0,dur=60000/bpm;GR.beats.push({i,t,bar,b,dur,bpm,click:c.click?!!c.click(bar,b):true,extra:c.extra?c.extra(bar,b):null});t+=dur;}
-  grooveBars(8);view={name:'groove'};render();Piano.load();}
+  grooveBars(8);view={name:'groove'};render();Piano.load().then(()=>{if(GR)grooveWake(true);});}   /* wake the output device as soon as the level opens */
 function grooveBars(ahead){while(GR.bars.length<GR.bi+ahead){const k=GR.bars.length;if(!GR.beats[k*GR.M])break;const bar=GR.c.bar(k,GR.M);GR.bars.push(bar);
   (bar.on||[]).forEach(o=>{const bi=k*GR.M+Math.floor(o+1e-6),frac=o-Math.floor(o+1e-6),bt=GR.beats[bi];if(!bt)return;const ev=(bar.ev||[]).find(e=>!e.rest&&Math.abs(e.t-o)<1e-6);GR.onsets.push({t:bt.t+frac*bt.dur,bar:k,o,hit:null,off:null,tap:null,lv:null,dur:ev?ev.d:null,len:null,acc:GR.c.acc?(GR.c.acc(k,Math.floor(o+1e-6),frac)?1:0):0});});}}
 const grooveTol=()=>tapTol(60/GR.bpm)*1000;
 /* the click reaches the ears this much after it is scheduled: reported by the audio device, not inferred from the player */
 function outLat(){try{const c=Piano.ac();return Math.round(((c.outputLatency||0)+(c.baseLatency||0))*1000);}catch(e){return 0;}}
-function grooveGo(){if(!GR||GR.started||GR.noMic)return;const go=()=>{if(!GR||GR.started)return;const cin=GR.M*GR.beats[0].dur,lead=600+cin;   /* one empty bar of clicks (1-2-3-4) before the first written bar: time to hear the tempo, and for the audio device to report its real latency */
-    GR.cin=cin;
-    if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t).concat(Array.from({length:GR.M},(_,i)=>600+i*GR.beats[0].dur));startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
-    GR.lat=GR.raw?0:outLat();   /* read once the audio device is running: before that the browser reports a smaller number */
-    GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.wall=Date.now();GR.ons=0;{const off=(GR.t0-performance.now()-cin)/1000;for(let i=0;i<GR.M;i++)Piano.tick(Math.max(0,off+i*GR.beats[0].dur/1000),i===0);}render();grooveLoop();};
-  if(GR.mic)ensureMic().then(ok=>{if(!ok){GR.mic=false;}Piano.ready?go():Piano.load().then(go);});else Piano.ready?go():Piano.load().then(go);}
-function grooveSched(now){const c=Piano.ac(),ac0=c.currentTime,horizon=now+4000;for(;GR.sched<GR.beats.length;GR.sched++){const b=GR.beats[GR.sched];if(b.t>horizon)break;const at=ac0+(b.t-now)/1000;if(at<ac0-0.05)continue;
-    if(b.click)Piano.tick(at-ac0,b.b===0);if(b.extra)b.extra.forEach(f=>Piano.note(79,at-ac0+f*b.dur/1000,0.18,0.55));}}
+/* Starting cleanly (11 Nov 2026, user: “the beginnings are still bugging”). Three things are settled BEFORE the count-in begins:
+   the audio context is running and its clock is advancing; the output device is awake (grooveWake keeps a just-audible-to-nobody signal going from the
+   moment the level opens: an idle device swallows or delays the first sounds); and the reported output latency has stopped changing. Then every click,
+   the count-in included, goes through one scheduler on one clock mapping (grooveSched), a fraction of a second ahead. */
+function grooveWake(on){try{const c=Piano.ac();if(on){if(GRW)return;const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let k=0;k<d.length;k++)d[k]=(Math.random()*2-1)*0.0004;const n=c.createBufferSource(),g=c.createGain();n.buffer=b;n.loop=true;g.gain.value=1;n.connect(g).connect(c.destination);n.start();GRW={n,g};}else if(GRW){GRW.n.stop();GRW.g.disconnect();GRW=null;}}catch(e){GRW=null;}}
+let GRW=null;
+function grooveGo(){if(!GR||GR.started||GR.noMic||GR.arming)return;GR.arming=true;const st=document.querySelector('[data-act=gstart]');if(st){st.disabled=true;st.textContent='Get ready…';}
+  const go=()=>{if(!GR||GR.started)return;const cin=GR.M*GR.beats[0].dur,lead=500+cin;   /* one empty bar of clicks (1-2-3-4) before the first written bar */
+    GR.cin=cin;GR.cinT=Array.from({length:GR.M},(_,i)=>({t:-cin+i*GR.beats[0].dur,done:false,acc:i===0}));GR.syn=[];
+    if(GR.mic){const clk=GR.beats.filter(b=>b.click).map(b=>lead+b.t).concat(GR.cinT.map(x=>lead+x.t));startListening(()=>{},9999,{onsets:true,limit:GRV.max*1000+lead+1500,clicks:clk,calEnd:lead});if(!LS){GR.mic=false;}}
+    GR.lat=GR.raw?0:outLat();GR.t0=(GR.mic&&LS?LS.t0:performance.now())+lead;GR.started=true;GR.arming=false;GR.wall=Date.now();GR.ons=0;render();grooveLoop();};
+  /* wait until the audio clock moves and the latency figure has been the same for a quarter of a second (1.5 s at most) */
+  const settle=()=>{const c=Piano.ac(),t00=performance.now();let lastT=c.currentTime,moved=0,lat=outLat(),same=performance.now();grooveWake(true);
+    const w=()=>{if(!GR||GR.started)return;const now=performance.now(),l=outLat();if(c.currentTime>lastT){moved++;lastT=c.currentTime;}if(l!==lat){lat=l;same=now;}
+      if((moved>=3&&now-same>=250&&now-t00>=300)||now-t00>1500)return go();requestAnimationFrame(w);};(c.state==='suspended'?c.resume():Promise.resolve()).then(w,w);};
+  const begin=()=>Piano.ready?settle():Piano.load().then(settle);if(GR.mic)ensureMic().then(ok=>{if(!ok){GR.mic=false;}begin();});else begin();}
+/* one clock mapping for every click: audio time = performance time + off, where off is the largest recent (currentTime − performance.now()) —
+   currentTime only moves in steps of a few ms, so the largest value is the one read just after a step, i.e. the true offset */
+function grooveSched(now){const c=Piano.ac(),o=c.currentTime-performance.now()/1000;GR.syn.push(o);if(GR.syn.length>120)GR.syn.shift();const off=Math.max(...GR.syn),rel=t=>(GR.t0+t)/1000+off-c.currentTime,horizon=now+350;
+  for(const x of GR.cinT){if(x.done||x.t>horizon)continue;x.done=true;const r=rel(x.t);if(r>-0.03)Piano.tick(Math.max(0,r),x.acc);}
+  for(;GR.sched<GR.beats.length;GR.sched++){const b=GR.beats[GR.sched];if(b.t>horizon)break;const r=rel(b.t);if(r<-0.05)continue;
+    if(b.click)Piano.tick(Math.max(0,r),b.b===0);if(b.extra)b.extra.forEach(f=>Piano.note(79,Math.max(0,r+f*b.dur/1000),0.18,0.55));}}
 function grooveMatch(t,lv,press){if(!GR||!GR.started||GR.done)return;const tol=grooveTol();if(t<-tol)return;   /* during the count-in nothing is expected and nothing counts */let best=null,bd=1e9;for(let i=Math.max(0,GR.res-4);i<GR.onsets.length;i++){const o=GR.onsets[i];if(o.hit!==null||o.t>t+tol)break;const d=Math.abs(t-o.t);if(d<bd&&d<=tol){bd=d;best=o;}}
   for(let i=Math.max(0,GR.res-4);i<GR.onsets.length&&!best;i++){const o=GR.onsets[i];if(o.hit===null&&Math.abs(t-o.t)<=tol){best=o;break;}}
   if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;best.lv=lv==null?null:lv;if(press&&GR.holdLen&&best.dur!=null&&best.dur>=GR_LEN.from)GR.heldOn=best;}else{GR.extras.push(t);grooveBreak(GR.bi+1);}}
@@ -3399,7 +3413,7 @@ function grooveDraw(now){const cv=document.getElementById('gtl');if(!cv)return;c
   if(now<0&&GR.cin){const d=GR.beats[0].dur,k=Math.max(1,Math.min(GR.M,Math.floor((now+GR.cin)/d)+1));ctx.fillStyle=col('--brass');ctx.font='700 30px sans-serif';ctx.textAlign='center';ctx.fillText(Array.from({length:GR.M},(_,i)=>i+1===k?`[${i+1}]`:String(i+1)).join('   '),W/2,H/2+4);ctx.font='12px sans-serif';ctx.fillStyle=col('--muted');ctx.fillText('count-in: listen, come in on the next 1',W/2,H-6);}
   for(const t of GR.extras){if(t<x0-beat||t>x0+span+beat)continue;ctx.fillStyle=col('--bad');ctx.beginPath();ctx.arc(X(t),H/2-20,3,0,6.283);ctx.fill();}
   const nx=X(now);ctx.strokeStyle=col('--brass');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(nx,4);ctx.lineTo(nx,H-16);ctx.stroke();}
-function grooveEnd(quiet){if(!GR)return;const g=G(GR.gid),st=GR.stats;cancelAnimationFrame(GR.raf);if(LS)stopListening(true);Piano.tickStop();Piano.hush();GR.done=true;GR.started=false;
+function grooveEnd(quiet){grooveWake(false);if(!GR)return;const g=G(GR.gid),st=GR.stats;cancelAnimationFrame(GR.raf);if(LS)stopListening(true);Piano.tickStop();Piano.hush();GR.done=true;GR.started=false;
   const n=Math.floor(GR.res/8),wall=Date.now()-(GR.wall||Date.now());if(n>0){const c=(g.hist[GR.L]||[]).slice(-n).filter(Boolean).length;const dur=activeMs(wall,n*8);g.sessions.push({t:Date.now(),L:GR.L,n,c,ms:0,dur,wall,sc:0,mode:GR.mic?'play':'mark',groove:1});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;}
   runDone(GR.gid,n>=4);const mt=grooveMeets(),sum={L:GR.L,hits:st.hits,n:st.n,t64:st.t64,l64:st.l64,best:GR.best,unlocked:GR.unlocked,extras:GR.extras.length,secs:Math.round(wall/1000),ht:mt.t,ht16:mt.t16,std:GR.std,feelOk:mt.feelOk};saveGame(GR.gid);const gid=GR.gid;GR=null;if(!quiet){view={name:'lobby',gid,gsum:sum};render();window.scrollTo(0,0);}}
 /* ============ THE PATH (Nov 2026): one curriculum across the games ============

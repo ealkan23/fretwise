@@ -310,6 +310,8 @@ html.hubon{overflow:hidden}#hub{position:fixed;inset:0;z-index:1;pointer-events:
 @media (max-width:820px){.metwrap{grid-template-columns:1fr}.metleft{position:static}}
 .poswrap{display:grid;gap:4px;margin:6px 0}.posbox{width:100%;max-width:420px;display:block}.pb-wood{fill:var(--wood)}.pb-fret{stroke:var(--wood-line);stroke-width:2}.pb-str{stroke:var(--string);stroke-width:1.2}.pb-lab,.pb-num{fill:var(--muted);font-size:11px;text-anchor:middle}.pb-dot{fill:var(--pearl)}.pb-root,.pb-home{fill:var(--brass)}.pb-t{font-size:10px;font-weight:700;text-anchor:middle;fill:#17131f}
 .bx-l{stroke:var(--muted);stroke-width:1.2}.bx-fr{fill:var(--muted);font-size:12px;text-anchor:end}.bx-x{fill:var(--bad);font-size:13px;text-anchor:middle}.bx-dot{fill:var(--pearl)}.bx-root{fill:var(--brass)}.bx-t{font-size:9.5px;font-weight:700;text-anchor:middle;fill:#17131f}
+.chatbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:0 0 14px;display:grid;gap:8px}.chathead{display:flex;gap:10px;align-items:center}.chathead b{display:block;font-family:var(--f-display);letter-spacing:.06em;text-transform:uppercase;font-size:17px}.chathead .muted{font-size:12px}.chatspr{width:56px;flex:none}
+.chatlog{max-height:300px;overflow:auto;display:grid;gap:8px;padding:4px 2px}.chatmsg{max-width:82%;padding:8px 11px;border-radius:12px;font-size:14px;line-height:1.45}.chatmsg.me{justify-self:end;background:var(--brass-soft);border:1px solid var(--brass)}.chatmsg.them{justify-self:start;background:#f4efe2;color:#17131f;border:2px solid #17131f}.chatmsg.them.muted{color:#5b5366}
 .runrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0}.runrow s{opacity:.5}.runbar span{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.runbar .btn{padding:6px 12px;border-radius:8px;font-weight:700;border:1px solid var(--fg)}.runbar .btn.primary{background:var(--fg);color:var(--bg)}.runbar .btn.ghost{background:transparent;color:inherit}.badges{display:inline-flex;gap:6px;flex-wrap:wrap;margin:6px 0}.badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}.badge.b-life{border-color:var(--good);color:var(--good)}.badge.b-warm{border-color:var(--brass);color:var(--brass)}.badge.b-once{border-color:var(--muted)}.badge.b-core{background:var(--sunk);color:var(--fg)}.badge.b-done{background:var(--good);color:#fff;border-color:var(--good)}.badgetxt{font-size:12px;max-width:70ch}.pgsub s{opacity:.6}.inputneed span{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.inputneed .btn{background:var(--fg);color:var(--bg);border:1px solid var(--fg);padding:6px 12px;border-radius:8px;font-weight:700}.tokkeys{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.rwbar{margin:6px 0 10px}.rwbar svg.rhy{max-width:720px}.rwempty{opacity:.55}.rwstat{font-size:13px;margin-top:4px;min-height:18px}.key.rwv{padding:4px 8px;min-width:0}.key.rwv svg.cell{height:40px;width:auto;display:block;max-width:none}.rwtog{flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.key.tok{min-width:72px;padding:0 10px}
 .spkeys{display:grid;gap:8px;margin-top:6px}.sprow{display:grid;grid-template-columns:72px repeat(7,minmax(0,1fr));gap:8px;align-items:center}.sprow .key{margin:0}.splab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .bendsvg{width:100%;max-width:600px;display:block;margin:8px 0}.bend-band{fill:var(--good-soft)}.bend-zero{stroke:var(--line);stroke-dasharray:3 3}.bend-line{fill:none;stroke:var(--brass);stroke-width:2.5}.bend-lab{font-size:11px;fill:var(--muted)}
@@ -3808,7 +3810,7 @@ function vMetro(){const c=metCfg(),M=MET_METERS[c.meter],on=MET&&MET.on,styles=O
    during play; the long talk is built from the player's data (masterFacts → masterTalk), and rewritten by Claude when an API key is set (masterAI). */
 const FRAMES=['idle','cheer','wince','talk','angry','amazed'];
 const MASTERS={
- rhythm:{n:'Bongi',spr:'rhythm',pos:[350,735],h:176,role:'Rhythm & Time',
+ rhythm:{n:'Bongi',spr:'rhythm',pos:[350,725],h:138,role:'Rhythm & Time',
   voice:'a playful street-percussionist monkey behind a pair of bongos. Short, punchy sentences with a beat to them; teases kindly; everything is about feel, the pocket, counting out loud, the body keeping time.',
   say:{ok:['In the pocket!','Tight!','That one sat right.','Groovin’.'],miss:['Ooh, that one fell off the beat.','Count it out loud.','Easy. Feel the one.'],streak:['Now you are cooking!','Do not stop, do not stop!'],unlock:['New level! Drum roll!'],start:['Count it in. One, two…'],end:['Good sweat.','We go again tomorrow.']}},
  neck:{n:'John',spr:'neck',pos:[440,545],h:186,role:'Fretboard',
@@ -3908,6 +3910,33 @@ async function masterAI(cat){const key=aiKey();if(!key||AI.busy[cat])return null
   try{const out=await aiCall({model:AI.model,max_tokens:4000,output_config:{effort:'low'},system:aiSystem(cat),messages:[{role:'user',content:'Here is what the data shows today:\n'+JSON.stringify(facts)}]},key);
     const m=out.match(/^MOOD:\s*(cheer|talk|wince|angry|amazed)\s*\n+([\s\S]+)$/i),res={sig,mood:m?m[1].toLowerCase():'talk',text:(m?m[2]:out).trim(),ai:true};if(res.text.length<40)throw new Error('The answer was empty.');
     cache[cat]=res;try{localStorage.setItem(AI.cache,JSON.stringify(cache));}catch(e){}AI.err='';return res;}catch(e){AI.err=e.message||'The request failed.';return null;}finally{AI.busy[cat]=false;}}
+
+/* ---- ask the master (10 Nov 2026, user request): a chat on every game's level page. The section's master answers questions about that game as an AI agent:
+   the system prompt carries the game's levels, its lesson card and full notes, and the player's own numbers in it. Needs the API key; history is kept per game for the session. ---- */
+const CHAT={};
+const chatOf=gid=>CHAT[gid]||(CHAT[gid]={msgs:[],draft:'',busy:false,err:''});
+function chatSystem(gid){const x=GBY[gid],M=MASTERS[x.cat],L=LESSONS[gid],N=LESSON_NOTES[gid]||[],g=G(gid);
+  return `You are ${M.n}, the master of ${M.role} in Fretwise, a guitar practice game played by one student: Emir, an aspiring jazz guitarist. You are ${M.voice}
+He is on the page of the game “${x.name}” and asks you questions. Answer as a real master of this subject would: correct, concrete, practical, in your own voice. Keep it short: usually 40 to 110 words, plain text, no markdown, no lists unless he asks for steps. If he asks how the game works, use the game facts below. If he asks about his playing, use only the numbers below and never invent any. If a question is outside music, bring him back to the guitar in one line.
+Conventions: scale degrees as numbers; Roman numerals upper case in Berklee form (IIm7, V7, IMaj7); note names with ♯ and ♭.
+
+THE GAME: ${x.name} — ${x.desc}
+Levels: ${x.levels.map((l,i)=>`${i+1}. ${l.n}: ${l.d}`).join(' | ')}
+A level opens when his last ${NEED}+ answers at the level before are ${Math.round(PASS*100)}% clean${x.levels.some(l=>l.c)?' (in this game: 24 clean bars in a row with steady timing)':''}. It is ${x.mic?'played into the microphone':x.tap?'tapped or strummed in time':'answered on screen, and where a level says so, on the guitar'}.
+${L?`How to practise it: ${L.how.join(' ')}\nRules to know: ${L.rules.join(' ')}\nTake-away: ${L.take}`:''}
+${N.map(s=>`${s.h}: ${s.p.map(p=>Array.isArray(p)?p.join(' '):p).join(' ')}`).join('\n')}
+
+HIS NUMBERS IN THIS GAME TODAY: ${JSON.stringify(gameFacts(x))}`;}
+async function chatSend(gid){const C=chatOf(gid),text=C.draft.trim(),key=aiKey();if(!text||C.busy||!key)return;C.msgs.push({role:'user',text});C.draft='';C.busy=true;C.err='';render();chatScroll();
+  try{const out=await aiCall({model:AI.model,max_tokens:4000,output_config:{effort:'low'},system:chatSystem(gid),messages:C.msgs.slice(-12).map(m=>({role:m.role,content:m.text}))},key);if(!out)throw new Error('The answer was empty.');C.msgs.push({role:'assistant',text:out});}
+  catch(e){C.err=e.message||'The request failed.';}finally{C.busy=false;if(view.name==='lobby'&&view.gid===gid){render();chatScroll();}}}
+function chatScroll(){const el=document.getElementById('chatlog');if(el)el.scrollTop=el.scrollHeight;const inp=document.getElementById('chatin');if(inp&&!chatOf(view.gid).busy)inp.focus({preventScroll:true});}
+function chatPanel(x){const M=MASTERS[x.cat],C=chatOf(x.id),key=aiKey();
+  return `<section class="chatbox"><div class="chathead">${sprHTML(M.spr,C.busy?'talk':'idle','chatspr')}<div><b>Ask ${M.n}</b><span class="muted">${M.role} · about ${x.name}</span></div></div>
+   ${C.msgs.length?`<div class="chatlog" id="chatlog">${C.msgs.map(m=>`<div class="chatmsg ${m.role==='user'?'me':'them'}">${esc(m.text).replace(/\n+/g,'<br>')}</div>`).join('')}${C.busy?`<div class="chatmsg them muted">${M.n} is thinking…</div>`:''}</div>`:`<p class="note">Ask anything about this game or its subject: how a level works, why a rule holds, how to practise it, what your numbers say.</p>`}
+   ${C.err?`<p class="note" style="color:var(--bad)">${esc(C.err)}</p>`:''}
+   ${key?`<div class="row"><input type="text" id="chatin" class="fixin2 chatin" placeholder="Ask ${M.n}…" value="${esc(C.draft)}" autocomplete="off" ${C.busy?'disabled':''}><button class="btn small primary" data-act="chatsend" ${C.busy?'disabled':''}>Send</button>${C.msgs.length?'<button class="btn small ghost" data-act="chatclear">Clear</button>':''}</div>`
+     :`<p class="note">${M.n} answers as an AI agent, which needs your Anthropic API key (kept in this browser only). <button class="btn small" data-act="aigo">Set it under Masters’ voices</button></p>`}</section>`;}
 
 /* ---- the hall: six masters in a circle, the player in the middle ---- */
 const hubOn=()=>!view.list&&innerWidth>=760;
@@ -4379,6 +4408,7 @@ function lvMeter(x,g,L,locked,other){const ladder=L>g.lvl&&!x.levels[L-1].open&&
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();
   return `<div class="head"><div><div class="eyebrow">${x.area}</div><h1>${x.name}</h1>${badgeChips(x.id,true)}</div><div class="sp"><button class="btn ghost small" data-act="home">All games</button><button class="btn small" data-act="stats" data-g="${x.id}">Stats</button></div></div>
   ${RUN&&RUN.gid===x.id?runBar():''}${x.id==='sight'?refChart(view.ref===undefined?null:view.ref):''}${x.id==='neckiv'?jazzIvPanel():''}${x.id==='fretboard'?noteMap(view.nmap||'nat'):''}${lessonCard(x,g)}${LOBBY_NOTES[x.id]?`<p class="lobbynote">${LOBBY_NOTES[x.id]}</p>`:''}${x.id==='jazzrhy'?tunesBox():''}${view.gsum?(()=>{const z=view.gsum;return `<div class="panel" style="margin-bottom:14px"><div class="eyebrow">Last session · level ${z.L} · ${z.secs}s</div><div class="big"><div class="tile"><span>Hits</span><b>${z.hits}/${z.n}</b></div><div class="tile"><span>Tightness · last 64</span><b>${z.t64==null?'—':Math.round(z.t64)+' ms'}</b></div><div class="tile"><span>Lean · last 64</span><b>${fmtMs(z.l64)}</b></div><div class="tile"><span>Best hold · bars</span><b>${z.best}</b></div><div class="tile"><span>Extra hits</span><b>${z.extras}</b></div></div>${z.unlocked?`<p class="note" style="color:var(--good)"><b>Level ${z.L+1} unlocked.</b></p>`:z.best>=GRV.hold?`<p class="note">Held ${GRV.hold} bars in a row; tightness over the hold ${z.ht==null?'—':Math.round(z.ht)+' ms'}, over its last ${GRV.win} ${z.ht16==null?'—':Math.round(z.ht16)+' ms'}, need ≤ ${z.std} ms${z.feelOk===false?'; the ahead/behind bars not yet placed as asked':''}.</p>`:`<p class="note">Longest run of clean bars: ${z.best} (need ${GRV.hold}).</p>`}</div>`;})():''}
+  ${chatPanel(x)}
   ${g.lvl<=x.levels.length&&!levelAvail(x.id,g.lvl)&&!x.mic?`<div class="banner inputneed"><h2>Level ${g.lvl} is ${guitarMode(x.id)?'answered on screen':'played on the guitar'}</h2><span>It is part of the ladder, not optional: the game goes on when you pass it. <button class="btn small primary" data-act="swapinput" data-g="${x.id}">Switch to ${guitarMode(x.id)?'answering on screen':x.tap?'strumming into the mic':'playing it on the guitar'}</button></span></div>`:''}
   <div class="ladder">${x.levels.map((lv,i)=>{const L=i+1,locked=(L>g.lvl&&!lv.open&&!(g.unl||[]).includes(L))||!levelAvail(x.id,L),other=!levelAvail(x.id,L),m=mastery(g,L);return `<button class="rung${L===sel?' sel':''}${locked?' locked':''}" data-act="sel" data-l="${L}" ${locked?'disabled':''} aria-pressed="${L===sel}">
     <div class="lv"><small>LEVEL</small>${L}</div><div class="d"><b>${lv.n}</b><br>${lv.d}${other?` · <i>${guitarMode(x.id)?'screen only: switch Answer by to on screen':'guitar only: switch Answer by to playing it'}</i>`:locked?' · <i>locked</i>':''}</div>
@@ -4754,6 +4784,9 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='mtalkagain'){const c=view.cat;TALK[c]=aiCached(c)||masterTalk(c);masterOpen(c);}
   else if(a==='hublist'){view={name:'home',list:true};render();window.scrollTo(0,0);}
   else if(a==='aiset'){view.aiset=!view.aiset;render();}
+  else if(a==='aigo'){view={name:'home',aiset:true};render();window.scrollTo(0,0);}
+  else if(a==='chatsend'){chatSend(view.gid);}
+  else if(a==='chatclear'){CHAT[view.gid]=null;render();}
   else if(a==='aisave'){const v=(document.getElementById('aikey').value||'').trim();if(v&&!v.startsWith('•')){try{localStorage.setItem(AI.key,v);localStorage.removeItem(AI.cache);}catch(e){}AI.err='';TALK={};}render();}
   else if(a==='aiclear'){try{localStorage.removeItem(AI.key);localStorage.removeItem(AI.cache);}catch(e){}AI.err='';TALK={};render();}
   else if(a==='submit')answer(selArr());
@@ -4776,7 +4809,8 @@ document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classLis
 /* a correct answer has no Next button: once the box is left empty (or the report is sent) it moves on by itself again */
 const fixResume=()=>{if(view.name==='play'&&S&&S.locked){const l=S.answers.at(-1);if(l&&l.ok&&!l.hinted){clearTimeout(autoT);autoT=setTimeout(()=>{const el=document.activeElement;if(!(el&&el.classList&&el.classList.contains('fixin')&&el.value.trim()))nextQ();},1400);}}};
 document.addEventListener('focusout',e=>{if(e.target.classList&&e.target.classList.contains('fixin')&&!e.target.value.trim())fixResume();});
-document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('fixin')){if(e.key==='Enter'){e.preventDefault();fixSend(e.target.id);}return;}
+document.addEventListener('input',e=>{if(e.target.id==='chatin'&&view.name==='lobby')chatOf(view.gid).draft=e.target.value;});
+document.addEventListener('keydown',e=>{if(e.target.id==='chatin'){if(e.key==='Enter'){e.preventDefault();chatSend(view.gid);}return;}if(e.target.id==='aikey')return;if(e.target.classList&&e.target.classList.contains('fixin')){if(e.key==='Enter'){e.preventDefault();fixSend(e.target.id);}return;}
   if(e.target.closest&&e.target.closest('input,textarea,select'))return;
   if(view.name==='metro'&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!(e.target.tagName==='INPUT'&&e.target.type==='number')){if(e.key===' '){e.preventDefault();if(e.repeat)return;if(MET&&MET.on)metStop();else metStart();render();}else if(e.key==='t'||e.key==='T')metTap();else if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();const c=metCfg();c.bpm=Math.max(30,Math.min(300,c.bpm+(e.key==='ArrowUp'?1:-1)));metSave();render();}return;}
   if(view.name==='groove'&&GR&&!e.metaKey&&!e.ctrlKey&&!e.altKey){if(e.key===' '){e.preventDefault();if(e.repeat)return;GR.started?grooveHit():grooveGo();}else if(e.key==='Escape')grooveEnd();return;}

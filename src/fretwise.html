@@ -3756,7 +3756,8 @@ function bgFrame(t){const C=CASTLE,c=BG.ctx,cv=BG.cv,dpr=Math.min(2,devicePixelR
   c.globalCompositeOperation='source-over';
   /* the centre behind the game: a soft dark band so text on the page reads */
   c.setTransform(dpr,0,0,dpr,0,0);const r=document.getElementById('app').getBoundingClientRect(),l=Math.max(0,r.left),rr=Math.min(vw,r.right),pad=110;
-  if(rr>l){const g=c.createLinearGradient(l-pad,0,rr+pad,0),a=0.62,e=pad/(rr-l+2*pad);g.addColorStop(0,'rgba(7,6,22,0)');g.addColorStop(e,`rgba(7,6,22,${a})`);g.addColorStop(1-e,`rgba(7,6,22,${a})`);g.addColorStop(1,'rgba(7,6,22,0)');c.fillStyle=g;c.fillRect(l-pad,0,rr-l+2*pad,vh);}}
+  const hall=typeof view!=='undefined'&&view.name==='home'&&hubOn();   /* the hall shows the castle as it is: the dark band is only for pages of text */
+  if(rr>l&&!hall){const g=c.createLinearGradient(l-pad,0,rr+pad,0),a=view.name==='master'?0.38:0.62,e=pad/(rr-l+2*pad);g.addColorStop(0,'rgba(7,6,22,0)');g.addColorStop(e,`rgba(7,6,22,${a})`);g.addColorStop(1-e,`rgba(7,6,22,${a})`);g.addColorStop(1,'rgba(7,6,22,0)');c.fillStyle=g;c.fillRect(l-pad,0,rr-l+2*pad,vh);}}
 /* ============ STREAK FIRE (Nov 2026) ============
    10 in a row: the round catches fire; 20: blue flame. Pixel fire in the Doom-fire manner: heat sources on the panel's edges, each cell passes its
    heat up a row with a random sideways step and a little cooling, coloured through a 37-shade palette (black → red → orange → yellow → white).

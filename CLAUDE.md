@@ -127,6 +127,9 @@ The four kinetic rhythm games (Pulse & Feel, Reading Rhythm, Jazz Rhythm, Compin
 ## Notation on paper (10 Nov 2026, user request)
 Every piece of written music is a white sheet with black ink: `svg.rhy` and `svg.staff` scope `--fg/--muted/--surface/--line` to ink colours and carry the paper background (the green/red answer colours still show). `rhySVG` draws a five-line staff with a percussion clef and the notes on the middle line (the small cell pictures, `bare`, keep one line); a whole rest hangs from the line above the middle, a half rest sits on it.
 
+## The scrolling staff (10 Nov 2026, user request)
+In the continuous rhythm games the music is one long paper staff that scrolls under a fixed red line (`grooveStrip`, `grooveNowHTML`, `grooveScroll`; `RSTRIP` = geometry and scale 1.8): eight bars from the bar before the current one, drawn once by `rhySVG(…,{strip:scale})` (no clef, bar lines at every bar) and redrawn only when the window moves; the clef and time signature sit in a fixed panel at the left; each frame the strip is translated so the note under the line is the one due now (measured: the head is on the line to within the frame delay). Chord names (Comping) ride above their bars.
+
 ## Count-in (10 Nov 2026, user: “it bugs in the first two bars”)
 Every continuous session starts with one empty bar of clicks (`GR.cin` = one bar at the first tempo; `grooveGo` schedules the ticks, `lead` = 600 ms + the bar): nothing is expected and hits are ignored (`grooveMatch` returns for t < −tol), the timeline shows the count. Besides giving the tempo, the bar lets the audio device report its real output latency before the first graded hit: without it the first hits were corrected with the pre-audio figure (about 6 ms instead of 38), which read as wrong for the first bars. Test: /tmp/fwrun/mig/cin.py.
 

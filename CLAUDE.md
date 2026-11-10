@@ -80,6 +80,9 @@ Seven changes from a player's-chair inspection of every ladder. (1) **Repertoire
 
 Found while building it: `genDrop2` had reversed its string order and returned nothing, so Drop-2 L12 (m7♭5, °7, 6, m6) and the minor II–V–I combos silently fell back to maj7 sheet chords. Fixed; `genDrop2` returns `{a,k}` grip objects.
 
+## Metronome (10 Nov 2026, user request; third nav tab)
+`vMetro`, view `metro`, settings in `STORE.metro` (`MET_DEF`, `metCfg`). Engine: `metStart/metStop/metSched` schedule every sound on the audio clock beat by beat (25 ms timer, 0.15 s horizon), so settings change on the next beat. `MET_METERS`: simple meters (beat = quarter), compound 6/8 9/8 12/8 (beat = dotted quarter, three eighths), 5/8 and 7/8 (beat = eighth, grouped accents). Per-beat accent / normal / silent (`cfg.acc`, presets all, 2 and 4, only 1, last beat), subdivision 1–4, **swing 50–75 %** (`metSw`: the off-beat eighth moves, sixteenths split each half), tap tempo, silent-bar trainer (`gapPlay/gapMute`), speed-up trainer (`rampStep/rampEvery/rampMax`). **Drums** (`MET_DRUMS`, `metDrum`): synthesised kick, snare, hats, ride, rim, bell — the user asked for a drum backing, so this is the one exception to the piano-only rule besides the click; styles: swing ride, jazz waltz, bossa (two-bar clave), straight eighths, shuffle, funk sixteenths, ballad, Afro 12/8 bell, 6/8. **Animation**: `metDraw` computes the pendulum (beat at the extremes, weight height follows the tempo), beat lights and playhead each frame from `metNow()` = the audio time now sounding (`getOutputTimestamp`), not from frames or timers. Keys: Space start/stop, T tap, arrows ±1 bpm. It stops when you leave the page. Measured: beats at 120 bpm exactly 0.5 s apart; 67 % swing off-beats at 0.335 of the beat; swing ride skip notes at 60 %; 12/8 bell on eighths 0 2 4 5 7 9 11; phase advance per frame constant to 0.4 % of a beat (/tmp/fwrun/mig/metro.py).
+
 ## The masters and the hall (10 Nov 2026, user design; snapshot before it: tag `v-2026-11-10-before-big-change`)
 The Games page is a hall: the castle with six pixel masters in a circle and the player (Emir) in the middle. One master per section (`MASTERS[cat]`): rhythm Bongi (monkey on bongos), neck John, theory Albert (the butler, at the castle's piano; the user has not named him yet), voicings Joe, ear Jessica, applied Jimmi. Original characters inspired by the user's references; the art is the user's own (generated sheets in `art-src/<cat>.png`, 2×3 poses on green).
 - **Sprites**: `.venv/bin/python tools/sprites.py` keys the green, crops one common box per character and writes `art/masters/<id>.png` = six 128 px frames in a row (`FRAMES`: idle cheer wince talk angry amazed); Albert's own piano is masked out. `sprHTML/sprFrame/artURL` (dist embeds them as `ART_DATA['masters/<id>']` via build.py). Drawn `image-rendering:pixelated`, a two-step bob.
@@ -203,7 +206,7 @@ tap:       bpm, len (beats), countIn, clicks (beats in bar that click), onsets, 
 - Scale degrees as numbers; Roman numerals only in Berklee form (IIm7, V7, IMaj7 — always upper case, quality in the symbol).
 - Drop-2 naming "from close" only (never "by bass note" in questions).
 - Find-the-grip questions are mark-on-neck (or play it), never tab multiple choice.
-- Only the sampled piano for sound; no synth tones except the metronome tick.
+- Only the sampled piano for sound; no synth tones except the metronome tick and, on the Metronome page only, the synthesised drums the user asked for.
 - Keep all stats; never reset or restructure `STORE` without a migration (see the fretboard `v7` level-shift migration in `G()`).
 
 ## Not built yet (from the review)

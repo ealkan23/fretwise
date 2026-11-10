@@ -303,6 +303,11 @@ html.hubon{overflow:hidden}#hub{position:fixed;inset:0;z-index:1;pointer-events:
 .mbubble{position:relative;background:#f4efe2;color:#17131f;border:2px solid #17131f;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.5;width:100%;min-height:120px}.mbubble:before{content:'';position:absolute;left:50%;top:-10px;transform:translateX(-50%) rotate(45deg);width:16px;height:16px;background:#f4efe2;border-left:2px solid #17131f;border-top:2px solid #17131f}.mbubble p{margin:0 0 8px}.mfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}.mfoot .muted{font-size:11px;color:#5b5366}.mfoot .btn{color:#17131f;border-color:#17131f}
 @media (max-width:860px){.mview{grid-template-columns:1fr}.mside{position:static}.spr.big{width:170px}}
 #buddy{position:fixed;bottom:34px;z-index:4;pointer-events:none}#buddy .hubname{position:static;display:block;transform:none;width:max-content;margin:2px auto 0}.budsay{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);width:max-content;max-width:200px;background:#f4efe2;color:#17131f;border:2px solid #17131f;border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.3;text-align:center}
+.metwrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}.metleft{position:sticky;top:74px;display:grid;gap:12px;justify-items:center}.metcv{width:300px;height:400px;display:block}.metright{display:grid;gap:12px}.metright .panel{margin:0}
+.mettempo{display:flex;align-items:center;gap:8px;justify-content:center}.metbig{text-align:center;min-width:230px}.metbig b{display:block;font-family:var(--f-display);font-size:64px;line-height:1;letter-spacing:.02em}.metbig span{font-size:12px;color:var(--muted)}.metrange{width:100%;accent-color:var(--brass);margin:8px 0}
+.metbeats{position:relative;display:flex;gap:8px;flex-wrap:wrap;padding-top:8px}#methead{position:absolute;top:0;width:2px;height:6px;background:var(--brass);left:0}.metbeat{flex:1;min-width:42px;height:56px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--muted);font-size:18px;display:grid;place-items:center;line-height:1}.metbeat small{font-size:11px}.metbeat.a2{color:var(--brass);border-color:var(--brass)}.metbeat.a0{opacity:.55}.metbeat.lit{background:var(--brass);color:#17131f;border-color:var(--brass);opacity:1}
+.metgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;align-items:center}.metnum{width:58px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit}
+@media (max-width:820px){.metwrap{grid-template-columns:1fr}.metleft{position:static}}
 .runrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:14px 0}.runrow s{opacity:.5}.runbar span{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.runbar .btn{padding:6px 12px;border-radius:8px;font-weight:700;border:1px solid var(--fg)}.runbar .btn.primary{background:var(--fg);color:var(--bg)}.runbar .btn.ghost{background:transparent;color:inherit}.badges{display:inline-flex;gap:6px;flex-wrap:wrap;margin:6px 0}.badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}.badge.b-life{border-color:var(--good);color:var(--good)}.badge.b-warm{border-color:var(--brass);color:var(--brass)}.badge.b-once{border-color:var(--muted)}.badge.b-core{background:var(--sunk);color:var(--fg)}.badge.b-done{background:var(--good);color:#fff;border-color:var(--good)}.badgetxt{font-size:12px;max-width:70ch}.pgsub s{opacity:.6}.inputneed span{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.inputneed .btn{background:var(--fg);color:var(--bg);border:1px solid var(--fg);padding:6px 12px;border-radius:8px;font-weight:700}.tokkeys{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.rwbar{margin:6px 0 10px}.rwbar svg.rhy{max-width:720px}.rwempty{opacity:.55}.rwstat{font-size:13px;margin-top:4px;min-height:18px}.key.rwv{padding:4px 8px;min-width:0}.key.rwv svg.cell{height:40px;width:auto;display:block;max-width:none}.rwtog{flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.key.tok{min-width:72px;padding:0 10px}
 .spkeys{display:grid;gap:8px;margin-top:6px}.sprow{display:grid;grid-template-columns:72px repeat(7,minmax(0,1fr));gap:8px;align-items:center}.sprow .key{margin:0}.splab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .bendsvg{width:100%;max-width:600px;display:block;margin:8px 0}.bend-band{fill:var(--good-soft)}.bend-zero{stroke:var(--line);stroke-dasharray:3 3}.bend-line{fill:none;stroke:var(--brass);stroke-width:2.5}.bend-lab{font-size:11px;fill:var(--muted)}
@@ -391,7 +396,7 @@ svg.rhy{width:100%;max-width:640px;display:block}.rh-line,.rh-bar{stroke:var(--f
 
 <header class="top"><div class="wrap">
   <button class="brand" data-act="home">Fret<span>wise</span></button>
-  <nav class="topnav" aria-label="Pages"><button data-act="home" id="nav-games">Games</button><button data-act="path" id="nav-path">Plan</button></nav>
+  <nav class="topnav" aria-label="Pages"><button data-act="home" id="nav-games">Games</button><button data-act="path" id="nav-path">Plan</button><button data-act="metro" id="nav-metro">Metronome</button></nav>
   <div class="sync" id="sync"><i></i><span>Saved on this device</span></div><div class="mic" id="mic" hidden><i></i><span>Mic off</span></div>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -3563,6 +3568,103 @@ const LESSON_NOTES={
    the light beam swells and shimmers with drifting dust and the odd glint on the piano's gold, and a translucent layer of pixel clouds drifts
    very slowly behind the glass, clipped to each pane so it never crosses the stone. All positions are in image pixels (measured from the art)
    and mapped to the screen with the image's cover fit. The centre behind the game is softly darkened for reading. */
+/* ============ METRONOME (10 Nov 2026, user request): a practice metronome and drum backing with a mechanical pendulum ============
+   Timing: every sound is scheduled on the audio clock a little ahead (metSched, 25 ms timer, 0.15 s horizon); nothing is timed by timers or frames.
+   The picture is computed each frame from the audio clock as it reaches the speakers (getOutputTimestamp), so the pendulum, the lights and the
+   playhead are where the sound is at any frame rate. Settings change on the next beat. Drums are synthesised (kick, snare, hats, ride, rim, bell):
+   the user asked for them; they are the one exception to the piano-only rule besides the click. Settings live in STORE.metro. */
+const MET_METERS={'2/4':{beats:2,unit:1},'3/4':{beats:3,unit:1},'4/4':{beats:4,unit:1},'5/4':{beats:5,unit:1,acc:[0,3]},'6/4':{beats:6,unit:1,acc:[0,3]},'7/4':{beats:7,unit:1,acc:[0,4]},
+ '6/8':{beats:2,unit:1.5,comp:true},'9/8':{beats:3,unit:1.5,comp:true},'12/8':{beats:4,unit:1.5,comp:true},'5/8':{beats:5,unit:.5,acc:[0,3]},'7/8':{beats:7,unit:.5,acc:[0,2,4]}};
+/* drum styles: p = position in beats from the bar line (styles with two bars run to 2×), i = instrument, v = level; sw = follows the swing setting */
+const MET_DRUMS={
+ swing:{n:'Swing (ride)',m:['4/4'],sw:true,ev:[['ride',0,.8],['ride',1,.9],['ride',1.5,.55],['ride',2,.8],['ride',3,.9],['ride',3.5,.55],['hat',1,.7],['hat',3,.7],['kick',0,.28],['kick',1,.22],['kick',2,.28],['kick',3,.22]]},
+ waltz:{n:'Jazz waltz',m:['3/4'],sw:true,ev:[['ride',0,.85],['ride',1,.8],['ride',1.5,.5],['ride',2,.8],['hat',1,.6],['hat',2,.6],['kick',0,.5]]},
+ bossa:{n:'Bossa nova',m:['4/4'],bars:2,ev:[...[0,.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5].map(p=>['hatc',p,p%1?.35:.5]),...[0,1.5,2,3.5,4,5.5,6,7.5].map(p=>['kick',p,p%2?.45:.6]),...[0,1.5,3,5,6.5].map(p=>['rim',p,.8])]},
+ rock:{n:'Straight eighths',m:['4/4'],ev:[...[0,.5,1,1.5,2,2.5,3,3.5].map(p=>['hatc',p,p%1?.4:.6]),['kick',0,.9],['kick',2,.85],['kick',2.5,.6],['snare',1,.9],['snare',3,.9]]},
+ shuffle:{n:'Shuffle',m:['4/4'],ev:[...[0,1,2,3].flatMap(b=>[['hatc',b,.6],['hatc',b+2/3,.4]]),['kick',0,.9],['kick',2,.85],['snare',1,.9],['snare',3,.9]]},
+ funk:{n:'Funk sixteenths',m:['4/4'],sw:true,ev:[...Array.from({length:16},(_,k)=>['hatc',k/4,k%4===0?.6:k%2?.28:.42]),['kick',0,.95],['kick',.75,.6],['kick',2.5,.8],['snare',1,.95],['snare',3,.95],['snare',1.75,.25],['snare',2.25,.25]]},
+ ballad:{n:'Ballad',m:['4/4'],sw:true,ev:[['ride',0,.6],['ride',1,.7],['ride',2,.6],['ride',3,.7],['ride',3.5,.4],['hat',1,.5],['hat',3,.5],['kick',0,.4]]},
+ afro:{n:'Afro 12/8 bell',m:['12/8'],ev:[...[0,2,4,5,7,9,11].map(e=>['bell',e/3,e?.7:.9]),['kick',0,.8],['kick',2,.7],['hat',1,.5],['hat',3,.5]]},
+ six:{n:'6/8 groove',m:['6/8'],ev:[...[0,1,2,3,4,5].map(e=>['hatc',e/3,e%3?.4:.6]),['kick',0,.9],['snare',1,.85]]}};
+const MET_DEF={bpm:100,meter:'4/4',sub:1,swing:50,acc:null,click:true,clickVol:.8,drums:'none',drumVol:.7,gapOn:false,gapPlay:2,gapMute:2,rampOn:false,rampStep:4,rampEvery:4,rampMax:160};
+let MET=null;
+const metCfg=()=>{STORE.metro=Object.assign({},MET_DEF,STORE.metro||{});const c=STORE.metro,M=MET_METERS[c.meter]||MET_METERS['4/4'];if(!MET_METERS[c.meter])c.meter='4/4';
+  if(!Array.isArray(c.acc)||c.acc.length!==M.beats)c.acc=Array.from({length:M.beats},(_,i)=>(M.acc||[0]).includes(i)?2:1);if(c.drums!=='none'&&!(MET_DRUMS[c.drums]&&MET_DRUMS[c.drums].m.includes(c.meter)))c.drums='none';return c;};
+const metSave=()=>{saveLocal();};
+const metTempoName=b=>b<60?'Largo':b<76?'Adagio':b<108?'Andante':b<120?'Moderato':b<168?'Allegro':b<200?'Presto':'Prestissimo';
+/* where a position inside the beat falls with swing s (0.5 straight … 0.75): the off-beat eighth moves, sixteenths split each half evenly */
+const metSw=(f,s)=>f<.5?f*2*s:s+(f-.5)*2*(1-s);
+function metNoise(c){if(!MET.noise){const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MET.noise=b;}const n=c.createBufferSource();n.buffer=MET.noise;return n;}
+function metEnv(c,t,peak,dec,out){const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),t+0.002);g.gain.exponentialRampToValueAtTime(0.0001,t+dec);g.connect(out);return g;}
+function metClick(t,kind,vol){const c=Piano.ac(),o=c.createOscillator(),g=metEnv(c,t,(kind===2?.55:kind===1?.36:.16)*vol,kind?0.05:0.03,MET.out);o.type='sine';o.frequency.setValueAtTime(kind===2?1760:kind===1?1320:990,t);o.connect(g);o.start(t);o.stop(t+0.08);}
+function metDrum(inst,t,v,vol){const c=Piano.ac(),out=MET.out,L=v*vol;
+  if(inst==='kick'){const o=c.createOscillator(),g=metEnv(c,t,L*1.1,0.24,out);o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(48,t+0.11);o.connect(g);o.start(t);o.stop(t+0.3);}
+  else if(inst==='snare'){const n=metNoise(c),f=c.createBiquadFilter(),g=metEnv(c,t,L*.7,0.16,out);f.type='highpass';f.frequency.value=1400;n.connect(f).connect(g);n.start(t);n.stop(t+0.2);const o=c.createOscillator(),g2=metEnv(c,t,L*.5,0.09,out);o.type='triangle';o.frequency.setValueAtTime(210,t);o.frequency.exponentialRampToValueAtTime(150,t+0.08);o.connect(g2);o.start(t);o.stop(t+0.12);}
+  else if(inst==='hatc'||inst==='hat'){const n=metNoise(c),f=c.createBiquadFilter(),g=metEnv(c,t,L*(inst==='hat'?.42:.34),inst==='hat'?0.075:0.035,out);f.type='highpass';f.frequency.value=inst==='hat'?6000:7500;n.connect(f).connect(g);n.start(t);n.stop(t+0.12);}
+  else if(inst==='ride'){const n=metNoise(c),f=c.createBiquadFilter(),g=metEnv(c,t,L*.3,0.42,out);f.type='bandpass';f.frequency.value=6200;f.Q.value=.7;n.connect(f).connect(g);n.start(t);n.stop(t+0.5);[3140,4370,5320].forEach((fr,i)=>{const o=c.createOscillator(),g2=metEnv(c,t,L*.05/(i+1),0.3,out);o.type='square';o.frequency.value=fr;o.connect(g2);o.start(t);o.stop(t+0.35);});}
+  else if(inst==='rim'){const o=c.createOscillator(),g=metEnv(c,t,L*.5,0.03,out);o.type='triangle';o.frequency.value=1750;o.connect(g);o.start(t);o.stop(t+0.05);const n=metNoise(c),f=c.createBiquadFilter(),g2=metEnv(c,t,L*.25,0.02,out);f.type='bandpass';f.frequency.value=3000;n.connect(f).connect(g2);n.start(t);n.stop(t+0.04);}
+  else if(inst==='bell'){[830,1245].forEach((fr,i)=>{const o=c.createOscillator(),g=metEnv(c,t,L*(i?.18:.4),0.16,out);o.type='triangle';o.frequency.value=fr;o.connect(g);o.start(t);o.stop(t+0.2);});}}
+function metStart(){const c=Piano.ac();if(c.state==='suspended')c.resume();const cfg=metCfg();if(MET&&MET.timer)clearInterval(MET.timer);const out=c.createGain();out.gain.value=1;out.connect(c.destination);
+  MET={on:true,out,noise:MET&&MET.noise,next:c.currentTime+0.12,bi:0,bar:0,k:0,bpm:cfg.bpm,beats:[],raf:0,timer:0};MET.timer=setInterval(metSched,25);metSched();metLoop();}
+function metStop(){if(!MET)return;clearInterval(MET.timer);cancelAnimationFrame(MET.raf);try{MET.out.gain.setValueAtTime(0,Piano.ac().currentTime);MET.out.disconnect();}catch(e){}MET={on:false,noise:MET.noise,beats:[]};}
+function metSched(){if(!MET||!MET.on)return;const c=Piano.ac(),cfg=metCfg(),M=MET_METERS[cfg.meter];
+  while(MET.next<c.currentTime+0.15){const t=MET.next,bi=MET.bi;
+    if(bi===0){if(cfg.rampOn&&MET.bar>0&&MET.bar%cfg.rampEvery===0)MET.bpm=Math.min(cfg.rampMax,MET.bpm+cfg.rampStep);if(!cfg.rampOn)MET.bpm=cfg.bpm;}else if(!cfg.rampOn)MET.bpm=cfg.bpm;
+    const dur=60/MET.bpm*M.unit,silent=cfg.gapOn&&MET.bar%(cfg.gapPlay+cfg.gapMute)>=cfg.gapPlay,s=cfg.swing/100,sub=M.comp?3:M.unit<1?1:cfg.sub;
+    if(!silent){const a=cfg.acc[bi];
+      if(cfg.click){if(a)metClick(t,a,cfg.clickVol);for(let j=1;j<sub;j++){const f=j/sub;metClick(t+(sub===3||M.comp?f:metSw(f,s))*dur,0,cfg.clickVol);}}
+      const D=MET_DRUMS[cfg.drums];if(D){const span=(D.bars||1)*M.beats,pos=(MET.bar%(D.bars||1))*M.beats+bi;D.ev.forEach(([inst,p,v])=>{if(p>=pos-1e-9&&p<pos+1-1e-9){const f=p-pos;metDrum(inst,t+(D.sw?metSw(f,s):f)*dur,v,cfg.drumVol);}});}}
+    MET.beats.push({t,dur,bi,bar:MET.bar,k:MET.k,silent,bpm:MET.bpm,sub});if(MET.beats.length>40)MET.beats.shift();
+    MET.next=t+dur;MET.k++;MET.bi++;if(MET.bi>=M.beats){MET.bi=0;MET.bar++;}}}
+/* the audio time that is sounding right now */
+function metNow(){const c=Piano.ac();try{const o=c.getOutputTimestamp();if(o&&o.contextTime>0)return o.contextTime+(performance.now()-o.performanceTime)/1000;}catch(e){}return c.currentTime-((c.outputLatency||0)+(c.baseLatency||0));}
+function metLoop(){if(!MET||!MET.on)return;MET.raf=requestAnimationFrame(metLoop);metDraw();}
+function metDraw(){const cv=document.getElementById('metcv');if(!cv)return;const cfg=metCfg(),M=MET_METERS[cfg.meter],ctx=cv.getContext('2d'),dpr=Math.min(2,devicePixelRatio||1),W=300,H=400;
+  if(cv.width!==W*dpr){cv.width=W*dpr;cv.height=H*dpr;}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  let ang=0,cur=null,ph=0;if(MET&&MET.on&&MET.beats.length){const now=metNow();for(let i=MET.beats.length-1;i>=0;i--){if(MET.beats[i].t<=now){cur=MET.beats[i];break;}}
+    if(cur){ph=Math.min(1,(now-cur.t)/cur.dur);ang=Math.cos(Math.PI*(cur.k+ph));}else{const b=MET.beats[0];ang=Math.cos(Math.PI*(b.k-1+Math.max(0,1-(b.t-now)/b.dur)));}}
+  const A=24*Math.PI/180,th=ang*A,px=W/2,py=H-64,len=270,bpm=(cur&&cur.bpm)||cfg.bpm;
+  /* the case */
+  ctx.fillStyle='#3a2416';ctx.beginPath();ctx.moveTo(px-34,40);ctx.lineTo(px+34,40);ctx.lineTo(px+96,H-30);ctx.lineTo(px-96,H-30);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.moveTo(px-26,52);ctx.lineTo(px+26,52);ctx.lineTo(px+80,H-44);ctx.lineTo(px-80,H-44);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#e9dfc6';ctx.beginPath();ctx.moveTo(px-11,66);ctx.lineTo(px+11,66);ctx.lineTo(px+20,py-26);ctx.lineTo(px-20,py-26);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#8a7a5a';ctx.lineWidth=1;for(let i=0;i<=16;i++){const y=74+i*(py-110)/16,w=6+i*0.5;ctx.beginPath();ctx.moveTo(px-w,y);ctx.lineTo(px+w,y);ctx.stroke();}
+  ctx.fillStyle='#2a180e';ctx.fillRect(px-104,H-30,208,14);ctx.fillStyle='#c9a24a';ctx.fillRect(px-104,H-32,208,3);
+  /* the pendulum: the weight sits higher for slow tempos, as on a real one */
+  const wpos=0.92-(Math.max(40,Math.min(240,bpm))-40)/200*0.62;ctx.save();ctx.translate(px,py);ctx.rotate(th);
+  ctx.strokeStyle='#d9d9e2';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,10);ctx.lineTo(0,-len);ctx.stroke();
+  const lit=cur&&!cur.silent&&ph<0.16;ctx.fillStyle=lit?(cfg.acc[cur.bi]===2?'#ffd76a':'#fff1c2'):'#c9a24a';ctx.beginPath();ctx.moveTo(-13,-len*wpos-12);ctx.lineTo(13,-len*wpos-12);ctx.lineTo(9,-len*wpos+12);ctx.lineTo(-9,-len*wpos+12);ctx.closePath();ctx.fill();ctx.strokeStyle='#5a3a12';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.restore();ctx.fillStyle='#c9a24a';ctx.beginPath();ctx.arc(px,py,6,0,6.283);ctx.fill();
+  if(cur&&cur.silent){ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='600 13px sans-serif';ctx.textAlign='center';ctx.fillText('silent bar: keep counting',px,24);}
+  /* lights, playhead, read-outs */
+  document.querySelectorAll('.metbeat').forEach((el,i)=>el.classList.toggle('lit',!!cur&&cur.bi===i&&ph<0.3));
+  const hd=document.getElementById('methead');if(hd)hd.style.left=(cur?((cur.bi+ph)/M.beats*100):0)+'%';
+  const bn=document.getElementById('metbpm');if(bn&&cur&&String(Math.round(cur.bpm))!==bn.textContent)bn.textContent=Math.round(cur.bpm);
+  const br=document.getElementById('metbar');if(br)br.textContent=cur?`bar ${cur.bar+1} · beat ${cur.bi+1}`:'';}
+function metTap(){const now=performance.now();MET_TAPS=MET_TAPS.filter(t=>now-t<2200);MET_TAPS.push(now);if(MET_TAPS.length>=2){const iv=[];for(let i=1;i<MET_TAPS.length;i++)iv.push(MET_TAPS[i]-MET_TAPS[i-1]);const a=iv.slice(-4).reduce((x,y)=>x+y,0)/Math.min(4,iv.length);metCfg().bpm=Math.max(30,Math.min(300,Math.round(60000/a)));metSave();render();}}
+let MET_TAPS=[];
+function vMetro(){const c=metCfg(),M=MET_METERS[c.meter],on=MET&&MET.on,styles=Object.entries(MET_DRUMS).filter(([,d])=>d.m.includes(c.meter)),sub=M.comp?3:M.unit<1?1:c.sub,
+   seg=(k,opts,cur)=>`<div class="seg">${opts.map(([v,l])=>`<button class="${String(cur)===String(v)?'on':''}" data-act="metset" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`,
+   num=(k,v,min,max,step=1)=>`<input type="number" class="metnum" data-act="metnum" data-k="${k}" value="${v}" min="${min}" max="${max}" step="${step}">`;
+  return `<div class="head"><div><div class="eyebrow">Practice tool</div><h1>Metronome</h1></div><div class="sp"><span class="muted" id="metbar"></span></div></div>
+  <div class="metwrap"><div class="metleft"><canvas id="metcv" class="metcv" width="300" height="400" aria-label="Metronome pendulum"></canvas>
+    <button class="btn ${on?'rec':'primary'} big" data-act="mettoggle">${on?'■ Stop':'▶ Start'} (Space)</button></div>
+   <div class="metright">
+    <div class="panel"><div class="mettempo"><button class="btn small" data-act="metbpm" data-d="-5">−5</button><button class="btn small" data-act="metbpm" data-d="-1">−1</button><div class="metbig"><b id="metbpm">${c.bpm}</b><span>${M.comp?'dotted quarters':'quarter notes'} a minute · ${metTempoName(c.bpm)}</span></div><button class="btn small" data-act="metbpm" data-d="1">+1</button><button class="btn small" data-act="metbpm" data-d="5">+5</button></div>
+     <input type="range" class="metrange" min="30" max="300" value="${c.bpm}" data-act="metslide" aria-label="Tempo"><div class="row"><button class="btn small" data-act="mettap">Tap tempo (T)</button>${[60,80,100,120,140,160,200].map(v=>`<button class="btn small ghost" data-act="metset" data-k="bpm" data-v="${v}">${v}</button>`).join('')}</div></div>
+    <div class="panel"><div class="eyebrow">Meter</div>${seg('meter',Object.keys(MET_METERS).map(m=>[m,m]),c.meter)}
+     <div class="eyebrow" style="margin-top:10px">Beats: click to change · ▲ accent · ● beat · ○ silent</div><div class="metbeats"><i id="methead"></i>${c.acc.map((a,i)=>`<button class="metbeat a${a}" data-act="metacc" data-i="${i}" aria-label="beat ${i+1}">${a===2?'▲':a===1?'●':'○'}<small>${i+1}</small></button>`).join('')}</div>
+     <div class="row" style="margin-top:8px"><button class="btn small ghost" data-act="metpre" data-v="all">All beats</button><button class="btn small ghost" data-act="metpre" data-v="24">Only 2 and 4</button><button class="btn small ghost" data-act="metpre" data-v="1">Only 1</button><button class="btn small ghost" data-act="metpre" data-v="4">Only the last beat</button></div></div>
+    <div class="panel"><div class="eyebrow">Subdivision${M.comp?' (three eighths to the beat in this meter)':M.unit<1?' (the beat is the eighth in this meter)':''}</div>${M.comp||M.unit<1?'':seg('sub',[[1,'Beats only'],[2,'Eighths'],[3,'Triplets'],[4,'Sixteenths']],c.sub)}
+     <div class="eyebrow" style="margin-top:10px">Swing <b>${c.swing}%</b> · ${c.swing<=51?'straight':c.swing<60?'light swing':c.swing<64?'medium swing':c.swing<70?'triplet swing (2:1)':'hard swing'}</div>
+     <input type="range" class="metrange" min="50" max="75" value="${c.swing}" data-act="metswing" aria-label="Swing"><p class="note">Swing moves the off-beat eighth later: 50% is straight, 67% is the triplet feel, medium-tempo jazz sits near 60–67% and gets straighter as the tempo rises. It applies to eighths and sixteenths in the click and to the swing, waltz, ballad and funk drums.</p></div>
+    <div class="panel"><div class="eyebrow">Sound</div><div class="metgrid"><label class="check"><input type="checkbox" data-act="metchk" data-k="click" ${c.click?'checked':''}> Click</label><input type="range" class="metrange" min="0" max="100" value="${Math.round(c.clickVol*100)}" data-act="metvol" data-k="clickVol" aria-label="Click volume">
+      <label class="field"><span class="muted">Drums</span><select data-act="metsel" data-k="drums"><option value="none">None</option>${styles.map(([k,d])=>`<option value="${k}" ${c.drums===k?'selected':''}>${d.n}</option>`).join('')}</select></label><input type="range" class="metrange" min="0" max="100" value="${Math.round(c.drumVol*100)}" data-act="metvol" data-k="drumVol" aria-label="Drum volume"></div>
+     <p class="note">${styles.length?'Drum styles for this meter: '+styles.map(([,d])=>d.n).join(', ')+'.':'No drum style is written for this meter yet: use the click.'} Turn the click off to play with the drums alone.</p></div>
+    <div class="panel"><div class="eyebrow">Trainers</div>
+     <label class="check"><input type="checkbox" data-act="metchk" data-k="gapOn" ${c.gapOn?'checked':''}> Silent bars: play ${num('gapPlay',c.gapPlay,1,16)} bars, then ${num('gapMute',c.gapMute,1,16)} silent (the pendulum keeps going; you keep the time)</label>
+     <label class="check" style="margin-top:8px"><input type="checkbox" data-act="metchk" data-k="rampOn" ${c.rampOn?'checked':''}> Speed up: +${num('rampStep',c.rampStep,1,20)} bpm every ${num('rampEvery',c.rampEvery,1,32)} bars, up to ${num('rampMax',c.rampMax,40,300)}</label></div>
+   </div></div>`;}
 /* ============ THE MASTERS (10 Nov 2026, user design): a pixel master for every section, standing in the castle hall ============
    Sprites: art/masters/<id>.png, six 128 px frames in a row (tools/sprites.py from the user's own sheets in art-src/).
    pos = where the feet stand, in castle image pixels; h = sprite height there. Each master has a voice: `say` holds the short reactions used
@@ -3834,7 +3936,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pips(l,n=6){let h='<div class="pips" aria-label="Level '+l+' of '+n+'">';for(let i=1;i<=n;i++)h+=`<i class="${i<=l?'on':''}"></i>`;return h+`<span>LV ${l}/${n}</span></div>`;}
 function mastery(g,L){const h=g.hist[L]||[],c=h.reduce((a,b)=>a+b,0);return {n:h.length,c,p:h.length?c/h.length:0};}
-function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);(onPath?np:ng).setAttribute('aria-current','page');}if(view.name==='home')app.innerHTML=hubOn()?vHub():vHome();else if(view.name==='master')app.innerHTML=vMaster();else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='groove'&&GR)app.innerHTML=vGroove();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();fireSync();document.documentElement.classList.toggle('hubon',view.name==='home'&&hubOn());hubLayout();buddySync();if(view.name==='master'&&view.say){view.say=false;masterOpen(view.cat);}}
+function render(){const onPath=view.name==='path'||view.name==='tree',ng=document.getElementById('nav-games'),np=document.getElementById('nav-path');const nm2=document.getElementById('nav-metro');if(ng){ng.toggleAttribute('aria-current',false);np.toggleAttribute('aria-current',false);if(nm2)nm2.toggleAttribute('aria-current',false);(view.name==='metro'&&nm2?nm2:onPath?np:ng).setAttribute('aria-current','page');}if(view.name!=='metro'&&MET&&MET.on)metStop();if(view.name==='home')app.innerHTML=hubOn()?vHub():vHome();else if(view.name==='master')app.innerHTML=vMaster();else if(view.name==='metro'){app.innerHTML=vMetro();metDraw();}else if(view.name==='lobby')app.innerHTML=vLobby();else if(view.name==='play')app.innerHTML=vPlay();else if(view.name==='results')app.innerHTML=vResults();else if(view.name==='stats')app.innerHTML=vStats();else if(view.name==='overview')app.innerHTML=vOverview();else if(view.name==='groove'&&GR)app.innerHTML=vGroove();else if(view.name==='path'||view.name==='tree')app.innerHTML=vPathPage();else if(view.name==='reference')app.innerHTML=vReference();else if(view.name==='tuner')app.innerHTML=vTuner();else if(view.name==='rec')app.innerHTML=vRec();else if(view.name==='fix')app.innerHTML=vFix();else if(view.name==='checkups')app.innerHTML=vCheckups();fireSync();document.documentElement.classList.toggle('hubon',view.name==='home'&&hubOn());hubLayout();buddySync();if(view.name==='master'&&view.say){view.say=false;masterOpen(view.cat);}}
 function catStats(c){let n=0,cc=0,ms=0,sess=0,T=0,lv=0,gs=gamesIn(c);gs.forEach(x=>{const g=G(x.id);n+=g.n;cc+=g.c;ms+=g.ms;sess+=g.sessions.length;T+=g.time;lv+=g.lvl;});return {n,c:cc,ms,sess,T,lv:gs.length?lv/gs.length:0,games:gs.length};}
 /* a level counts as passed once the ladder has moved past it, or (your own level, the top level, a level opened out of order) once its own record meets the unlock rule */
 function lvPassed(gid,L){const g=G(gid);if(L<g.lvl&&!(g.skip||[]).includes(L))return true;const m=mastery(g,L);return m.n>=NEED&&m.p>=PASS&&fluency(g,gid,L).ok;}
@@ -4453,6 +4555,13 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='start')start(view.gid,view.sel);
   else if(a==='again'){start(S.gid,S.unlocked||S.L);}
   else if(a==='ans'){const q=S.q;let v=b.dataset.v;if(q.ui==='pc')v=+v;else if(q.ui==='letters')v=v+ACC[S.acc];answer(v);}
+  else if(a==='metro'){if(GR)grooveEnd(true);if(view.name==='play')return quit();view={name:'metro'};render();window.scrollTo(0,0);}
+  else if(a==='mettoggle'){if(MET&&MET.on)metStop();else metStart();render();}
+  else if(a==='metbpm'){const c=metCfg();c.bpm=Math.max(30,Math.min(300,c.bpm+(+b.dataset.d)));metSave();render();}
+  else if(a==='mettap'){metTap();}
+  else if(a==='metset'){const c=metCfg(),k=b.dataset.k;c[k]=k==='meter'?b.dataset.v:+b.dataset.v;if(k==='meter')c.acc=null;metSave();render();}
+  else if(a==='metacc'){const c=metCfg(),i=+b.dataset.i;c.acc[i]=(c.acc[i]+2)%3;metSave();render();}
+  else if(a==='metpre'){const c=metCfg(),n=c.acc.length,v=b.dataset.v;c.acc=c.acc.map((_,i)=>v==='all'?(i===0?2:1):v==='24'?(i%2===1?1:0):v==='1'?(i===0?2:0):(i===n-1?1:0));metSave();render();}
   else if(a==='runstart'){runStart();}else if(a==='runnext'){const i=RUN?RUN.i:null;runStart(i);}else if(a==='runstop'){RUN=null;render();}
   else if(a==='swapinput'){swapInput(b.dataset.g);view.sel=undefined;render();}
   else if(a==='sp')spellKey(b.dataset.v);
@@ -4514,6 +4623,11 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
 document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('[data-act="tap"]');if(b){e.preventDefault();tapHit();}const g=e.target.closest&&e.target.closest('[data-act="gtap"]');if(g){e.preventDefault();grooveHit();}});
 document.addEventListener('pointerup',e=>{if(GR&&GR.heldOn)grooveRelease();});document.addEventListener('pointercancel',e=>{if(GR&&GR.heldOn)grooveRelease();});
 document.addEventListener('keyup',e=>{if(e.key===' '&&view.name==='groove'&&GR&&GR.started)grooveRelease();});
+/* metronome controls: sliders apply while they move (no re-render, so the drag is not lost); the page redraws when they are let go */
+document.addEventListener('input',e=>{const b=e.target,a=b.dataset&&b.dataset.act;if(!a||view.name!=='metro')return;const c=metCfg();
+  if(a==='metslide'){c.bpm=+b.value;const n=document.getElementById('metbpm');if(n)n.textContent=c.bpm;}else if(a==='metswing')c.swing=+b.value;else if(a==='metvol')c[b.dataset.k]=+b.value/100;else return;metSave();if(!(MET&&MET.on))metDraw();});
+document.addEventListener('change',e=>{const b=e.target,a=b.dataset&&b.dataset.act;if(!a||view.name!=='metro')return;const c=metCfg();
+  if(a==='metchk')c[b.dataset.k]=b.checked;else if(a==='metsel')c[b.dataset.k]=b.value;else if(a==='metnum')c[b.dataset.k]=Math.max(+b.min,Math.min(+b.max,Math.round(+b.value)||+b.min));else if(!['metslide','metswing','metvol'].includes(a))return;metSave();render();});
 document.addEventListener('change',e=>{const b=e.target;if(b.dataset&&b.dataset.act==='micopt'&&b.tagName==='SELECT'){const g=G(view.gid);g.opts=g.opts||{};g.opts[b.dataset.k]=isNaN(+b.value)?b.value:+b.value;saveGame(view.gid);render();}});
 document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('fixin'))clearTimeout(autoT);});   // writing a report pauses the auto-advance
 /* a correct answer has no Next button: once the box is left empty (or the report is sent) it moves on by itself again */
@@ -4521,6 +4635,7 @@ const fixResume=()=>{if(view.name==='play'&&S&&S.locked){const l=S.answers.at(-1
 document.addEventListener('focusout',e=>{if(e.target.classList&&e.target.classList.contains('fixin')&&!e.target.value.trim())fixResume();});
 document.addEventListener('keydown',e=>{if(e.target.classList&&e.target.classList.contains('fixin')){if(e.key==='Enter'){e.preventDefault();fixSend(e.target.id);}return;}
   if(e.target.closest&&e.target.closest('input,textarea,select'))return;
+  if(view.name==='metro'&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!(e.target.tagName==='INPUT'&&e.target.type==='number')){if(e.key===' '){e.preventDefault();if(e.repeat)return;if(MET&&MET.on)metStop();else metStart();render();}else if(e.key==='t'||e.key==='T')metTap();else if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();const c=metCfg();c.bpm=Math.max(30,Math.min(300,c.bpm+(e.key==='ArrowUp'?1:-1)));metSave();render();}return;}
   if(view.name==='groove'&&GR&&!e.metaKey&&!e.ctrlKey&&!e.altKey){if(e.key===' '){e.preventDefault();if(e.repeat)return;GR.started?grooveHit():grooveGo();}else if(e.key==='Escape')grooveEnd();return;}
   if(view.name!=='play'||!S||e.metaKey||e.ctrlKey||e.altKey)return;const q=S.q,k=e.key;
   if(S.locked){if(k==='Enter'||k===' '){e.preventDefault();nextQ();}return;}

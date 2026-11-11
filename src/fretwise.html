@@ -134,6 +134,7 @@ html.castle{background:#07061a}html.castle body{background:transparent}html.cast
 .visual{overflow-x:auto}
 .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .choice{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:12px 14px;font-size:16px;min-width:0}
+.chrow{display:flex;flex-wrap:nowrap;gap:6px}.chrow .choice{flex:1 1 0;min-width:0;flex-direction:column;gap:3px;align-items:center;text-align:center;padding:9px 2px 10px;font-size:15px;font-weight:700}.chrow .choice kbd{font-size:9px;padding:0 4px;border:0;background:none}.chrow .choice span{white-space:nowrap}@media (max-width:620px){.chrow{flex-wrap:wrap}.chrow .choice{flex:1 1 60px}}
 .choice kbd{font-family:var(--f-mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px;background:var(--surface)}
 .choice:hover:not([disabled]){border-color:var(--fg)}
 .choice.right,.key.right{background:var(--good-soft);border-color:var(--good)}
@@ -1028,9 +1029,9 @@ function degNote(root,deg){return tr(root,DEG_STEP[deg]+1,DEG_SEMI[deg]);}
 function earDegree(set,opts={}){return ()=>{const k=rootPick(opts.keys||EAR_KEYS),root=P(k),t=tonic4(root),two=opts.two;
   const picks=two?[R(set),R(set)]:[R(set)];if(two&&picks[0]===picks[1])picks[1]=R(set.filter(x=>x!==picks[0]));
   const mids=picks.map(d=>{let m=t+DEG_SEMI[d];if(Math.random()<.35&&m-12>=52)m-=12;if(m>74)m-=12;return m;});
-  const ans=picks.join(' → '),choices=two?mc(ans,shuffle(set.flatMap(a=>set.filter(b=>b!==a).map(b=>a+' → '+b))).filter(x=>x!==ans)):set.slice();
+  const ans=picks.join(' → '),choices=two?mc(ans,shuffle(set.flatMap(a=>set.filter(b=>b!==a).map(b=>a+' → '+b))).filter(x=>x!==ans)):DEG_ORDER.filter(d=>set.includes(d));
   const names=picks.map(d=>degNote(root,d)),minor=!!opts.minor,keyTxt=`${kname(k)} ${minor?'minor':'major'}`;
-  return A({key:`ed-${k}-${picks.join('')}${minor?'m':''}`,label:`${picks.join(' ')} in ${keyTxt}`,answer:ans,choices,factor:two?2.2:1.5,
+  return A({row:!two,key:`ed-${k}-${picks.join('')}${minor?'m':''}`,label:`${picks.join(' ')} in ${keyTxt}`,answer:ans,choices,factor:two?2.2:1.5,
     prompt:`Listen: a cadence in <b>${keyTxt}</b>, then ${two?'two notes. Which degrees?':'one note. Which scale degree is it?'}`,visual:listenCard(`Cadence in ${keyTxt}`,two?'then two notes':'then one note'),
     reveal:`<div class="reveal2">${names.map((n,i)=>`<div><div class="muted" style="font-size:13px">${nm(n)}${Math.floor(mids[i]/12)-1} · degree ${picks[i]}</div>${noteStaff(n,mids[i],1)}</div>`).join('')}</div>`,
     audio:()=>{const d=playChords(cadenceOf(pc(root),minor),0.8);mids.forEach((m,i)=>Piano.note(m,d+0.15+i*1.1,1.0,0.85));return d+0.3+mids.length*1.1;},
@@ -1042,7 +1043,7 @@ const degLab=(p,t)=>DEG_ORDER[mod(p-t,12)];
 const degSort=a=>[...new Set(a)].sort((x,y)=>DEG_ORDER.indexOf(x)-DEG_ORDER.indexOf(y));
 const CT_TENS={1:'♭9',2:'9',3:'♯9',5:'11',6:'♯11',8:'♭13',9:'13'};
 /* what a note is to its chord: a chord tone (1 3 5 7 6) or a tension (9 11 13 with its accidental) */
-function chordToneLab(semi,q){for(const x of CH[q]){if(mod(IV[x][1],12)===semi){const n=x.replace(/^[b#]/,'');return ['1','3','5','7','6'].includes(n)?n:x.replace('b','♭').replace('#','♯');}}return CT_TENS[semi]||'?';}
+function chordToneLab(semi,q){const k=CH[q].findIndex(x=>mod(IV[x][1],12)===semi);return k===0?'1':k===1?'3':k===2?'5':k===3?(q==='6'||q==='m6'?'6':'7'):CT_TENS[semi]||'?';}   /* (the first version returned interval names such as P5 for chord tones) */
 const TOP_TENS={maj7:[2,9,6],'7':[2,9,1,6],m7:[2,5,9],'':[2],m:[2,5],'6':[2],m6:[2],'m7♭5':[5],dim:[],aug:[],'dim7':[],'7♭9':[1],'9':[2],'13':[9,2],'maj9':[2],'m9':[2]};
 /* pick a top note for a chord: a chord tone most of the time, a tension sometimes */
 function pickTop(ch){const tones=CH[ch.q].map(x=>mod(IV[x][1],12)).filter(s=>s!==0||Math.random()<.5),tens=(TOP_TENS[ch.q]||[]).filter(s=>!tones.includes(s));const semi=tens.length&&Math.random()<.3?R(tens):R(tones.length?tones:[0]);return {pc:mod(ch.bass+semi,12),lab:chordToneLab(semi,ch.q)};}
@@ -1060,8 +1061,8 @@ function outerQ(kind,names){return ()=>{const name=R(names),minor=PROG_MINOR.has
   if(kind==='top')return Object.assign(base,{ui:'spell',tokens:degToks,answer:topD,need:n,factor:3,label:`top line ${topD.join(' ')} (${progName(name)})`,prompt:`<b>${keyTxt}</b>: ${n} chords. Write the <b>top voice</b> (the highest note of each chord) as scale degrees.`});
   if(kind==='both')return Object.assign(base,{ui:'spell',tokens:degToks,answer:bassD.concat(topD),need:2*n,factor:4,label:`both lines of ${progName(name)}`,prompt:`<b>${keyTxt}</b>: ${n} chords. Write the <b>bass line</b> first (${n} degrees), then the <b>top voice</b> (${n} degrees).`});
   if(kind==='top1'||kind==='ct'){const i=ri(0,n-1),ch=chs[i],cad=cadenceOf(t,minor),ans=kind==='top1'?topD[i]:topCT[i];
-    const choices=kind==='top1'?degSort(['1','2','3','4','5','6','7'].concat([ans])):mc(ans,shuffle(['1','3','5','7','9','11','13','♯11','♭9','6'].filter(x=>x!==ans)),6);
-    return A(Object.assign(base,{key:`ou-${kind}-${ans}`,answer:ans,choices,factor:2,label:kind==='top1'?`top note degree ${ans}`:`top note is the ${ans} of the chord`,
+    const choices=kind==='top1'?degSort(['1','2','3','4','5','6','7'].concat([ans])):[...new Set(['1','3','5','6','7','♭9','9','11','♯11','13'].concat([ans]))];
+    return A(Object.assign(base,{row:true,chLab:kind==='ct'?{'1':'root'}:null,key:`ou-${kind}-${ans}`,answer:ans,choices,factor:2,label:kind==='top1'?`top note degree ${ans}`:`top note is the ${ans} of the chord`,
       prompt:kind==='top1'?`A cadence in <b>${keyTxt}</b>, then one chord with a clear top note. Which <b>scale degree</b> is on top?`:`A cadence in <b>${keyTxt}</b>, then one chord. What is the top note <b>to its chord</b>: root, 3rd, 5th, 7th, or a tension?`,
       audio:()=>{const d=playChords(cad,0.7);playOuter([ch],1.6,d+0.2);return d+2.2;},explain:`${syms[i]}: top note ${nm(degNote(P(k),topD[i]))}, degree <b>${topD[i]}</b> of ${keyTxt}, the <b>${ans==='1'?'root':ans}</b> of the chord. Tensions are intervals from the root: 9 is a 2nd an octave up, 11 a 4th, 13 a 6th.`}));}
   if(kind==='playbass'){const mids=chs.map(c=>48+c.bass),nmz=mids.map(m=>PCN[mod(m,12)].split('/')[0]);return M(Object.assign(base,{key:`oupb-${name}`,label:`play the bass of ${progName(name)}`,target:mids,octaveFree:true,maxNotes:n,hideTarget:true,degs:bassD,names:nmz,answerText:nmz.join(' '),prompt:`<b>${keyTxt}</b>: listen, then <b>play the bass line</b> on the guitar, one note per chord (any octave).`}));}
@@ -1086,7 +1087,7 @@ function earSongQ(){return ()=>{const k=rootPick(OUTER_KEYS),A1=R(POP_PROGS),B1=
 /* tensions as intervals: a 9th is a 2nd an octave up, an 11th a 4th, a 13th a 6th */
 const TENS=[['♭9',13],['9',14],['11',17],['♯11',18],['♭13',20],['13',21]];
 function earTensionQ(){return ()=>{const [lab,semi]=R(TENS),a=45+ri(0,8),b=a+semi,simple=IVL.find(x=>x[2]===semi-12)[1];
-  return A({key:`et-${lab}`,label:`${lab} above the root`,answer:lab,choices:TENS.map(x=>x[0]),factor:2,prompt:'Listen: a root, then a note more than an octave above it, then both together. Which <b>tension</b> is it?',visual:listenCard('Root, then the tension','then both together'),
+  return A({row:true,key:`et-${lab}`,label:`${lab} above the root`,answer:lab,choices:TENS.map(x=>x[0]),factor:2,prompt:'Listen: a root, then a note more than an octave above it, then both together. Which <b>tension</b> is it?',visual:listenCard('Root, then the tension','then both together'),
     audio:()=>{Piano.note(a,0.05,1.0,0.85);Piano.note(b,1.0,1.2,0.85);Piano.note(a,2.4,1.8,0.8);Piano.note(b,2.4,1.8,0.8);return 4.4;},explain:`${midiName(a)} to ${midiName(b)}: ${semi} half steps = <b>${lab}</b>, a ${simple} plus an octave. Hear the simple interval first, then add the octave.`,hint:'Bring the top note down an octave in your head and name that interval.'});};}
 function earTensionPlayQ(){return ()=>{const [lab,semi]=R(TENS),a=45+ri(0,8),b=a+semi,na=midiName(a).replace(/\d/,'');
   return M({key:`etp-${lab}`,label:`play ${lab} above ${na}`,target:[a,b],octaveFree:true,maxNotes:2,hideTarget:true,names:[na,midiName(b).replace(/\d/,'')],degs:['1',lab],answerText:`${na} ${midiName(b).replace(/\d/,'')}`,prompt:`The root is <b>${na}</b>. Listen to the tension above it, then <b>play both</b>: the root, then the tension (any octave).`,visual:listenCard(`Root ${na}, then a tension`,'play root, then tension'),
@@ -1107,8 +1108,8 @@ const charOff=(mode,offs)=>mode==='Ionian'?11:mode==='Dorian'?9:mode==='Phrygian
 function playMode(rm,offs,ch,len=0.38){const total=offs.length*len+2.6;Piano.note(rm-12,0.05,total,0.5);Piano.note(rm-5,0.05,total,0.35);let t=0.3;offs.concat([12]).forEach(o=>{Piano.note(rm+o,t,len*0.95,0.8);t+=len;});Piano.note(rm+ch,t+0.1,0.9,0.9);Piano.note(rm,t+1.1,1.3,0.85);return total+0.3;}
 const modeRoot=()=>{const k=rootPick(['C','D','E','F','G','A','Bb','Eb']),rp=pc(P(k));let rm=60+rp;if(rm>66)rm-=12;return {k,rp,rm};};
 function earModeQ(modes,ask){return ()=>{const mode=R(modes),i=MAJ_MODES.indexOf(mode),{k,rp,rm}=modeRoot(),offs=modeOffs(i,'maj'),ch=charOff(mode),names=modeNotes(P(k),i,'maj').map(nm);
-  const ans=ask==='char'?MODE_CHAR[mode]:mode,choices=ask==='char'?mc(ans,shuffle(['♭2','♭3','♯4','♭5','♭6','6','♭7','7'].filter(x=>x!==ans)),6):modes.slice();
-  return A({key:`em-${ask||'name'}-${mode}`,label:ask==='char'?`colour note of ${mode}`:`${mode} by ear`,answer:ans,choices,factor:2.2,
+  const ans=ask==='char'?MODE_CHAR[mode]:mode,choices=ask==='char'?['♭2','♭3','♯4','♭5','♭6','6','♭7','7']:modes.slice();
+  return A({row:ask==='char',key:`em-${ask||'name'}-${mode}`,label:ask==='char'?`colour note of ${mode}`:`${mode} by ear`,answer:ans,choices,factor:2.2,
     prompt:ask==='char'?`A drone on <b>${kname(k)}</b> and a line in one mode. Which <b>degree gives it its colour</b> (the note that tells this mode from the others)?`:`A drone on <b>${kname(k)}</b>, then a line that walks the scale and comes home. <b>Which mode</b> is it?`,visual:listenCard(`Drone on ${kname(k)}`,ask==='char'?'name the colour note':'name the mode'),
     audio:()=>playMode(rm,offs,ch),explain:`<b>${kname(k)} ${mode}</b>: ${names.join(' ')} — ${MODE_WHY[mode]}. Colour note: <b>${MODE_CHAR[mode]}</b> (${names[MODE_CHAR_IDX[mode]]}).`,hint:'First: is the 3rd major or minor? Then listen for the one note that is not where a plain major or minor scale would put it.'});};}
 /* two-chord vamps that each belong to one mode */
@@ -1136,8 +1137,8 @@ function modePlayQ(modes){return ()=>{const mode=R(modes),i=MAJ_MODES.indexOf(mo
 const IVL=[['m2','minor 2nd',1],['M2','major 2nd',2],['m3','minor 3rd',3],['M3','major 3rd',4],['P4','perfect 4th',5],['TT','tritone',6],['P5','perfect 5th',7],['m6','minor 6th',8],['M6','major 6th',9],['m7','minor 7th',10],['M7','major 7th',11],['P8','octave',12]];
 const IVREF={m2:'Jaws / Für Elise opening',M2:'Happy Birthday (first two notes)',m3:'Greensleeves / brahms lullaby',M3:'Oh When the Saints',P4:'Here Comes the Bride / Amazing Grace',TT:'The Simpsons / Maria',P5:'Star Wars / Twinkle Twinkle',m6:'The Entertainer (3rd–4th notes) / Love Story',M6:'My Bonnie / NBC chime',m7:'Somewhere (West Side Story)',M7:'Take On Me (chorus) / Superman (2nd–3rd)',P8:'Somewhere Over the Rainbow'};
 function earInterval(set,mode){return ()=>{const iv=R(set.map(k=>IVL.find(x=>x[0]===k))),dir=mode==='desc'?-1:mode==='mixed'?R([1,-1]):1,harm=mode==='harm';
-  const lo=55+ri(0,12),a=lo,b=lo+iv[2]*dir;const ans=iv[1],choices=set.length<=8?set.map(k=>IVL.find(x=>x[0]===k)[1]):mc(ans,shuffle(set.map(k=>IVL.find(x=>x[0]===k)[1]).filter(x=>x!==ans)),6);
-  return A({key:`ei-${iv[0]}-${mode||'asc'}`,label:`${iv[1]} (${harm?'harmonic':dir>0?'ascending':'descending'})`,answer:ans,choices,
+  const lo=55+ri(0,12),a=lo,b=lo+iv[2]*dir;const ans=iv[1],inSet=IVL.filter(x=>set.includes(x[0])),choices=inSet.map(x=>x[1]);
+  return A({row:true,chLab:Object.fromEntries(inSet.map(x=>[x[1],x[0]])),key:`ei-${iv[0]}-${mode||'asc'}`,label:`${iv[1]} (${harm?'harmonic':dir>0?'ascending':'descending'})`,answer:ans,choices,
     prompt:`Listen: ${harm?'two notes together':'two notes, '+(dir>0?'rising':'falling')}. Name the interval.`,visual:listenCard(harm?'Two notes at once':dir>0?'Two notes, going up':'Two notes, going down'),
     audio:()=>{if(harm){Piano.note(a,0.05,1.8,0.8);Piano.note(b,0.05,1.8,0.8);return 2.1;}Piano.note(a,0.05,0.9,0.85);Piano.note(b,1.0,1.2,0.85);return 2.4;},
     explain:`${midiName(a)} to ${midiName(b)}: ${iv[2]} half steps = <b>${iv[1]}</b>. Reference tune: ${IVREF[iv[0]]}.`,
@@ -4495,7 +4496,8 @@ function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.se
    <button class="btn primary" data-act="start" style="padding:12px 28px;font-size:16px">Start level ${sel}</button></div>`;}
 const spGiven=()=>S&&S.q&&S.q.given&&S.q.given.every((v,i)=>v===S.q.answer[i])?S.q.given.length:0;
 function answerUI(q,done){const dis=done?'disabled':'';
-  if(q.ui==='choices')return `<div class="choices">${q.choices.map((c,i)=>{let cls='';if(done){if(c===q.answer)cls='right';else if(S.answers.at(-1).given===c)cls='wrong';}return `<button class="choice ${cls}" data-act="ans" data-v="${esc(c)}" ${dis}><kbd>${i+1}</kbd><span>${c}</span></button>`;}).join('')}</div>`;
+  /* q.row: the choices are a scale (intervals small to large, degrees 1 to 7): small boxes in that order on one line, short labels from q.chLab */
+  if(q.ui==='choices')return `<div class="choices${q.row?' chrow':''}">${q.choices.map((c,i)=>{let cls='';if(done){if(c===q.answer)cls='right';else if(S.answers.at(-1).given===c)cls='wrong';}return `<button class="choice ${cls}" data-act="ans" data-v="${esc(c)}" ${dis}${q.row?` title="${esc(c)}"`:''}>${i<9?`<kbd>${i+1}</kbd>`:q.row?'<kbd>&nbsp;</kbd>':''}<span>${q.chLab&&q.chLab[c]||c}</span></button>`;}).join('')}</div>`;
   if(q.ui==='pc')return `<div class="keys pc">${PCN.map((n,p)=>{let cls=n.length>1?'sharp':'';if(done){if(p===q.answer)cls+=' right';else if(S.answers.at(-1).given===p)cls+=' wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${p}" ${dis}>${n}</button>`;}).join('')}</div>`;
   if(q.ui==='letters'){const acc=q.acc?`<div class="accrow">Accidental <div class="seg">${[[-1,'♭'],[0,'♮'],[1,'♯']].map(([a,s])=>`<button class="${S.acc===a?'on':''}" data-act="acc" data-a="${a}" ${dis} aria-label="${['flat','natural','sharp'][a+1]}">${s}</button>`).join('')}</div><span>then pick the letter</span></div>`:'';
     return acc+`<div class="keys">${'CDEFGAB'.split('').map(L=>{let cls='';if(done){const g=S.answers.at(-1).given;if(q.answer[0]===L)cls='right';else if(g&&g[0]===L)cls='wrong';}return `<button class="key ${cls}" data-act="ans" data-v="${L}" ${dis}>${L}</button>`;}).join('')}</div>`;}

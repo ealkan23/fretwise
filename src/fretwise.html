@@ -2791,6 +2791,7 @@ const GAMES=[
   {n:'Long dictation',d:'Five-note lines with chromatic tones',g:[earDictQ(5,['1','2','♭3','3','4','♯4','5','6','♭7','7'])]}]},
  {id:'eariv',cat:'ear',name:'Hear the Interval',area:'Interval recognition',desc:'Two notes, name the distance. Rising first, then falling, then both at once.',levels:[
   {n:'Anchors',d:'m2 M2 P5 octave, rising',g:[earInterval(['m2','M2','P5','P8'])]},
+  {n:'Major 2nd or major 3rd',d:'Only these two: a step or a third, rising',g:[earInterval(['M2','M3'])]},
   {n:'3rds and 4ths',d:'Adds m3 M3 P4',g:[earInterval(['m2','M2','m3','M3','P4','P5','P8'])]},
   {n:'6ths and 7ths',d:'Adds m6 M6 m7 M7',g:[earInterval(['m2','M2','m3','M3','P4','P5','m6','M6','m7','M7','P8'])]},
   {n:'All simple intervals',d:'Adds the tritone: m2 to octave, rising',g:[earInterval(IVL.map(x=>x[0]))]},
@@ -3110,6 +3111,7 @@ function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=
 const REORDERS2={comping:{n:6,m:{1:1,2:2,3:2,4:3,5:4,6:4}}};   /* Nov 2026 comping rebuild */
 const REORDERS4={fretboard:{n:8,m:{3:4,4:5,5:6,6:7,7:8,8:9}},sight:{n:18,m:{1:1,2:2,3:5,4:1,5:3,6:4,7:5,8:6,9:7,10:8,11:9,12:11,13:12,14:14,15:15,16:16,17:10,18:13}},triads:{n:13,m:{8:9,9:8}},bends:{n:7,m:{2:3,3:4,4:2}},drop2:{n:14,m:{7:5,8:7,9:8,10:9,11:10,12:11,13:12,14:13}}};   /* the musician's review (6 Nov 2026) */
 const REORDERS5={guidetones:{n:6,m:{5:4,6:4}},earprog:{n:14,m:{10:9,11:9,12:10,13:11,14:12}},earchord:{n:10,m:{10:9}}};   /* 9 Nov 2026 de-duplication: Guide Tones' arpeggio levels (= Arpeggio Runner), Hear the Progression's play-the-bass and write-it-down (= Bass & Top L7, the dictation already in L1/2/4), Hear the Chord's tension on top (= Bass & Top L5) */
+const REORDERS6={eariv:{n:10,m:{2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11}}};   /* 11 Nov 2026 (user request): a level for M2 against M3 alone, inserted after the anchors */
 const REORDERS3={rhyread:{n:17,m:{6:5,7:6,8:7,9:8,10:9,11:9,12:9,13:10,14:11,15:12,16:13,17:14}},jazzrhy:{n:12,m:{10:9,11:10,12:11}}};   /* paper levels moved out to Rhythm Theory (6 Nov 2026) */
 /* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
    played counts (it.pn) give the total, the play log (g.pl, each answer's own level) places them, older played answers go to the levels of the
@@ -3140,6 +3142,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(REORDERS3[id]&&!(g.mig&&g.mig.r28)){migrateReorder(id,g,REORDERS3[id],'r28');saveLocal();}
   if(REORDERS4[id]&&!(g.mig&&g.mig.r29)){migrateReorder(id,g,REORDERS4[id],'r29');saveLocal();}
   if(REORDERS5[id]&&!(g.mig&&g.mig.r30)){migrateReorder(id,g,REORDERS5[id],'r30');saveLocal();}
+  if(REORDERS6[id]&&!(g.mig&&g.mig.r31)){migrateReorder(id,g,REORDERS6[id],'r31');saveLocal();}
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh1)){g.hist={};if(g.hm)g.hm={g:{},s:{}};g.mig={...(g.mig||{}),gh1:1};saveLocal();}   /* 6 Nov 2026: accuracy blocks scored by the wrong rule; sessions and timing kept */
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh2)){const cut=new Date(2026,10,6,19,0).getTime();let tm=0,rn=0,rc=0;const rl={};   /* 6 Nov 2026 evening: the pre-fix blocks (all 0) removed from the log, rounds, counts */
     g.pl=(g.pl||[]).filter(e=>{if(e.n===8&&'dr' in e&&e.t<cut){rn++;if(e.ok)rc++;const lc=rl[e.lv]||(rl[e.lv]={s:0,g:0});lc[e.m?'g':'s']++;return false;}return true;});
@@ -3421,13 +3424,13 @@ function grooveEnd(quiet){grooveWake(false);if(!GR)return;const g=G(GR.gid),st=G
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,3],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,3]]},
+  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,4],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,3]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',4,7],['eardeg',5,7],['eariv',4,5],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',4,7],['eardeg',5,7],['eariv',5,6],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',8,9],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',6,8],['triads',10,11],['sight',10,13],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',8,9],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',7,9],['triads',10,11],['sight',10,13],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',9,10],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',10,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',10,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',10,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
   steps:[['chordscale',5,7],['spelling',9,10],['shells',5,8],['drop2',13,14],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11],['earmode',8,8],['tgrips',6,8]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
@@ -3494,13 +3497,13 @@ const SKILLS=[
  {id:'cg',tr:'chords',goal:true,n:'Chord melody',d:'A melody on top of drop-2 and triad voicings, played through a tune. Needs the chord-melody track.',pre:['c13','c9','c5']},
  {id:'h1',tr:'harm',n:'Major scales & keys',d:'Every major scale, key signatures, major intervals, minor keys.',req:[['intervals',1,4]],pre:[]},
  {id:'h2',tr:'harm',n:'Hear the key',d:'Scale degrees after a cadence, and find them on the guitar.',req:[['eardeg',1,4]],pre:[]},
- {id:'h3',tr:'harm',n:'First intervals by ear',d:'m2 M2 P5 octave, then 3rds, 4ths, 6ths and 7ths.',req:[['eariv',1,3]],pre:[]},
+ {id:'h3',tr:'harm',n:'First intervals by ear',d:'m2 M2 P5 octave, then 3rds, 4ths, 6ths and 7ths.',req:[['eariv',1,4]],pre:[]},
  {id:'h4',tr:'harm',n:'Sing the degrees',d:'Sing 1, 3, 5 and then any degree after a cadence.',req:[['sing',1,2]],pre:['h2']},
  {id:'h5',tr:'harm',n:'Minor, every interval',d:'All intervals, harmonic and melodic minor, inversions and enharmonics.',req:[['intervals',5,7]],pre:['h1']},
  {id:'h6',tr:'harm',n:'Minor key & dictation',d:'Degrees in minor, two notes, three- and four-note dictation.',req:[['eardeg',5,7]],pre:['h2']},
- {id:'h7',tr:'harm',n:'All intervals by ear',d:'Every interval rising, then falling.',req:[['eariv',4,5]],pre:['h3']},
+ {id:'h7',tr:'harm',n:'All intervals by ear',d:'Every interval rising, then falling.',req:[['eariv',5,6]],pre:['h3']},
  {id:'h8',tr:'harm',n:'Hear triads & progressions',d:'Major or minor, the four triads, the classic progressions and the 12-bar blues.',req:[['earchord',1,2],['earprog',1,3]],pre:['h2']},
- {id:'h9',tr:'harm',n:'Harmonic intervals',d:'Both notes together; rising or falling, you decide.',req:[['eariv',6,8]],pre:['h7']},
+ {id:'h9',tr:'harm',n:'Harmonic intervals',d:'Both notes together; rising or falling, you decide.',req:[['eariv',7,9]],pre:['h7']},
  {id:'h10',tr:'harm',n:'Sing intervals & chord tones',d:'Intervals above a note, the 3rd, 5th or 7th of a chord, degrees in minor.',req:[['sing',3,5]],pre:['h4','h7']},
  {id:'h11',tr:'harm',n:'Numerals & function',d:'Diatonic triads and sevenths, IIm7–V7–IMaj7, function, minor keys, finding the key.',req:[['analysis',1,7]],pre:['h5','c3']},
  {id:'h12',tr:'harm',n:'Hear sevenths & cadences',d:'The seventh qualities by ear; minor progressions and II–V–I substitutes.',req:[['earchord',3,4],['earprog',4,5]],pre:['h8','c3']},
@@ -3518,7 +3521,7 @@ const SKILLS=[
  {id:'h24',tr:'harm',n:'Modes by ear I',d:'Ionian, Dorian, Mixolydian, Aeolian; all seven; the colour note.',req:[['earmode',1,3]],pre:['h8']},
  {id:'h25',tr:'harm',n:'Modes by ear II',d:'Vamps, borrowed chords: where the mode changed and which note; play the colour note.',req:[['earmode',4,7]],pre:['h24','h14']},
  {id:'h26',tr:'harm',n:'Melodic-minor modes by ear',d:'Melodic minor, Lydian dominant, Locrian ♮2, altered.',req:[['earmode',8,8]],pre:['h25','h19']},
- {id:'h27',tr:'harm',n:'Tensions as intervals',d:'♭9 9 11 ♯11 ♭13 13 above a root, heard and played.',req:[['eariv',9,10]],pre:['h9']},
+ {id:'h27',tr:'harm',n:'Tensions as intervals',d:'♭9 9 11 ♯11 ♭13 13 above a root, heard and played.',req:[['eariv',10,11]],pre:['h9']},
  {id:'u1',tr:'harm',n:'Tunes by ear I',d:'Short and longer phrases of traditional tunes, played back.',req:[['tunes',1,2]],pre:['h2']},
  {id:'u2',tr:'harm',n:'Tunes by ear II',d:'Minor and modal tunes; two phrases at a time.',req:[['tunes',3,4]],pre:['u1']},
  {id:'u3',tr:'harm',n:'Tunes in any key, from memory',d:'The same tunes in every key; then from the name alone.',req:[['tunes',5,6]],pre:['u2']},

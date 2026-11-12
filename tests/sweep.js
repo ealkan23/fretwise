@@ -90,6 +90,15 @@ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),ms=z.notes.map(x=
 {const f=(k,P)=>scPos(k,P),has=(z,s,fr)=>z.notes.some(x=>x.s===s&&x.f===fr);if(f(0,2).type!=='1'||!has(f(0,2),6,1)||!has(f(0,2),1,1)||f(7,2).notes.some(x=>x.st)||f(2,2).notes.some(x=>x.st)||f(9,2).type!=='4'||!has(f(9,2),4,6)||f(5,2).type!=='1A'||!has(f(5,2),5,1)){bad++;console.log('SCALE Leavitt reference cases');}}
 Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,rp).forEach(a=>{const iv=a.map((f,i)=>f===null?null:mod(OPEN[6-i]+f-rp,12)).filter(v=>v!==null);if(iv.some(v=>!T.f.includes(v))||!iv.includes(0)||iv.length<4||a.some(f=>f!==null&&(f<0||f>15))){bad++;console.log('TENSION grip',name,rp,a.join('-'));}});}});
 /* badges: every game has both axes with known values */
+/* Scale Runner starts whenever the player does: the same run begun 7 clicks later passes; a run that drifts off the clicks or starts between two clicks fails on time */
+{const gens=[scQ({pat:[['scale','updown']]}),scQ({pat:[['3','up']],div:2}),scQ({cycle:true,pat:[['tri','alt']]}),scModeQ('home'),scModeQ('sev')];
+ for(let t=0;t<120;t++){const q=gens[t%gens.length](),B=750,mk=f=>({notes:q.target.map((m,i)=>({midi:m,mf:m,t:f(q.grid[i],i)})),firstAt:3000,beat:B,beatStart:100});
+   if(!q.freeStart||!q.metro){bad++;console.log('scales: not free start',q.label);continue;}
+   const late=micGrade(q,mk(gb=>100+(7+gb)*B)),early=micGrade(q,mk(gb=>100+gb*B)),lean=micGrade(q,mk(gb=>100+(11+gb)*B+60)),drift=micGrade(q,mk((gb,i)=>100+(5+gb)*B+i*0.2*B)),wrong=micGrade(q,mk(gb=>100+(7+gb)*B));
+   if(!late.ok||!early.ok||!lean.ok){bad++;console.log('scales free start: a clean run fails',q.label,late.ok,early.ok,lean.ok);}
+   if(late.per.some(x=>x.off!=null&&Math.abs(x.off)>1)){bad++;console.log('scales free start: offsets not measured from the first click',q.label);}
+   if(drift.ok||drift.timeOk){bad++;console.log('scales free start: a drifting run passes',q.label);}}
+ const q2=alOneQ({pat:['up']})();if(q2.freeStart){bad++;console.log('along should not be free start');}}
 /* Along the Neck: every line is in its scale, moves by scale step where it is a scale run, stays on the neck; shifts really leave the position; the rule grader rejects bad lines */
 {const contig=(sc,ms)=>ms.every((m,i)=>!i||(Math.abs(m-ms[i-1])<=2&&m!==ms[i-1])),inSc=(sc,ms)=>ms.every(m=>sc.pcs.includes(((m%12)+12)%12));
  for(const k of CIRCLE5)for(const kind of ['maj','mm']){const sc=alScale(k,kind),r=alRoute(sc),ms=r.map(x=>x.m);

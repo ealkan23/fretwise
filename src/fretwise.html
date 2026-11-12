@@ -1030,7 +1030,7 @@ const EAR_KEYS=['C','G','D','A','E','F','Bb','Eb','Ab'];
 function degNote(root,deg){return tr(root,DEG_STEP[deg]+1,DEG_SEMI[deg]);}
 function earDegree(set,opts={}){return ()=>{const k=rootPick(opts.keys||EAR_KEYS),root=P(k),t=tonic4(root),two=opts.two;
   const picks=two?[R(set),R(set)]:[R(set)];if(two&&picks[0]===picks[1])picks[1]=R(set.filter(x=>x!==picks[0]));
-  const mids=picks.map(d=>{let m=t+DEG_SEMI[d];if(Math.random()<.35&&m-12>=52)m-=12;if(m>74)m-=12;return m;});
+  const mids=picks.map(d=>{let m=t+DEG_SEMI[d];if(m>74)m-=12;else if(Math.random()<.4&&m-12>=45)m-=12;return m;});   /* 40 %: an octave down, so the note sits under the tonic the cadence gave (every degree in every key; floor A2) */
   const ans=picks.join(' → '),choices=two?mc(ans,shuffle(set.flatMap(a=>set.filter(b=>b!==a).map(b=>a+' → '+b))).filter(x=>x!==ans)):DEG_ORDER.filter(d=>set.includes(d));
   const names=picks.map(d=>degNote(root,d)),minor=!!opts.minor,keyTxt=`${kname(k)} ${minor?'minor':'major'}`;
   return A({row:!two,key:`ed-${k}-${picks.join('')}${minor?'m':''}`,label:`${picks.join(' ')} in ${keyTxt}`,answer:ans,choices,factor:two?2.2:1.5,

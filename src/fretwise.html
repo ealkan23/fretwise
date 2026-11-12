@@ -1408,8 +1408,8 @@ async function ensureMic(){if(AN)return true;
 /* ============ BASIC PITCH (Spotify, Apache-2.0): neural note detection for the guitar games ============ */
 /* vendor/bp.js bundles Basic Pitch + TensorFlow.js (tools/build-vendor.js); the offline file embeds both. Thresholds and the guitar filter were
    tuned on real takes (tests/replay.js, tests/tune_bp.js). Without WebGL it cannot follow live playing, so the built-in detector stays as fallback. */
-const BPO={gateDb:-46,gateAbove:10,   /* loudness gate (Nov 2026): a note must be louder than −46 dBFS and 10 dB above the take's noise floor; the model reads notes into near-silence */
-  onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400,
+const BPO={gateDb:-46,gateAbove:10,gateNear:20,   /* loudness gate (Nov 2026): a note must be louder than −46 dBFS and 10 dB above the take's noise floor; the model reads notes into near-silence */
+  onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,symp:140,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400,
   junkDur:400,   // Note Hunt: a low non-hunted note shorter than this is handling noise
   /* Note Hunt picks are counted from the onset head (strongest onset over every octave of the hunted note) gated by a jump in loudness */
   pkThr:0.5,pkDist:300,pkWin:120,pkHarm:0.3,pkJump:4,pkSure:0.8,pkJump2:1.2};
@@ -1434,17 +1434,25 @@ function bpResample(x,sr){if(sr===22050)return x;const r=22050/sr,n=Math.floor(x
 /* one guitar note per pick: in guitar range, loud enough (a lower bar below C3: a laptop mic hears low strings weakly), the lowest strong
    pitch of notes starting together (the rest are overtones), no overtone of a note still ringing louder, no quieter re-reading of a held note
    (keepRepeats: Note Hunt, where the same pitch on the next string must survive and a double reading is harmless) */
-function bpMono(ev,keepRepeats){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)),out=[];
+/* want (13 Nov 2026, fix-list #44–51): the exact pitches the question asks for. When several notes start together the read used to take the lowest
+   strong one, and the “weak fundamental an octave below” rescue on top: in position playing an open string ringing in sympathy (A2 under A3, G3 under
+   G4, the open B or E) was reported instead of the note played. With want, a strong asked-for note in the group wins over one that was not asked for,
+   and the octave rescue never leaves an asked-for note for one that was not. Nothing is invented: the asked-for note has to be sounding, strongly. */
+function bpMono(ev,keepRepeats,want){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)),out=[];
   for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
-    const top=Math.max(...g.map(n=>n.amp));let pick=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi)[0];
+    const top=Math.max(...g.map(n=>n.amp));const strong=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi);let pick=strong[0];if(want&&!want.has(pick.midi)){const w=strong.filter(n=>want.has(n.midi)).sort((a,b)=>b.amp-a.amp)[0];if(w)pick=w;}
     // a weak fundamental an octave below, starting with it (a laptop mic hears low strings mostly as their octave): that is the note
-    const fund=all.find(n=>n.midi===pick.midi-12&&Math.abs(n.t-pick.t)<=BPO.group&&n.amp>=top*BPO.rescue);if(fund)pick=fund;const prev=out.at(-1);
+    const fund=all.find(n=>n.midi===pick.midi-12&&Math.abs(n.t-pick.t)<=(want&&want.has(pick.midi-12)&&!want.has(pick.midi)?BPO.symp:BPO.group)&&n.amp>=top*BPO.rescue);   /* when the octave below is the asked-for note, its weak fundamental may start a little further away (fix-list #37: 82 ms) */if(fund&&!(want&&want.has(pick.midi)&&!want.has(fund.midi)))pick=fund;const prev=out.at(-1);
     if(prev&&pick.t<prev.t+prev.dur&&[12,19,24].includes(pick.midi-prev.midi)&&pick.amp<prev.amp)continue;
     // the same pitch again while it still rings, clearly quieter: the model re-reading a held note, not a new pick
     const same=out.slice(-3).reverse().find(p=>p.midi===pick.midi&&pick.t<=p.t+p.dur+BPO.mergeGap);
     if(same&&!keepRepeats&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
-    out.push({...pick});}
-  return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true}));}
+    /* a quieter note starting right behind the last one (within BPO.symp ms) is something set ringing by that pluck, an open string in sympathy: not a new note */
+    if(prev&&pick.t-prev.t<=BPO.symp&&pick.amp<prev.amp){prev.alts.push(pick.midi);continue;}
+    out.push({...pick,alts:strong.filter(n=>n.midi!==pick.midi).map(n=>n.midi)});}
+  /* alts: the other strong notes that started with this one. The read still reports one note, but the grader may match an asked-for note to an alt
+     (micGradeOne): which of two notes sounding together was the played one can only be told from what the line asks for at that place. */
+  return out.map(n=>({midi:n.midi,mf:n.midi,t:n.t,dur:n.dur,atk:true,alts:n.alts}));}
 /* Note Hunt: one entry per pick of a hunted note. fr/on are the model's frame and onset matrices (88 bins from A0, 22050/256 frames a second),
    x the audio. A pick is a peak of the onset strength summed over the hunted pitch classes that lines up with a jump in loudness (a pluck),
    so a held note read twice or a string ringing in sympathy does not count, and a skipped spot shows up as missing. Its octave is the lowest
@@ -1484,12 +1492,16 @@ function chordCheck(act,target){const unchecked=target.filter(m=>m<CHO.low),miss
 /* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time. o: {keepRepeats, pcs (Note Hunt)} */
 /* loudness gate: the take's noise floor is the 20th percentile of 50 ms frames; a note's level is measured over its first 50–200 ms */
 function frameDb(x,a,b){let q=0,n=0;for(let i=Math.max(0,a);i<Math.min(x.length,b);i++){q+=x[i]*x[i];n++;}return n?10*Math.log10(q/n+1e-12):-120;}
-function bpGate(ev,x,sr,offMs){if(!x||!x.length||!ev.length)return ev;const fr=Math.round(sr*0.05),db=[];for(let i=0;i+fr<=x.length;i+=fr)db.push(frameDb(x,i,i+fr));db.sort((a,b)=>a-b);const floor=db.length?db[Math.floor(db.length*0.2)]:-120;
-  return ev.filter(e=>{const a=Math.round((e.t-offMs)/1000*sr),d=frameDb(x,a,a+Math.round(sr*Math.min(0.2,Math.max(0.05,e.dur/1000))));e.db=Math.round(d);return d>=BPO.gateDb&&d>=floor+BPO.gateAbove;});}
+function bpGate(ev,x,sr,offMs){if(!x||!x.length||!ev.length)return ev;const fr=Math.round(sr*0.05),db=[];for(let i=0;i+fr<=x.length;i+=fr)db.push(frameDb(x,i,i+fr));db.sort((a,b)=>a-b);
+  /* 13 Nov 2026 (fix-list #42–51, Scale Runner): in a steady run there is hardly any silence, so the old floor (20th percentile) was the playing itself and
+     “10 dB above the floor” threw real notes away (a 33-note run kept 3). The floor is now the quietest 5 % of the take, and a note within
+     BPO.gateNear dB of the take's loud frames (90th percentile) is never dropped by the relative rule. The absolute gate is unchanged. */
+  const floor=db.length?db[Math.floor(db.length*0.05)]:-120,loud=db.length?db[Math.floor(db.length*0.9)]:-120,rel=Math.min(floor+BPO.gateAbove,loud-BPO.gateNear);
+  return ev.filter(e=>{const a=Math.round((e.t-offMs)/1000*sr),d=frameDb(x,a,a+Math.round(sr*Math.min(0.2,Math.max(0.05,e.dur/1000))));e.db=Math.round(d);return d>=BPO.gateDb&&d>=rel;});}
 function bpAnalyse(x,sr,offMs,o={}){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
     const {outputToNotesPoly,noteFramesToTime}=window.FWBP,ev=(a,b,c)=>noteFramesToTime(outputToNotesPoly(fr,on,a,b,c,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude}));
     const evS=bpGate(ev(BPO.onset,BPO.frame,BPO.minLen),x,sr,offMs);
-    return o.pcs?bpHuntPicks(fr,on,x,sr,offMs,o.pcs,evS):bpMono(evS,o.keepRepeats);});
+    return o.pcs?bpHuntPicks(fr,on,x,sr,offMs,o.pcs,evS):bpMono(evS,o.keepRepeats,o.want);});
   BP.q=job.catch(()=>{});return job;}
 
 /* noise floor carried between listens, so a string still ringing at the start cannot set a deaf threshold */
@@ -1502,7 +1514,7 @@ const micLat=bp=>{const c=Piano.ac();return Math.min(150,((c.outputLatency||0)+(
    onsets (+ clicks: scheduled click times in ms, calEnd: end of count-in). Notes are {midi, mf, t, dur (ms), atk}. */
 function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleRate,bp=!!opts.bp&&!opts.onsets&&BP.state==='ready';
   LS={frames:[],t0:performance.now(),lastF:-1e9,floor:[],thr:0.006,notes:[],real:0,firstAt:null,onDone,max:maxNotes,stopped:false,
-    beat:opts.beat||0,beatStart:opts.beatStart||0,free:opts.free||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,chord:opts.chord||0,attacks:[],curve:!!opts.curve,
+    want:opts.want||null,beat:opts.beat||0,beatStart:opts.beatStart||0,free:opts.free||0,limit:opts.limit||0,endAt:opts.endAt||0,gap:opts.gap||2500,hold:opts.hold||400,wait:opts.wait||15000,cap:opts.cap||25000,octaveFree:!!opts.octaveFree,repeats:!!opts.repeats,pcs:opts.pcs||null,isDone:opts.isDone||null,chord:opts.chord||0,attacks:[],curve:!!opts.curve,
     onsets:!!opts.onsets,ons:[],onsLv:[],lastOn:-1e9,clicks:opts.clicks||[],calEnd:opts.calEnd||0,clickPk:0,lat:micLat(bp),bp:null};
   if(bp){const src=c.createMediaStreamSource(MIC),C={src,sr,buf:new Float32Array(Math.ceil(sr*(LS.cap/1000+2))),n:0,off:null,busy:false,last:0,notes:[]};
     const put=d=>{const k=Math.min(d.length,C.buf.length-C.n);C.buf.set(d.subarray(0,k),C.n);C.n+=k;};
@@ -1528,7 +1540,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
     else if(C){LS.frames.push({rms:r,m:null,t:el});
       // every 0.4 s, re-read the last 6 s; the first second of a window lacks context, so earlier results stand there
       if(!C.busy&&C.n&&now-C.last>=BPO.every){C.busy=true;C.last=now;const end=C.n,st=Math.max(0,end-BPO.win*C.sr),off=C.off+st/C.sr*1000,edge=st>0?off+1000:-1e9;
-        bpAnalyse(C.buf.slice(st,end),C.sr,off,{keepRepeats:LS.repeats,pcs:LS.pcs}).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
+        bpAnalyse(C.buf.slice(st,end),C.sr,off,{keepRepeats:LS.repeats,pcs:LS.pcs,want:LS.want}).then(ns=>{C.busy=false;if(!LS||LS.bp!==C)return;
           for(const n of ns)if(n.t<edge){const o=C.notes.find(x=>x.midi===n.midi&&Math.abs(x.t-n.t)<60);if(o)o.dur=Math.max(o.dur,n.dur);}
           C.notes=C.notes.filter(n=>n.t<edge).concat(ns.filter(n=>n.t>=edge));
           // a note already sounding when listening began (the last answer still ringing) is not part of this answer
@@ -1556,12 +1568,12 @@ let CLK=null;
 function clickRun(bpm,beats,flat){clickStop();const c=Piano.ac(),beat=60/bpm,t0=c.currentTime+0.1,nodes=[];for(let i=0;i<beats;i++){const o=c.createOscillator(),g=c.createGain(),t=t0+i*beat;o.type='sine';o.frequency.setValueAtTime(i%4===0&&!flat?1760:1320,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(i%4===0&&!flat?0.35:flat?0.3:0.22,t+0.002);g.gain.exponentialRampToValueAtTime(0.0001,t+0.06);o.connect(g).connect(c.destination);o.start(t);o.stop(t+0.08);nodes.push(o);}CLK={nodes};}
 function clickStop(){if(!CLK)return;CLK.nodes.forEach(o=>{try{o.stop();}catch(e){}});CLK=null;}
 function stopListening(cancel,silent){clickStop();if(!LS||LS.stopped)return;LS.stopped=true;if(S)S.listening=false;micUI('on','Mic ready');const L=LS;LS=null;
-  const fin=notes=>{if(cancel)return;L.onDone({curve:L.curve?L.frames.filter(f=>f.m!=null&&f.t>=300).map(f=>({t:f.t,m:f.m})):null,notes:notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:n.t,dur:n.dur})),onsets:L.ons,firstAt:L.firstAt,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!L.ons.length&&!notes.length&&!L.curve});};   /* nothing heard at all: not graded, whichever way listening ended */
+  const fin=notes=>{if(cancel)return;L.onDone({curve:L.curve?L.frames.filter(f=>f.m!=null&&f.t>=300).map(f=>({t:f.t,m:f.m})):null,notes:notes.map(n=>({midi:n.midi,mf:n.mf,atk:n.atk,t:n.t,dur:n.dur,alts:n.alts})),onsets:L.ons,firstAt:L.firstAt,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!L.ons.length&&!notes.length&&!L.curve});};   /* nothing heard at all: not graded, whichever way listening ended */
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
   LAST_TAKE={x:C.buf.slice(0,C.n),sr:C.sr};
   if(L.chord){const x=LAST_TAKE.x;bpRaw(x,C.sr).then(({fr,on})=>{const strums=chordStrums(fr,on,x,C.sr,C.off||0);L.onDone({notes:[],strums,onsets:[],firstAt:strums.length?strums[0].t:null,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!strums.length});},()=>fin([]));return;}
-  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,{keepRepeats:L.repeats,pcs:L.pcs}).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
+  bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,{keepRepeats:L.repeats,pcs:L.pcs,want:L.want}).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}
   if(view.name==='tuner'&&LS)tunerUpdate();}
@@ -1678,7 +1690,7 @@ function micListen(){if(!S||S.locked||S.listening||S.loading||S.playing)return;c
   S.listening=true;S.live=[];if(!/could not start/.test(S.micMsg||''))S.micMsg='';render();
   const t=q.target,n=t.filter((m,i)=>!i||q.repeats||(q.octaveFree?mod(m-t[i-1],12)!==0:m!==t[i-1])).length,voice=S.gid==='sing';
   const got=res=>{if(res.silent){S.micMsg='Nothing heard. Check that the level bar moves when you play, then press Listen (Space) again.';render();return;}answer(res);};
-  const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,pcs:q.playAll?new Set(t.map(m=>mod(m,12))):null,hold:voice?600:400,limit:S.untimed?0:S.limit};
+  const o={bp:guitar,octaveFree:q.octaveFree,repeats:!!q.repeats,pcs:q.playAll?new Set(t.map(m=>mod(m,12))):null,want:q.octaveFree||q.playAll||voice?null:new Set((q.targets&&q.targets.length?q.targets.flatMap(a=>a.t):t)),hold:voice?600:400,limit:S.untimed?0:S.limit};
   if(q.bend){startListening(got,1,{...o,bp:false,curve:true,hold:{release:4500,prebend:4500,bendvib:4000}[q.bend]||3000,wait:15000,cap:12000});return;}
   if(!q.metro&&!q.bend&&guitar&&(G(S.gid).opts||{}).click)clickRun((G(S.gid).opts||{}).bpm||80,96);
   if(q.strumSeq){startListening(got,q.strumSeq.length,{...o,chord:q.strumSeq.length,wait:15000,cap:q.strumSeq.length>1?Math.max(40000,q.strumSeq.length*4000):20000});return;}
@@ -1704,16 +1716,16 @@ function strumGrade(q,res){const st=(res&&res.strums)||[],seq=q.strumSeq;
 function micGrade(q,res){if(q.walk)return walkGrade(q,res);if(q.solo)return soloGrade(q,res);if(q.road)return roadGrade(q,res);if(q.bend)return bendGrade(q,res);if(q.strumSeq)return strumGrade(q,res);if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
     /* target m heard as g; Note Hunt: below F3 (low frets of strings 6 and 5) the octave above also counts: a laptop mic barely hears a low string's fundamental */
-    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12),mc=(m,g)=>cmp(m,g)?0:heardAs(m,g)?0.01:1;if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
+    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12),alt=(m,n)=>!!(n.alts&&n.alts.some(a=>cmp(m,a))),mc=(m,n)=>cmp(m,n.midi)?0:heardAs(m,n.midi)?0.01:alt(m,n)?0.02:1;   /* an asked-for note that sounded together with the reported one counts (bpMono alts) */if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
   const d=q.repeats?res.notes.filter((n,i)=>!(i&&n.atk===false&&cmp(n.midi,res.notes[i-1].midi))):res.notes.filter((n,i)=>!(i&&cmp(n.midi,res.notes[i-1].midi)));
   /* a repeated target pitch (a held guide tone) is one heard note: one slot, shared by the repeats */
   const sl=[];t.forEach((m,i)=>{if(q.repeats||!(i&&cmp(m,t[i-1])))sl.push(i);});
   const A=sl.length,B=d.length,D=Array.from({length:A+1},(_,a)=>Array.from({length:B+1},(_,b)=>a+b));
-  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+mc(t[sl[a-1]],d[b-1].midi),D[a-1][b]+1,D[a][b-1]+1);
-  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=mc(t[sl[a-1]],d[b-1].midi);if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
+  for(let a=1;a<=A;a++)for(let b=1;b<=B;b++)D[a][b]=Math.min(D[a-1][b-1]+mc(t[sl[a-1]],d[b-1]),D[a-1][b]+1,D[a][b-1]+1);
+  const hit=new Array(A).fill(-1),used=new Set();for(let a=A,b=B;a>0&&b>0;){const c=mc(t[sl[a-1]],d[b-1]);if(D[a][b]===D[a-1][b-1]+c){hit[a-1]=b-1;used.add(b-1);a--;b--;}else if(D[a][b]===D[a-1][b]+1)a--;else b--;}
   let base=res.beatStart;if(q.metro&&q.freeStart){const a=hit.findIndex(h=>h>=0);if(a>=0){const gi=q.grid?q.grid[sl[a]]:sl[a];base=res.beatStart+Math.round((d[hit[a]].t-(res.lat||0)-res.beatStart)/res.beat-gi)*res.beat;}}
   const per=[];let k=-1;
-  t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null,t:p.t,held:true});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const got=x?x.midi:null,gotF=x?x.mf:null;let onTime=null;
+  t.forEach((m,i)=>{if(!q.repeats&&i&&cmp(m,t[i-1])){const p=per[i-1];per.push({m,got:p.got,gotF:p.gotF,ok:p.ok,onTime:null,t:p.t,held:true});return;}k++;const x=hit[k]>=0?d[hit[k]]:null;const viaAlt=x&&!heardAs(m,x.midi)&&alt(m,x),got=x?(viaAlt?x.alts.find(a=>cmp(m,a)):x.midi):null,gotF=x?(viaAlt?got:x.mf):null;let onTime=null;
     let off=null;if(q.metro&&x){off=x.t-(res.lat||0)-(base+(q.grid?q.grid[i]:i)*res.beat);onTime=Math.abs(off)<=res.beat*0.25;}per.push({m,got,gotF,ok:got!==null&&heardAs(m,got),onTime,t:x?x.t:null,off});});
   /* very short unmatched notes are pick noise or a scoop into the pitch, not wrong notes */
   const blip=q.voice||(typeof S!=='undefined'&&S&&S.gid==='sing')?250:100,allIn=per.every(x=>x.ok),u=[...used].sort((a,b)=>a-b),hunted=new Set(t.map(m=>mod(m,12))),

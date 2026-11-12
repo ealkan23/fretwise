@@ -90,6 +90,22 @@ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),ms=z.notes.map(x=
 {const f=(k,P)=>scPos(k,P),has=(z,s,fr)=>z.notes.some(x=>x.s===s&&x.f===fr);if(f(0,2).type!=='1'||!has(f(0,2),6,1)||!has(f(0,2),1,1)||f(7,2).notes.some(x=>x.st)||f(2,2).notes.some(x=>x.st)||f(9,2).type!=='4'||!has(f(9,2),4,6)||f(5,2).type!=='1A'||!has(f(5,2),5,1)){bad++;console.log('SCALE Leavitt reference cases');}}
 Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,rp).forEach(a=>{const iv=a.map((f,i)=>f===null?null:mod(OPEN[6-i]+f-rp,12)).filter(v=>v!==null);if(iv.some(v=>!T.f.includes(v))||!iv.includes(0)||iv.length<4||a.some(f=>f!==null&&(f<0||f>15))){bad++;console.log('TENSION grip',name,rp,a.join('-'));}});}});
 /* badges: every game has both axes with known values */
+/* Along the Neck: every line is in its scale, moves by scale step where it is a scale run, stays on the neck; shifts really leave the position; the rule grader rejects bad lines */
+{const contig=(sc,ms)=>ms.every((m,i)=>!i||(Math.abs(m-ms[i-1])<=2&&m!==ms[i-1])),inSc=(sc,ms)=>ms.every(m=>sc.pcs.includes(((m%12)+12)%12));
+ for(const k of CIRCLE5)for(const kind of ['maj','mm']){const sc=alScale(k,kind),r=alRoute(sc),ms=r.map(x=>x.m);
+   if(!inSc(sc,ms)||!contig(sc,ms)||ms.some((m,i)=>i&&m<=ms[i-1])||r.some(x=>x.f<0||x.f>AL_HI||OPEN[x.s]+x.f!==x.m)||r.length<21||r[0].s!==6||r.at(-1).s!==1){bad++;console.log('along route',k,kind,ms.join(' '));}
+   for(let s=1;s<=6;s++){const st=alStr(sc,s);if(st[0].f>1||st.length<8){bad++;console.log('along string',k,kind,s);}}}
+ for(const k of CIRCLE5){const sc=alScale(k),Pb=alBasic(sc.rp);if(Pb.length!==5||new Set(Pb).size!==5||Pb.some(p=>!['1','2','3','4','1A'].includes(scPos(sc.rp,p).type))){bad++;console.log('along basic positions',k,Pb);}
+   for(let i=0;i<4;i++)for(const sh of [4,3]){const segs=alShift(sc.rp,Pb.slice(i,i+2),[sh]),ms=segs.flat().map(x=>x.m),one=scPos(sc.rp,Pb[i]).notes.length;if(segs.length!==2||!inSc(sc,ms)||!contig(sc,ms)||ms.length<=one||segs[1].filter(x=>x.st).length!==1||!segs[1][0].st){bad++;console.log('along shift',k,Pb.slice(i,i+2),sh);}}
+   for(let i=0;i<3;i++){const segs=alShift(sc.rp,Pb.slice(i,i+3),[4,2]),ms=segs.flat().map(x=>x.m);if(segs.length!==3||!inSc(sc,ms)||!contig(sc,ms)){bad++;console.log('along two shifts',k,Pb.slice(i,i+3));}}}
+ if(alBasic(0).join()!=='2,5,7,9,12'){bad++;console.log('along: C basic positions',alBasic(0));}
+ const mk=(q,ms)=>({notes:ms.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000})),firstAt:3000,beat:750,beatStart:3000});
+ for(let t=0;t<300;t++){const q=alRoadQ({keys:AL_KEYS,any:true})(),T=q.target,R0=q.road;
+   if(T.length!==17||T[0]!==R0.from||T.at(-1)!==R0.to||Math.abs(R0.to-R0.from)<12||!micGrade(q,mk(q,T)).ok){bad++;console.log('road example fails',q.label);}
+   const flat=T.map(()=>T[0]),up1=T.map(m=>m+1),wrongEnd=T.slice(0,-1).concat([T.at(-2)+(T.at(-1)>T.at(-2)?-0:0)]),leap=T.slice();leap[8]=T[8]+12;const short=T.slice(0,10);
+   if(micGrade(q,mk(q,flat)).ok||micGrade(q,mk(q,up1)).ok||micGrade(q,mk(q,leap)).ok||micGrade(q,mk(q,short)).ok||micGrade(q,mk(q,T.slice(0,-1).concat([T[0]]))).ok){bad++;console.log('road accepts a bad line',q.label);}}
+ for(let t=0;t<400;t++){const q=alOneQ({keys:AL_KEYS,modes:t%2===0,kind:t%3===0&&t%2?'mm':'maj',pat:['up','updown','3']})();if(q.target.length<8||Math.max(...q.target)-Math.min(...q.target)!==12){bad++;console.log('one string: not one octave',q.label);}}
+ for(let t=0;t<200;t++){const q=alTwoQ({keys:AL_KEYS,kind:t%2?'mm':'maj'})();if(q.target.length!==18){bad++;console.log('two strings',q.label);}for(let g=0;g<3;g++){const six=q.target.slice(g*6,g*6+6);if(six.some((m,i)=>i&&(m-six[i-1]<1||m-six[i-1]>2))){bad++;console.log('two strings: group not stepwise',q.label,six);}}}}
 GAMES.forEach(x=>{if(![101,201,301].includes(COURSE[x.id])){bad++;console.log('COURSE missing',x.id);}});CATS.forEach(c=>{if(!GAMES.some(x=>x.cat===c.id&&COURSE[x.id]===101)){bad++;console.log('no 101 game in',c.id);}});
 GAMES.forEach(x=>{const b=BADGE[x.id];if(!b||!['life','warm','once'].includes(b[0])||!['core','support','side'].includes(b[1])){bad++;console.log('BADGE missing/bad',x.id,b);}});
 /* full notes under every lesson card: present, at least three sections, Berklee numerals only, no code leaks */

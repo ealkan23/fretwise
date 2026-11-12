@@ -3151,6 +3151,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if((id==='spelling'||id==='intervals')&&!(g.mig&&g.mig.fl2)){if(g.ht)Object.keys(g.ht).forEach(L=>{g.ht[L]=g.ht[L].map(v=>typeof v==='number'?+(v*0.686).toFixed(3):v);});g.mig={...(g.mig||{}),fl2:1};saveLocal();}   /* 9 Nov 2026: letter-spelling targets widened (1+0.7n → 1.5+1.0n); stored ratios rescaled once */
   if(!(g.mig&&g.mig.d60)){dayBackfill(g);g.mig={...(g.mig||{}),d60:1};saveLocal();}
   if(!(g.mig&&g.mig.rl1)){rlBackfill(g,RZ1.includes(id)&&id!=='rhytheory');g.mig={...(g.mig||{}),rl1:1};saveLocal();}
+  if(!(g.mig&&g.mig.rl2)){if(RZ1.includes(id)&&id!=='rhytheory')rlOlder(g);g.mig={...(g.mig||{}),rl2:1};saveLocal();}
   if(id==='pulse'&&!(g.mig&&g.mig.pu1)){g.opts=Object.assign({},g.opts||{},{tapMic:true});g.mig={...(g.mig||{}),pu1:1};saveLocal();}   /* 8 Nov 2026: strumming is the default (the keyboard has no dynamics and its own latency) */
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
@@ -3269,6 +3270,9 @@ function rlAdd(g,o){(g.rl||(g.rl=[])).push(o);if(g.rl.length>RL_MAX)g.rl.splice(
 function rlBackfill(g,cont){g.rl=[];const pl=(g.pl||[]).slice().sort((a,b)=>a.t-b.t);
   if(cont){let ck=null,last=0;const flush=()=>{if(ck&&ck.n>=2)rlAdd(g,ck);ck=null;};pl.filter(e=>e.n===8&&e.dr!=null).forEach(e=>{if(ck&&(e.t-last>120000||ck.L!==e.lv))flush();ck=ck||{t:e.t,L:e.lv,n:0,c:0,tn:0,dr:0,ab:0};ck.n++;ck.c+=e.ok?1:0;ck.tn++;ck.dr+=e.dr;ck.ab+=e.ab;ck.t=e.t;last=e.t;if(ck.n>=4)flush();});flush();return;}
   (g.sessions||[]).filter(s=>s.n).forEach(s=>{const o={t:s.t,L:s.L,n:s.n,c:s.c,ms:(s.ms||0)*s.n,dur:s.dur||0},from=s.t-Math.max(s.wall||0,s.dur||0,60000)-5000;pl.forEach(e=>{if(e.t>from&&e.t<=s.t+2000){const p=dayPerf(e);for(const k in p)if(p[k]!=null)o[k]=(o[k]||0)+p[k];}});rlAdd(g,o);});}
+/* continuous games: the block log holds only the last 300 blocks, so sessions older than the first point come in as one point each
+   (clean blocks only: their timing is no longer stored) */
+function rlOlder(g){const rl=g.rl||(g.rl=[]),first=rl.length?Math.min(...rl.map(p=>p.t)):Infinity,add=(g.sessions||[]).filter(s=>s.groove&&s.n&&s.t<first).map(s=>({t:s.t,L:s.L,n:s.n,c:s.c,dur:s.dur||0}));if(add.length){g.rl=add.concat(rl).sort((a,b)=>a.t-b.t);if(g.rl.length>RL_MAX)g.rl.splice(0,g.rl.length-RL_MAX);}return add.length;}
 /* once: rebuild the days from what is still stored (rounds and the performance log) */
 function dayBackfill(g){const cut=Date.now()-DAYS_KEEP*864e5;g.days={};(g.sessions||[]).forEach(s=>{if(s.t>=cut&&s.n)dayAdd(g,{n:s.n,c:s.c,ms:(s.ms||0)*s.n,dur:s.dur||0},s.t);});(g.pl||[]).forEach(e=>{if(e.t>=cut)dayAdd(g,dayPerf(e),e.t);});}
 function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.ui==='mic'){it.qn=(it.qn||0)+1;if(clean)it.qc=(it.qc||0)+1;}

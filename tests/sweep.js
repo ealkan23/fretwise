@@ -90,6 +90,10 @@ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),ms=z.notes.map(x=
 {const f=(k,P)=>scPos(k,P),has=(z,s,fr)=>z.notes.some(x=>x.s===s&&x.f===fr);if(f(0,2).type!=='1'||!has(f(0,2),6,1)||!has(f(0,2),1,1)||f(7,2).notes.some(x=>x.st)||f(2,2).notes.some(x=>x.st)||f(9,2).type!=='4'||!has(f(9,2),4,6)||f(5,2).type!=='1A'||!has(f(5,2),5,1)){bad++;console.log('SCALE Leavitt reference cases');}}
 Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,rp).forEach(a=>{const iv=a.map((f,i)=>f===null?null:mod(OPEN[6-i]+f-rp,12)).filter(v=>v!==null);if(iv.some(v=>!T.f.includes(v))||!iv.includes(0)||iv.length<4||a.some(f=>f!==null&&(f<0||f>15))){bad++;console.log('TENSION grip',name,rp,a.join('-'));}});}});
 /* badges: every game has both axes with known values */
+/* count-in questions: what sounds in the count-in is not part of the answer; a note in the first bar proper still is */
+{const gens=[GBY.fretboard.levels[8].g[0],alOneQ({pat:['up']})];for(let t=0;t<60;t++){const q=gens[t%2](),B=60000/q.metro,bs=4*B+100,N=q.target.map((m,i)=>({midi:m,mf:m,t:bs+q.grid[i]*B})),mk=x=>({notes:x.concat(N).sort((a,b)=>a.t-b.t),firstAt:1000,beat:B,beatStart:bs});
+   if(!micGrade(q,mk([])).ok||!micGrade(q,mk([{midi:40,mf:40,t:900},{midi:57,mf:57,t:bs-B*1.2}])).ok){bad++;console.log('count-in: a sound in the count-in fails the take',q.label);}
+   let xm=q.target[0]+1;while(q.target.includes(xm))xm++;if(micGrade(q,mk([{midi:xm,mf:xm,t:bs+B*0.5}])).ok){bad++;console.log('count-in: an extra note inside the take passes',q.label);}}}
 /* Scale Runner starts whenever the player does: the same run begun 7 clicks later passes; a run that drifts off the clicks or starts between two clicks fails on time */
 {const gens=[scQ({pat:[['scale','updown']]}),scQ({pat:[['3','up']],div:2}),scQ({cycle:true,pat:[['tri','alt']]}),scModeQ('home'),scModeQ('sev')];
  for(let t=0;t<120;t++){const q=gens[t%gens.length](),B=750,mk=f=>({notes:q.target.map((m,i)=>({midi:m,mf:m,t:f(q.grid[i],i)})),firstAt:3000,beat:B,beatStart:100});

@@ -537,11 +537,11 @@ function staffSVG(o){const S=7,BL=104,y=s=>BL-s*S,W=320,top=Math.min(0,y(o.step)
   h+=`<ellipse class="st-head${o.ok?' ok':''}" cx="${nx}" cy="${y(st)}" rx="8.5" ry="5.6" transform="rotate(-22 ${nx} ${y(st)})"/>`;
   return h+'</svg>';}
 const LINE_N=['E4','G4','B4','D5','F5'],SPACE_N=['F4','A4','C5','E5'];
-function posWord(s){if(s>=0&&s<=8)return s%2===0?`line ${s/2+1} (counting from the bottom)`:`space ${(s+1)/2} (counting from the bottom)`;if(s<0)return s%2===0?`ledger line ${-s/2} below the staff`:(s===-1?'the space just below the staff':`below ledger line ${(-s-1)/2}`);return s%2===0?`ledger line ${(s-8)/2} above the staff`:(s===9?'the space just above the staff':`above ledger line ${(s-9)/2}`);}
+function posWord(s){if(s>=0&&s<=8)return s%2===0?`line ${s/2+1} (counting from the bottom)`:`space ${(s+1)/2} (counting from the bottom)`;if(s<0)return s%2===0?`ledger line ${-s/2} below the staff`:(s===-1?'the space just below the staff':`the space under ledger line ${(-s-1)/2} below the staff`);return s%2===0?`ledger line ${(s-8)/2} above the staff`:(s===9?'the space just above the staff':`the space over ledger line ${(s-9)/2} above the staff`);}
 function trebleQ(steps,accOn){return ()=>{const s=R(steps),n=stepNote(s);let a=0;if(accOn)a=R([-1,1,1,-1,0]);const note={l:n.l,a},name=nm(note);
   return {snd:{note:12*(stepOct(s)+1)+NAT[n.l]+a},key:`tc-${s}-${a}`,label:`${name}${stepOct(s)}`,ui:'letters',acc:!!accOn,answer:name,answerText:`${name}${stepOct(s)}`,factor:1,
    prompt:`Name this note.`,visual:staffSVG({step:s,acc:ACC[a]}),reveal:staffSVG({step:s,acc:ACC[a],ok:1}),
-   explain:`It sits on ${posWord(s)}: ${LET[n.l]}${stepOct(s)}${a?`, raised/lowered by the ${a>0?'sharp':'flat'}`:''}. Lines bottom→top: E G B D F. Spaces: F A C E.`,
+   explain:`It sits on ${posWord(s)}: ${LET[n.l]}${stepOct(s)}${a?`, raised/lowered by the ${a>0?'sharp':'flat'}`:''}. Lines bottom→top: E G B D F. Spaces: F A C E.${s<-1?' Ledger lines below, going down: C, A, F (the low E hangs under the third).':s>9?' Ledger lines above, going up: A, C, E.':''}`,
    hint:s%2===0&&s>=0&&s<=8?'Lines from the bottom: Every Good Boy Does Fine.':(s>0&&s<8?'Spaces from the bottom spell FACE.':'Count up or down from the nearest line you know: each line-to-space move is one letter.')};};}
 function trebleSig(){return ()=>{const key=rootPick(['G','D','A','E','F','Bb','Eb','Ab']),sig=sigOf(key),list=(sig.t==='♯'?ORDER_SH:ORDER_FL).slice(0,sig.n);
   let s;const inSig=Math.random()<0.75;for(let t=0;t<30;t++){s=ri(-1,9);const L=LET[stepNote(s).l];if(list.includes(L)===inSig)break;}
@@ -2810,6 +2810,7 @@ const GAMES=[
  {id:'sight',cat:'neck',name:'Reading',area:'Staff and positions',desc:'Name notes on the treble staff, then read them in position on the neck: first position string by string, then positions II–IV, fifth and ninth. After each position you read whole lines in time, with rhythm.',levels:[
   {n:'Strings 1–3 on the staff and the neck',d:'E F G · B C D · G A: read them on the staff, find them in first position',g:[sightQ([0,3],[1,2,3],0),trebleQ([0,2,4,6,8]),trebleQ([1,3,5,7])]},
   {n:'The whole staff',d:'D4 to G5 by name',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9]),trebleQ([-1,9])]},
+  {n:'Ledger lines, above and below',d:'Up to three lines: low E to middle C under the staff, A to high E over it',g:[trebleQ([-7,-6,-5,-4,-3,-2]),trebleQ([10,11,12,13,14]),trebleQ([-7,-6,-5,-4,-3,-2,10,11,12,13,14]),trebleQ([-7,-5,-3,12,14])]},
   {n:'Strings 4–6, ledger lines below',d:'D E F · A B C · E F G',g:[sightQ([0,3],[4,5,6],0),trebleQ([-4,-3,-2,-1])]},
   {n:'All of first position',d:'Every natural from low E to high G',g:[sightQ([0,3],[1,2,3,4,5,6],0)]},
   {n:'Accidentals and key signatures',d:'Sharps and flats on the staff and in first position; apply the key signature',g:[trebleQ([-1,0,1,2,3,4,5,6,7,8,9],true),trebleSig(),sightQ([0,4],[1,2,3,4,5,6],2)]},
@@ -3221,11 +3222,15 @@ function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=
   const img=new Set();for(let L=1;L<=R.n;L++)img.add(mp(L));const top=Math.max(...open);for(let L=2;L<top;L++)if(!img.has(L))open.add(L);
   const remap=o=>{const h={};Object.entries(o||{}).forEach(([L,v])=>{const N=mp(+L);h[N]=(h[N]||[]).concat(v).slice(-20);});return h;};
   g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
+  /* the per-input records and the history points are keyed by level too (added after the first reorders; missed by r31, found 13 Nov 2026) */
+  if(g.lc){const lc={};Object.entries(g.lc).forEach(([L,v])=>{const o=lc[mp(+L)]||(lc[mp(+L)]={s:0,g:0});o.s+=v.s||0;o.g+=v.g||0;});g.lc=lc;}
+  if(g.hm)for(const k of Object.keys(g.hm))g.hm[k]=remap(g.hm[k]);(g.rl||[]).forEach(p=>{if(p.L)p.L=mp(p.L);});
   let lvl=1;while(open.has(lvl+1))lvl++;g.lvl=Math.min(lvl,n);g.unl=[...open].filter(L=>L>g.lvl).sort((a,b)=>a-b);const last=mp(g.last||1);g.last=open.has(last)?last:g.lvl;
   g.mig={...(g.mig||{}),[flag]:1};}
 const REORDERS2={comping:{n:6,m:{1:1,2:2,3:2,4:3,5:4,6:4}}};   /* Nov 2026 comping rebuild */
 const REORDERS4={fretboard:{n:8,m:{3:4,4:5,5:6,6:7,7:8,8:9}},sight:{n:18,m:{1:1,2:2,3:5,4:1,5:3,6:4,7:5,8:6,9:7,10:8,11:9,12:11,13:12,14:14,15:15,16:16,17:10,18:13}},triads:{n:13,m:{8:9,9:8}},bends:{n:7,m:{2:3,3:4,4:2}},drop2:{n:14,m:{7:5,8:7,9:8,10:9,11:10,12:11,13:12,14:13}}};   /* the musician's review (6 Nov 2026) */
 const REORDERS5={guidetones:{n:6,m:{5:4,6:4}},earprog:{n:14,m:{10:9,11:9,12:10,13:11,14:12}},earchord:{n:10,m:{10:9}}};   /* 9 Nov 2026 de-duplication: Guide Tones' arpeggio levels (= Arpeggio Runner), Hear the Progression's play-the-bass and write-it-down (= Bass & Top L7, the dictation already in L1/2/4), Hear the Chord's tension on top (= Bass & Top L5) */
+const REORDERS7={sight:{n:16,m:{3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:12,12:13,13:14,14:15,15:16,16:17}}};   /* 13 Nov 2026 (user request): Reading L3 “Ledger lines, above and below” inserted after the whole staff */
 const REORDERS6={eariv:{n:10,m:{2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11}}};   /* 11 Nov 2026 (user request): a level for M2 against M3 alone, inserted after the anchors */
 const REORDERS3={rhyread:{n:17,m:{6:5,7:6,8:7,9:8,10:9,11:9,12:9,13:10,14:11,15:12,16:13,17:14}},jazzrhy:{n:12,m:{10:9,11:10,12:11}}};   /* paper levels moved out to Rhythm Theory (6 Nov 2026) */
 /* answers per level and input (g.lc), rebuilt once (flag c27). Only answers really played on the guitar count as guitar: the stored questions'
@@ -3258,6 +3263,10 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(REORDERS4[id]&&!(g.mig&&g.mig.r29)){migrateReorder(id,g,REORDERS4[id],'r29');saveLocal();}
   if(REORDERS5[id]&&!(g.mig&&g.mig.r30)){migrateReorder(id,g,REORDERS5[id],'r30');saveLocal();}
   if(REORDERS6[id]&&!(g.mig&&g.mig.r31)){migrateReorder(id,g,REORDERS6[id],'r31');saveLocal();}
+  if(REORDERS7[id]&&!(g.mig&&g.mig.r32)){const was=g.lvl;migrateReorder(id,g,REORDERS7[id],'r32');
+    if(was===3){g.lvl=3;g.unl=[...new Set([...(g.unl||[]),4])].sort((a,b)=>a-b);if(g.last===4)g.last=3;}   /* the old level 3 was the frontier: the new level 3 becomes it, the old one (now 4) stays open */
+    saveLocal();}
+  if(id==='eariv'&&g.mig&&g.mig.r31&&!g.mig.lc31){countBackfill(id,g);g.mig={...g.mig,lc31:1};saveLocal();}   /* r31 shifted the levels but not the per-level answer counts: rebuild them from the (shifted) rounds */
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh1)){g.hist={};if(g.hm)g.hm={g:{},s:{}};g.mig={...(g.mig||{}),gh1:1};saveLocal();}   /* 6 Nov 2026: accuracy blocks scored by the wrong rule; sessions and timing kept */
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh2)){const cut=new Date(2026,10,6,19,0).getTime();let tm=0,rn=0,rc=0;const rl={};   /* 6 Nov 2026 evening: the pre-fix blocks (all 0) removed from the log, rounds, counts */
     g.pl=(g.pl||[]).filter(e=>{if(e.n===8&&'dr' in e&&e.t<cut){rn++;if(e.ok)rc++;const lc=rl[e.lv]||(rl[e.lv]={s:0,g:0});lc[e.m?'g':'s']++;return false;}return true;});
@@ -3567,13 +3576,13 @@ function grooveEnd(quiet){grooveWake(false);if(!GR)return;const g=G(GR.gid),st=G
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,3],['eardeg',1,4],['eariv',1,4],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,3]]},
+  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,4],['eardeg',1,4],['eariv',1,4],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,3]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',4,7],['along',1,4],['eardeg',5,7],['eariv',5,6],['cr',1,6],['sight',4,9],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',4,7],['along',1,4],['eardeg',5,7],['eariv',5,6],['cr',1,6],['sight',5,10],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',8,9],['along',5,8],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',7,9],['triads',10,11],['sight',10,13],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,5],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',8,9],['along',5,8],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',7,9],['triads',10,11],['sight',11,14],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',10,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',10,12],['along',9,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',14,16],['jazzrhy',7,9],['comping',6,8]]},
+  steps:[['drop2',1,12],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',10,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',10,12],['along',9,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',15,17],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
   steps:[['chordscale',5,7],['spelling',9,10],['shells',5,8],['drop2',13,14],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11],['earmode',8,8],['tgrips',6,8]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
@@ -3602,15 +3611,15 @@ const SKILLS=[
  {id:'tg',tr:'time',goal:true,n:'Comp a tune in time',d:'Comp a whole chorus with a play-along, chords and rhythm both graded. Needs the play-along mode.',pre:['k3','t5','j3']},
  {id:'s1',tr:'solo',n:'The neck',d:'Name and find every note on every string, frets 0–12.',req:[['fretboard',1,9]],pre:[]},
  {id:'s2',tr:'solo',n:'Every place a note lives',d:'All the spots of one note across the neck, played.',req:[['hunt',1,5]],pre:['s1']},
- {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces and ledger lines, on paper and in first position.',req:[['sight',1,3]],pre:['s1']},
+ {id:'s3',tr:'solo',n:'Read the staff',d:'Lines, spaces and ledger lines, on paper and in first position.',req:[['sight',1,4]],pre:['s1']},
  {id:'s4',tr:'solo',n:'First bends & vibrato',d:'Half and whole-step bends in tune, release, even vibrato.',req:[['bends',1,4]],pre:[]},
  {id:'s5',tr:'solo',n:'Notes in time',d:'Fret by fret, two notes at once, every spot with the click.',req:[['hunt',6,8]],pre:['s2']},
- {id:'s6',tr:'solo',n:'Read in first position',d:'All of first position, accidentals and key signatures, lines with rhythm, positions II–IV.',req:[['sight',4,9]],pre:['s3']},
+ {id:'s6',tr:'solo',n:'Read in first position',d:'All of first position, accidentals and key signatures, lines with rhythm, positions II–IV.',req:[['sight',5,10]],pre:['s3']},
  {id:'s7',tr:'solo',n:'Play it back',d:'Hear a phrase and play it: steps, skips, the major scale, pentatonic and blues in time.',req:[['cr',1,6]],pre:['s1','h2']},
  {id:'s8',tr:'solo',n:'Interval shapes',d:'3rds, 5ths, 4ths, 6ths, 7ths and 2nds as shapes under the hand.',req:[['neckiv',1,3]],pre:['s1','h3']},
  {id:'s9',tr:'solo',n:'Expressive bends',d:'Bend with vibrato, the blues curl, pre-bends.',req:[['bends',5,7]],pre:['s4']},
  {id:'s10',tr:'solo',n:'Arpeggios',d:'Seventh-chord arpeggios in position, in time, through II–V–I and as guide-tone lines.',req:[['arp',1,8]],pre:['s8','c3']},
- {id:'s11',tr:'solo',n:'Read melodic rhythms, fifth position',d:'Syncopated and swung lines in position, pitch and time together; fifth position.',req:[['sight',10,13]],pre:['s6','r2']},
+ {id:'s11',tr:'solo',n:'Read melodic rhythms, fifth position',d:'Syncopated and swung lines in position, pitch and time together; fifth position.',req:[['sight',11,14]],pre:['s6','r2']},
  {id:'z1',tr:'solo',n:'Seven positions',d:'The major scale in every position, up and down, in quarters, eighths and triplets.',req:[['scales',1,3]],pre:[]},
  {id:'z2',tr:'solo',n:'Scale patterns',d:'Thirds, triads and seventh chords through a position: up, down, alternating.',req:[['scales',4,7]],pre:['z1']},
  {id:'z3',tr:'solo',n:'Round the circle',d:'The paired shapes through twelve keys, scale and patterns.',req:[['scales',8,9]],pre:['z2']},
@@ -3623,7 +3632,7 @@ const SKILLS=[
  {id:'s12',tr:'solo',n:'Phrasing over changes',d:'Chromatic approach notes, phrases over a chord in time, double stops.',req:[['cr',7,10]],pre:['s7','s10']},
  {id:'s13',tr:'solo',n:'Modes in position',d:'A mode of the major scale from its root, in one position.',req:[['arp',9,9]],pre:['s10','h14']},
  {id:'s14',tr:'solo',n:'Tensions & double stops',d:'9, 11, 13 and altered tensions; intervals below; 3rds and 6ths as grips.',req:[['neckiv',4,7]],pre:['s8']},
- {id:'s15',tr:'solo',n:'Read high & everywhere',d:'Ninth position, dyads, and every place one written pitch lives.',req:[['sight',14,16]],pre:['s11']},
+ {id:'s15',tr:'solo',n:'Read high & everywhere',d:'Ninth position, dyads, and every place one written pitch lives.',req:[['sight',15,17]],pre:['s11']},
  {id:'s16',tr:'solo',n:'Bebop lines',d:'The bebop dominant run: chord tones on the beat.',req:[['arp',10,10]],pre:['s13','h19']},
  {id:'sg',tr:'solo',goal:true,n:'Play a blues chorus',d:'Twelve bars of your own blues over a play-along, notes, bends and time graded. Needs the play-along mode.',pre:['s12','s9','h17']},
  {id:'c1',tr:'chords',n:'Triads by heart',d:'Every major, minor, diminished and augmented triad, spelled and named fast.',req:[['spelling',1,5]],pre:['h1']},
@@ -4986,7 +4995,7 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),kind=x.levels.some(l=>l.c)?'rh
     special=`<div class="section"><h3>Fretboard map</h3><div class="panel">${h}</div><div class="legend" style="margin-top:8px"><span><i style="background:var(--good)"></i>all clean</span><span><i style="background:${heatColor(.5)}"></i>half</span><span><i style="background:var(--bad)"></i>missed</span><span><i style="background:var(--sunk)"></i>not seen</span><span>Number = times asked</span></div></div></div>`;}
   if(x.id==='hunt'){const cells=[...Array(12).keys()].map(p=>{const it=gi.items[K(`hunt-${p}`)];return {p,c:it?it.c:0,n:it?it.n:0};});
     special=`<div class="section"><h3>Note-by-note</h3><div class="panel tablewrap"><table><thead><tr>${cells.map(c=>`<th class="n">${PCN[c.p].split('/')[0]}</th>`).join('')}</tr></thead><tbody><tr>${cells.map(c=>`<td class="n" style="${c.n?`background:${heatColor(c.c/c.n)};color:#fff`:''}">${c.n?Math.round(c.c/c.n*100)+'%':'·'}</td>`).join('')}</tr></tbody></table><p class="note">Clean finds (every spot, nothing extra, no hint) for single-note rounds.</p></div></div>`;}
-  if(x.id==='sight'){const cells=[];for(let s=-4;s<=12;s++){let c=0,n=0;for(const a of [0,1,-1]){const it=gi.items[K(`tc-${s}-${a}`)];if(it){c+=it.c;n+=it.n;}}cells.push({s,c,n});}
+  if(x.id==='sight'){const cells=[];for(let s=-7;s<=14;s++){let c=0,n=0;for(const a of [0,1,-1]){const it=gi.items[K(`tc-${s}-${a}`)];if(it){c+=it.c;n+=it.n;}}cells.push({s,c,n});}
     special=`<div class="section"><h3>Note-by-note</h3><div class="panel tablewrap"><table><thead><tr>${cells.map(c=>`<th class="n">${LET[stepNote(c.s).l]}${stepOct(c.s)}</th>`).join('')}</tr></thead><tbody><tr>${cells.map(c=>`<td class="n" style="${c.n?`background:${heatColor(c.c/c.n)};color:#fff`:''}">${c.n?Math.round(c.c/c.n*100)+'%':'·'}</td>`).join('')}</tr></tbody></table></div></div>`;}
   if(Object.keys(g.rk||{}).length){const cells=PCFLAT.map(k=>({k,...(g.rk[k]||{n:0,c:0})}));
     special+=`<div class="section"><h3>By key</h3><div class="panel tablewrap"><table><thead><tr>${cells.map(c=>`<th class="n">${c.k}</th>`).join('')}</tr></thead><tbody><tr>${cells.map(c=>`<td class="n" style="${c.n?`background:${heatColor(c.c/c.n)};color:#fff`:''}">${c.n?Math.round(c.c/c.n*100)+'%':'·'}</td>`).join('')}</tr><tr>${cells.map(c=>`<td class="n muted">${c.n||'—'}</td>`).join('')}</tr></tbody></table><p class="note">Clean answers by the root or key the question was built on; second row = times seen. Roots you have seen least are drawn first.</p></div></div>`;}

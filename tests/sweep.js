@@ -90,6 +90,25 @@ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),ms=z.notes.map(x=
 {const f=(k,P)=>scPos(k,P),has=(z,s,fr)=>z.notes.some(x=>x.s===s&&x.f===fr);if(f(0,2).type!=='1'||!has(f(0,2),6,1)||!has(f(0,2),1,1)||f(7,2).notes.some(x=>x.st)||f(2,2).notes.some(x=>x.st)||f(9,2).type!=='4'||!has(f(9,2),4,6)||f(5,2).type!=='1A'||!has(f(5,2),5,1)){bad++;console.log('SCALE Leavitt reference cases');}}
 Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,rp).forEach(a=>{const iv=a.map((f,i)=>f===null?null:mod(OPEN[6-i]+f-rp,12)).filter(v=>v!==null);if(iv.some(v=>!T.f.includes(v))||!iv.includes(0)||iv.length<4||a.some(f=>f!==null&&(f<0||f>15))){bad++;console.log('TENSION grip',name,rp,a.join('-'));}});}});
 /* badges: every game has both axes with known values */
+/* voicings in use: every grip of a cadence is its chord; rootless grips have the 3rd and 7th and no root; shell+tension stacks are what they say;
+   timed strums pass on the beat, fail when late or when a chord is wrong, and ignore a strum in the count-in */
+{const pcsOf=a=>new Set(tabMidi(a).map(m=>((m%12)+12)%12));
+ for(const k of ['C','F','G','D','A','Bb','Eb','E','Ab','B','Db','F#'])for(const [q,pool] of [['maj7',ALLS],['m7',ALLS],['7',ALLS],['m7♭5',ALLS]])for(const set of pool){const r=P(k),want=new Set(chord(r,q).map(pc)),gs=d2All(r,q,set);
+   if(!gs.length||gs.some(a=>{const p=pcsOf(a);return p.size!==4||[...p].some(x=>!want.has(x));})){bad++;console.log('drop-2 grip not its chord',k,q,set);}}
+ for(const n of Object.keys(RL))for(let rp=0;rp<12;rp++){const gs=rlGrips(n,rp),need=RL[n].iv.map(x=>((rp+x)%12+12)%12);if(!gs.length){bad++;console.log('rootless: no grip',n,rp);}
+   gs.forEach(a=>{const p=pcsOf(a);if(p.has(rp)||need.some(x=>!p.has(x))||p.size!==3){bad++;console.log('rootless grip wrong',n,rp,tabStr(a));}});
+   const third=RL[n].q==='m7'?3:4,sev=RL[n].q==='maj7'?11:10;if(!RL[n].iv.some(x=>x%12===third)||(n!=='6/9'&&!RL[n].iv.some(x=>x%12===sev))){bad++;console.log('rootless form without its 3rd or 7th',n);}}
+ for(const T of SH_TEN)for(let rp=0;rp<12;rp++){const gs=stackGrips(T.str,T.iv,rp);gs.forEach(a=>{const ms=tabMidi(a);if(ms.length!==4||ms[0]%12!==rp||T.iv.some((x,i)=>((ms[i]-ms[0])!==x-T.iv[0]))){bad++;console.log('shell+tension stack wrong',T.n,rp,tabStr(a));}});}
+ if(tabStr(stackGrips([5,4,3,2],[0,4,10,14],0)[0])!=='x-3-2-3-3-x'||tabStr(stackGrips([6,4,3,2],[0,10,16,21],7)[0])!=='3-x-3-4-5-x'||!rlGrips('13',0).some(a=>tabStr(a)==='x-1-2-2-x-x')){bad++;console.log('reference grips changed (C9 x-3-2-3-3-x, G13 3-x-3-4-5-x, rootless C13 x-1-2-2-x-x)');}
+ const act=v=>{const a={};for(let m=40;m<=88;m++)a[m]=0.02;v.forEach(m=>a[m]=0.7);return a;};
+ const gens=[cadQ({fam:'d2',kinds:['maj','min','turn'],click:1}),cadQ({fam:'shell',kinds:['maj','turn'],click:1,hide:1}),bluesShellQ('basic blues'),bluesShellQ('quick-change blues'),tenCadQ({click:1}),tenCadQ({rootless:1,click:1})];
+ for(let t=0;t<120;t++){const q=gens[t%gens.length]();if(!q.metro||!q.grid||q.grid.length!==q.strumSeq.length){bad++;console.log('timed strum question without a grid',q.label);continue;}
+   const B=60000/q.metro,bs=4*B+100,mk=(f,pre)=>({strums:(pre||[]).concat(q.strumSeq.map((v,i)=>({t:bs+q.grid[i]*B+f(i),act:act(v)}))),beat:B,beatStart:bs,firstAt:bs}),g=x=>micGrade(q,x);
+   if(!g(mk(()=>0)).ok||!g(mk(()=>B*0.12)).ok||!g(mk(()=>0,[{t:700,act:act([45,52,57])}])).ok){bad++;console.log('timed strums: a clean take fails',q.label);}
+   const late=g(mk(()=>B*0.6)),wrong=g({strums:q.strumSeq.map((v,i)=>({t:bs+q.grid[i]*B,act:act(i===1?v.map(m=>m+1):v)})),beat:B,beatStart:bs});
+   if(late.ok||late.timeOk||!late.notesOk){bad++;console.log('timed strums: half a beat late passes',q.label);}if(wrong.ok){bad++;console.log('timed strums: a wrong chord passes',q.label);}
+   if(q.strumAltSeq&&q.strumAltSeq.some((al,i)=>!al.some(v=>v.join()===q.strumSeq[i].join()))){bad++;console.log('shown grip not among the accepted ones',q.label);}}
+ for(const kind of ['maj','min','turn','cycle'])for(let t=0;t<60;t++){const q=gtLineQ(kind)();if(!q.strumSeq){bad++;console.log('guide-tone line fell back',kind);break;}if(q.strumSeq.some(v=>v.length!==2||![5,6,7].includes(v[1]-v[0]))){bad++;console.log('guide-tone pair is not a 3rd and a 7th',kind,JSON.stringify(q.strumSeq));break;}}}
 /* count-in questions: what sounds in the count-in is not part of the answer; a note in the first bar proper still is */
 {const gens=[GBY.fretboard.levels[8].g[0],alOneQ({pat:['up']})];for(let t=0;t<60;t++){const q=gens[t%2](),B=60000/q.metro,bs=4*B+100,N=q.target.map((m,i)=>({midi:m,mf:m,t:bs+q.grid[i]*B})),mk=x=>({notes:x.concat(N).sort((a,b)=>a.t-b.t),firstAt:1000,beat:B,beatStart:bs});
    if(!micGrade(q,mk([])).ok||!micGrade(q,mk([{midi:40,mf:40,t:900},{midi:57,mf:57,t:bs-B*1.2}])).ok){bad++;console.log('count-in: a sound in the count-in fails the take',q.label);}

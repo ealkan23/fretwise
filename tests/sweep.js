@@ -90,6 +90,13 @@ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),ms=z.notes.map(x=
 {const f=(k,P)=>scPos(k,P),has=(z,s,fr)=>z.notes.some(x=>x.s===s&&x.f===fr);if(f(0,2).type!=='1'||!has(f(0,2),6,1)||!has(f(0,2),1,1)||f(7,2).notes.some(x=>x.st)||f(2,2).notes.some(x=>x.st)||f(9,2).type!=='4'||!has(f(9,2),4,6)||f(5,2).type!=='1A'||!has(f(5,2),5,1)){bad++;console.log('SCALE Leavitt reference cases');}}
 Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,rp).forEach(a=>{const iv=a.map((f,i)=>f===null?null:mod(OPEN[6-i]+f-rp,12)).filter(v=>v!==null);if(iv.some(v=>!T.f.includes(v))||!iv.includes(0)||iv.length<4||a.some(f=>f!==null&&(f<0||f>15))){bad++;console.log('TENSION grip',name,rp,a.join('-'));}});}});
 /* badges: every game has both axes with known values */
+/* level details: one note for every level of every game, in one of the two forms, with nothing empty and no leaks */
+GAMES.forEach(x=>{const N=LEVEL_NOTES[x.id];if(!N||N.length!==x.levels.length){bad++;console.log('LEVEL_NOTES count',x.id,N&&N.length,'levels',x.levels.length);return;}
+  N.forEach((n,i)=>{const full=!!(n.k&&n.w&&n.s&&n.t),add=typeof n.a==='string'&&n.a.length>8;if(full===add||(n.a&&(n.k||n.s))){bad++;console.log('LEVEL_NOTES form',x.id,i+1);}
+    const strs=[n.a,n.s,...(n.k||[]),...(n.w||[]),...(n.t||[])].filter(z=>z!==undefined);if(strs.some(z=>typeof z!=='string'||z.length<12||/undefined|NaN|\$\{|=>/.test(z)||/\b(ii|iii|iv|vi|vii)\b/.test(z))){bad++;console.log('LEVEL_NOTES text',x.id,i+1);}
+    if(i===0&&!full){bad++;console.log('LEVEL_NOTES: level 1 must be a full note',x.id);}
+    for(const f of ['k','w','t'])if(n[f]&&(!Array.isArray(n[f])||!n[f].length)){bad++;console.log('LEVEL_NOTES empty list',x.id,i+1,f);}});});
+Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES for a game that does not exist',k);}});
 /* voicings in use: every grip of a cadence is its chord; rootless grips have the 3rd and 7th and no root; shell+tension stacks are what they say;
    timed strums pass on the beat, fail when late or when a chord is wrong, and ignore a strum in the count-in */
 {const pcsOf=a=>new Set(tabMidi(a).map(m=>((m%12)+12)%12));

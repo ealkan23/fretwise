@@ -128,14 +128,15 @@ Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES 
    if(!late.ok||!early.ok||!lean.ok){bad++;console.log('scales free start: a clean run fails',q.label,late.ok,early.ok,lean.ok);}
    if(late.per.some(x=>x.off!=null&&Math.abs(x.off)>1)){bad++;console.log('scales free start: offsets not measured from the first click',q.label);}
    if(drift.ok||drift.timeOk){bad++;console.log('scales free start: a drifting run passes',q.label);}}
- /* the user's rule: one note not heard and one note off the beat are let through; any wrong note fails */
- for(let t=0;t<120;t++){const q=gens[t%gens.length](),B=750,T=q.target,N=T.length,nt=(i,dt=0,m=T[i])=>({midi:m,mf:m,t:100+(3+q.grid[i])*B+dt}),all=()=>T.map((_,i)=>nt(i)),g=ns=>micGrade(q,{notes:ns,firstAt:3000,beat:B,beatStart:100}),a=3,b=N-3,c=5;
-   if(!q.tol||q.tol.miss!==1||q.tol.late!==1){bad++;console.log('scales: no tolerance rule',q.label);continue;}
-   let wm=T[c]+1;while(T.includes(wm))wm++;
-   const one=all().filter((_,i)=>i!==a),two=all().filter((_,i)=>i!==a&&i!==b),late1=all().map((n,i)=>i===a?nt(i,B*0.4):n),late2=all().map((n,i)=>i===a||i===b?nt(i,B*0.4):n),both=all().filter((_,i)=>i!==b).map(n=>n.t===nt(a).t?nt(a,B*0.4):n),
+ /* the user's rule: one note not heard is let through, and off-beat notes up to 2 in 10 / 3 in 20 (15 % of the run, at least 2); any wrong note fails */
+ {const lm=n=>Math.max(2,Math.ceil(n*0.15-1e-9));if(lm(10)!==2||lm(20)!==3||lm(17)!==3||lm(8)!==2||lm(33)!==5){bad++;console.log('scales: late allowance changed');}}
+ for(let t=0;t<120;t++){const q=gens[t%gens.length](),B=750,T=q.target,N=T.length,nt=(i,dt=0,m=T[i])=>({midi:m,mf:m,t:100+(3+q.grid[i])*B+dt}),all=()=>T.map((_,i)=>nt(i)),g=ns=>micGrade(q,{notes:ns,firstAt:3000,beat:B,beatStart:100}),a=3,b=N-3,c=5,LM=Math.max(2,Math.ceil(N*0.15-1e-9));
+   if(!q.tol||q.tol.miss!==1||q.tol.late!==.15||q.tol.lateMin!==2){bad++;console.log('scales: no tolerance rule',q.label);continue;}
+   let wm=T[c]+1;while(T.includes(wm))wm++;const lateSet=k=>{const idx=[];for(let i=1;idx.length<k;i+=2)idx.push(i);return all().map((n,i)=>idx.includes(i)?nt(i,B*0.4):n);};
+   const one=all().filter((_,i)=>i!==a),two=all().filter((_,i)=>i!==a&&i!==b),both=lateSet(LM).filter((_,i)=>i!==b),
      wrong=all().map((n,i)=>i===c?nt(i,0,wm):n),extra=all().concat([{midi:wm,mf:wm,t:nt(c).t+B*0.5,dur:300}]).sort((x,y)=>x.t-y.t);
-   const r={clean:g(all()).ok,one:g(one).ok,two:g(two).ok,late1:g(late1).ok,late2:g(late2).ok,both:g(both).ok,wrong:g(wrong).ok,extra:g(extra).ok};
-   if(!r.clean||!r.one||!r.late1||!r.both||r.two||r.late2||r.wrong||r.extra){bad++;console.log('scales tolerance rule broken',q.label,JSON.stringify(r));}}
+   const r={clean:g(all()).ok,one:g(one).ok,two:g(two).ok,lateOk:g(lateSet(LM)).ok,lateOver:g(lateSet(LM+1)).ok,both:g(both).ok,wrong:g(wrong).ok,extra:g(extra).ok};
+   if(!r.clean||!r.one||!r.lateOk||!r.both||r.two||r.lateOver||r.wrong||r.extra){bad++;console.log('scales tolerance rule broken',q.label,N,LM,JSON.stringify(r));}}
  const q2=alOneQ({pat:['up']})();if(q2.freeStart||q2.tol){bad++;console.log('along should not be free start or tolerant');}}
 /* Along the Neck: every line is in its scale, moves by scale step where it is a scale run, stays on the neck; shifts really leave the position; the rule grader rejects bad lines */
 {const contig=(sc,ms)=>ms.every((m,i)=>!i||(Math.abs(m-ms[i-1])<=2&&m!==ms[i-1])),inSc=(sc,ms)=>ms.every(m=>sc.pcs.includes(((m%12)+12)%12));

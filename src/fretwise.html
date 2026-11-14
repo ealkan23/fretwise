@@ -1410,7 +1410,7 @@ async function ensureMic(){if(AN)return true;
 /* ============ BASIC PITCH (Spotify, Apache-2.0): neural note detection for the guitar games ============ */
 /* vendor/bp.js bundles Basic Pitch + TensorFlow.js (tools/build-vendor.js); the offline file embeds both. Thresholds and the guitar filter were
    tuned on real takes (tests/replay.js, tests/tune_bp.js). Without WebGL it cannot follow live playing, so the built-in detector stays as fallback. */
-const BPO={gateDb:-46,gateAbove:10,gateNear:20,   /* loudness gate (Nov 2026): a note must be louder than −46 dBFS and 10 dB above the take's noise floor; the model reads notes into near-silence */
+const BPO={gateDb:-46,gateAbove:10,gateNear:24,ampWant:0.4,lowOct:46,   /* loudness gate (Nov 2026): a note must be louder than −46 dBFS and 10 dB above the take's noise floor; the model reads notes into near-silence */
   onset:0.6,frame:0.3,minLen:11,amp:0.5,ampLow:0.45,lowBelow:48,harm:0.5,rescue:0.25,group:80,symp:140,merge:0.9,mergeGap:50,lo:40,hi:88,win:6,every:400,
   junkDur:400,   // Note Hunt: a low non-hunted note shorter than this is handling noise
   /* Note Hunt picks are counted from the onset head (strongest onset over every octave of the hunted note) gated by a jump in loudness */
@@ -1440,7 +1440,7 @@ function bpResample(x,sr){if(sr===22050)return x;const r=22050/sr,n=Math.floor(x
    strong one, and the “weak fundamental an octave below” rescue on top: in position playing an open string ringing in sympathy (A2 under A3, G3 under
    G4, the open B or E) was reported instead of the note played. With want, a strong asked-for note in the group wins over one that was not asked for,
    and the octave rescue never leaves an asked-for note for one that was not. Nothing is invented: the asked-for note has to be sounding, strongly. */
-function bpMono(ev,keepRepeats,want){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)),out=[];
+function bpMono(ev,keepRepeats,want){const all=ev.filter(n=>n.midi>=BPO.lo&&n.midi<=BPO.hi).sort((a,b)=>a.t-b.t),ns=all.filter(n=>n.amp>=(want&&want.has(n.midi)?BPO.ampWant:n.midi<BPO.lowBelow?BPO.ampLow:BPO.amp)),out=[];   /* an asked-for note may be softer: in fast runs the model's amplitude for a real note drops to 0.45–0.5 (fix-list #65) */
   for(let i=0;i<ns.length;){const g=[ns[i]];let j=i+1;while(j<ns.length&&ns[j].t-ns[i].t<=BPO.group)g.push(ns[j++]);i=j;
     const top=Math.max(...g.map(n=>n.amp));const strong=g.filter(n=>n.amp>=top*BPO.harm).sort((a,b)=>a.midi-b.midi);let pick=strong[0];if(want&&!want.has(pick.midi)){const w=strong.filter(n=>want.has(n.midi)).sort((a,b)=>b.amp-a.amp)[0];if(w)pick=w;}
     // a weak fundamental an octave below, starting with it (a laptop mic hears low strings mostly as their octave): that is the note
@@ -1451,6 +1451,8 @@ function bpMono(ev,keepRepeats,want){const all=ev.filter(n=>n.midi>=BPO.lo&&n.mi
     if(same&&!keepRepeats&&pick.amp<same.amp*BPO.merge){same.dur=Math.max(same.dur,pick.t+pick.dur-same.t);continue;}
     /* a quieter note starting right behind the last one (within BPO.symp ms) is something set ringing by that pluck, an open string in sympathy: not a new note */
     if(prev&&pick.t-prev.t<=BPO.symp&&pick.amp<prev.amp){prev.alts.push(pick.midi);continue;}
+    /* an open string that was not asked for, quieter than the note still sounding: set ringing by the playing, not played (fix-list #61) */
+    if(want&&prev&&!want.has(pick.midi)&&[40,45,50,55,59,64].includes(pick.midi)&&pick.t<prev.t+prev.dur+BPO.symp&&pick.amp<prev.amp){prev.alts.push(pick.midi);continue;}
     out.push({...pick,alts:strong.filter(n=>n.midi!==pick.midi).map(n=>n.midi)});}
   /* alts: the other strong notes that started with this one. The read still reports one note, but the grader may match an asked-for note to an alt
      (micGradeOne): which of two notes sounding together was the played one can only be told from what the line asks for at that place. */
@@ -1498,8 +1500,11 @@ function bpGate(ev,x,sr,offMs){if(!x||!x.length||!ev.length)return ev;const fr=M
   /* 13 Nov 2026 (fix-list #42–51, Scale Runner): in a steady run there is hardly any silence, so the old floor (20th percentile) was the playing itself and
      “10 dB above the floor” threw real notes away (a 33-note run kept 3). The floor is now the quietest 5 % of the take, and a note within
      BPO.gateNear dB of the take's loud frames (90th percentile) is never dropped by the relative rule. The absolute gate is unchanged. */
-  const floor=db.length?db[Math.floor(db.length*0.05)]:-120,loud=db.length?db[Math.floor(db.length*0.9)]:-120,rel=Math.min(floor+BPO.gateAbove,loud-BPO.gateNear);
-  return ev.filter(e=>{const a=Math.round((e.t-offMs)/1000*sr),d=frameDb(x,a,a+Math.round(sr*Math.min(0.2,Math.max(0.05,e.dur/1000))));e.db=Math.round(d);return d>=BPO.gateDb&&d>=rel;});}
+  const floor=db.length?db[Math.floor(db.length*0.05)]:-120,loud=db.length?db[Math.floor(db.length*0.9)]:-120,rel=Math.min(floor+BPO.gateAbove,loud-BPO.gateNear),
+    /* 14 Nov 2026 (fix-list #60–66, fast runs): the absolute gate is for takes with nothing in them (they peak at −52 to −58 dBFS). In a take that clearly
+       has playing (loud frames 8 dB over the gate) it threw away the quiet notes of the run itself: the user's first-string notes sit at −48 to −51. */
+    abs=loud>=BPO.gateDb+8?-200:BPO.gateDb;
+  return ev.filter(e=>{const a=Math.round((e.t-offMs)/1000*sr),d=frameDb(x,a,a+Math.round(sr*Math.min(0.2,Math.max(0.05,e.dur/1000))));e.db=Math.round(d);return d>=abs&&d>=rel;});}
 function bpAnalyse(x,sr,offMs,o={}){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});
     const {outputToNotesPoly,noteFramesToTime}=window.FWBP,ev=(a,b,c)=>noteFramesToTime(outputToNotesPoly(fr,on,a,b,c,true,null,null,true)).map(e=>({midi:e.pitchMidi,t:offMs+e.startTimeSeconds*1000,dur:e.durationSeconds*1000,amp:e.amplitude}));
     const evS=bpGate(ev(BPO.onset,BPO.frame,BPO.minLen),x,sr,offMs);
@@ -1730,7 +1735,8 @@ const STRUM_TOL=0.3;
 function micGrade(q,res){if(q.walk)return walkGrade(q,res);if(q.solo)return soloGrade(q,res);if(q.road)return roadGrade(q,res);if(q.bend)return bendGrade(q,res);if(q.strumSeq)return strumGrade(q,res);if(q.targets&&q.targets.length>1){let best=null;for(const alt of q.targets){q.target=alt.t;const r=micGradeOne(q,res);const sc=(r.ok?1000:0)+r.per.filter(x=>x.ok).length;if(!best||sc>best.sc)best={r,alt,sc};}q.target=best.alt.t;q.names=best.alt.names;q.degs=best.alt.degs;if(best.alt.answer!==undefined)q.answer=best.alt.answer;return best.r;}return micGradeOne(q,res);}
 function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)===0:a===b,
     /* target m heard as g; Note Hunt: below F3 (low frets of strings 6 and 5) the octave above also counts: a laptop mic barely hears a low string's fundamental */
-    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12),alt=(m,n)=>!!(n.alts&&n.alts.some(a=>cmp(m,a))),mc=(m,n)=>cmp(m,n.midi)?0:heardAs(m,n.midi)?0.01:alt(m,n)?0.02:1;   /* an asked-for note that sounded together with the reported one counts (bpMono alts) */if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
+    /* 14 Nov 2026 (fix-list #38, #40, #52, #57, #59): on every exact-pitch question a target at or below BPO.lowOct (B♭2: the first six frets of string 6 and the open A) may be heard as its octave. The laptop mic does not carry those fundamentals at all, so the model never reports them; a direct input would. */
+    heardAs=(m,g)=>cmp(m,g)||(!!q.lowOct&&m<53&&g===m+12)||(!q.octaveFree&&m<=BPO.lowOct&&g===m+12),alt=(m,n)=>!!(n.alts&&n.alts.some(a=>cmp(m,a))),mc=(m,n)=>cmp(m,n.midi)?0:heardAs(m,n.midi)?0.01:alt(m,n)?0.02:1;   /* an asked-for note that sounded together with the reported one counts (bpMono alts) */if(!res||!res.notes)return {ok:false,per:t.map(m=>({m,got:null,ok:false,onTime:null})),extra:[],notesOk:false,timeOk:true,firstAt:null};
   /* a count-in is for getting ready: anything that sounds more than half a beat before the first beat is not part of the answer */
   const RN=q.metro&&!q.freeStart&&res.beatStart&&res.beat?res.notes.filter(n=>n.t-(res.lat||0)>=res.beatStart-res.beat*0.5):res.notes;
   const d=q.repeats?RN.filter((n,i)=>!(i&&n.atk===false&&cmp(n.midi,RN[i-1].midi))):RN.filter((n,i)=>!(i&&cmp(n.midi,RN[i-1].midi)));
@@ -2647,6 +2653,8 @@ const SOLO={
    scPos builds the fingering by that rule: the stretch fret of the type's family is allowed; a pitch that is also reachable without a stretch is played without.
    A position's notes are its distinct pitches from lowest to highest; a pattern is a list of indices into them (scPattern). Played into the mic, in order. */
 const SC_TYPE={0:'1',5:'1A',10:'1B',3:'1C',8:'1D',7:'2',2:'3',9:'4',4:'4A',11:'4B',6:'4C',1:'4D'},SC_FIRST=[0,5,10,3,8],SC_FOURTH=[9,4,11,6,1];
+/* SC_SEVEN (14 Nov 2026, user): the five basic fingerings plus position III (C under the first finger on string 5) and position X (D under the first finger on string 6, the “Dorian position”); both are fourth-finger-stretch types (4B, 4A) and were only met from the triad level on */
+const SC_SEVEN=[2,3,5,7,9,10,12];
 const SC_BASIC=[2,7,12,5,9],SC_ALL=[1,2,3,4,5,6,7,8,9,10,11,12];   /* C major: the five basic types (1, 2, 3, 4, 1A) sit at positions II, VII, XII, V, IX */
 const CIRCLE5=['C','G','D','A','E','B','F#','Db','Ab','Eb','Bb','F'],ROMAN=['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI'];
 function scPos(keyPc,P){const k2=mod(keyPc-(P-2),12),type=SC_TYPE[k2],fam=SC_FIRST.includes(k2)?'first':SC_FOURTH.includes(k2)?'fourth':'none',lo=fam==='first'?P-1:P,hi=fam==='fourth'?P+4:P+3,all=[];
@@ -3090,11 +3098,11 @@ const GAMES=[
   {n:'Blues',d:'Bars 1–4 of the blues: I7 – IV7 – I7 – I7',g:[soloQ(SOLO.blues)]}]},
  {id:'scales',cat:'neck',mic:true,name:'Scale Runner',area:'Positions and patterns · guitar',desc:'Leavitt’s position playing: the major scale in one position with finger stretches and no shifts (the twelve fingering types), then thirds, triads and seventh chords through each position (up, down, alternating), all twelve keys in one position, and the modes as a new home note inside positions you already own. Always with the click.',levels:[
   {n:'The five basic fingerings',d:'C major in positions II, VII, XII, V and IX (types 1, 2, 3, 4, 1A): up, in quarter notes',g:[scQ({pat:[['scale','up']]})]},
-  {n:'Up and down',d:'Quarter notes with the click',g:[scQ({pat:[['scale','updown']]})]},
-  {n:'Eighth notes',d:'The same run, two notes per click',g:[scQ({pat:[['scale','updown']],div:2})]},
-  {n:'Triplets',d:'The same run, three notes per click',g:[scQ({pat:[['scale','updown']],div:3})]},
-  {n:'Thirds',d:'Up, then down from the top',g:[scQ({pat:[['3','up'],['3','down']]})]},
-  {n:'Thirds, alternating',d:'One up, the next down; then in eighth notes',g:[scQ({pat:[['3','alt']]}),scQ({pat:[['3','alt'],['3','up']],div:2})]},
+  {n:'Up and down, seven positions',d:'Up and back in quarter notes. Adds position III (C under the first finger) and position X (the Dorian position)',g:[scQ({pos:SC_SEVEN,pat:[['scale','updown']]})]},
+  {n:'Eighth notes',d:'The same run, two notes per click',g:[scQ({pos:SC_SEVEN,pat:[['scale','updown']],div:2})]},
+  {n:'Triplets',d:'The same run, three notes per click',g:[scQ({pos:SC_SEVEN,pat:[['scale','updown']],div:3})]},
+  {n:'Thirds',d:'Up, then down from the top',g:[scQ({pos:SC_SEVEN,pat:[['3','up'],['3','down']]})]},
+  {n:'Thirds, alternating',d:'One up, the next down; then in eighth notes',g:[scQ({pos:SC_SEVEN,pat:[['3','alt']]}),scQ({pos:SC_SEVEN,pat:[['3','alt'],['3','up']],div:2})]},
   {n:'Triads, every position',d:'Up, down, alternating; all twelve positions of C',g:[scQ({pos:SC_ALL,pat:[['tri','up'],['tri','down'],['tri','alt']]})]},
   {n:'Seventh chords, every position',d:'Up, down, alternating',g:[scQ({pos:SC_ALL,pat:[['7','up'],['7','down'],['7','alt']]})]},
   {n:'Twelve keys in one position',d:'Stay in one position and go round the circle: the key changes, the hand does not move',g:[scQ({cycle:true,pat:[['scale','updown']]})]},
@@ -4463,9 +4471,9 @@ scales:[
  w:['Start on the lowest note of the position, not on the root.','The stretched notes, ringed in red: reach and come back, do not move the hand.','The click keeps running. Start on any click; from your first note every note must land on one.'],
  s:'The whole key under one hand position. This is the base of reading, soloing and seeing chords inside scales.',
  t:['Leavitt numbers the fingerings by type. In C: type 1 at II, type 2 at VII, type 3 at XII, type 4 at V and type 1A at IX.','Types 2 and 3 need no stretches. Types 1 and 1A use first-finger stretches, type 4 a fourth-finger stretch.','Alternate picking throughout: down, up, down, up, whatever the string.']},
-{a:'Up and back down without stopping at the top.',
- w:['The turn at the top. Do not repeat the highest note.','Coming down, the stretches arrive in the opposite order.'],
- t:['Descending is a separate skill. Most players are weaker going down because they practise up more.']},
+{a:'Up and back down without stopping at the top, and two more positions: III and X.',
+ w:['The turn at the top. Do not repeat the highest note.','Position III: C is under the first finger on string 5. Position X: D is under the first finger on string 6. Both use fourth-finger stretches.','Coming down, the stretches arrive in the opposite order.'],
+ t:['Positions III and X have three notes on most strings, and the fourth finger stretches to the fifth fret of the position. Many players know them as three-notes-per-string shapes.','Position X starts on D, so it is also the fingering people call the D Dorian shape: the notes are C major.','Descending is a separate skill. Most players are weaker going down because they practise up more.']},
 {a:'The same run in eighth notes: two notes per click.',
  w:['The note on the click and the note between must be the same length. The off-beat note is the one that rushes.','Down-stroke on the click, up-stroke between, on every string.'],
  t:['Evenness matters more than speed. The click is never faster than 80 on this level.','With two notes a beat the accent always falls on a down-stroke, so this is the easiest subdivision to keep even.']},
@@ -6106,7 +6114,7 @@ const plain=h=>String(h||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').repl
 function fixContext(){if(view.name!=='play'||!S||!S.q)return {view:view.name,game:view.gid||null};const q=S.q,last=S.locked?S.answers.at(-1):null,r=S.micResult;
   return {view:'play',game:S.gid,level:S.L,qlv:q.lv,mode:G(S.gid).mode||'mark',ui:q.ui,key:q.key,label:q.label,prompt:plain(q.prompt),answer:plain(q.answerText||String(q.answer)),
     ok:last?last.ok:null,given:last?plain(givenText(q,last.given)):null,
-    mic:q.ui==='mic'?{target:q.target,octaveFree:!!q.octaveFree,repeats:!!q.repeats,detector:BP.state==='ready'&&S.gid!=='sing'?'basicpitch':'builtin',
+    mic:q.ui==='mic'?{target:q.target,octaveFree:!!q.octaveFree,repeats:!!q.repeats,metro:q.metro||null,grid:q.metro&&q.grid?q.grid:null,free:!!q.freeStart,verdict:r?{ok:r.ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,late:r.lateN,lateMax:r.lateMax,wrong:r.wrongN,offs:r.per?r.per.map(x=>x.off==null?null:Math.round(x.off)):null}:null,   /* the click and the timing verdict: without them a replay cannot judge the time (14 Nov 2026) */detector:BP.state==='ready'&&S.gid!=='sing'?'basicpitch':'builtin',
       heard:((last&&last.given&&last.given.notes)||[]).map(n=>({m:n.midi,t:Math.round(n.t),d:Math.round(n.dur||0)})),per:r?r.per.map(x=>({m:x.m,got:x.got,ok:x.ok})):null,extra:r?r.extra:null}:null};}
 async function fixSend(id){const el=document.getElementById(id),msg=document.getElementById(id+'msg');if(!el)return;const text=el.value.trim();if(!text)return;
   const rep={t:Date.now(),text,ctx:fixContext(),where:location.protocol==='file:'?'offline file':'site',build:BUILD};

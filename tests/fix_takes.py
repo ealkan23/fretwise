@@ -4,7 +4,9 @@ import base64, json, pathlib, sys
 from playwright.sync_api import sync_playwright
 root = pathlib.Path(__file__).resolve().parent.parent
 reps = [r for r in json.loads((root / 'fixlist' / 'reports.json').read_text()) if r.get('audioFile') and (r.get('ctx') or {}).get('mic')]
-if len(sys.argv) > 1: reps = [r for r in reps if r['ctx'].get('game') in sys.argv[1:]]   # e.g. fix_takes.py scales
+_ids = {int(a) for a in sys.argv[1:] if a.isdigit()}; _games = [a for a in sys.argv[1:] if not a.isdigit()]   # e.g. fix_takes.py scales   or   fix_takes.py 60 61 62
+if _games: reps = [r for r in reps if r['ctx'].get('game') in _games]
+if _ids: reps = [r for r in reps if r['id'] in _ids]
 FEED = """async (b64)=>{const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer;const c=Piano.ac();await c.resume();const buf=await c.decodeAudioData(raw);
   const sn=c.createBufferSource();sn.buffer=buf;const dest=c.createMediaStreamDestination();sn.connect(dest);MIC=dest.stream;const s2=c.createMediaStreamSource(MIC);AN=c.createAnalyser();AN.fftSize=2048;s2.connect(AN);BUF=new Float32Array(2048);window._sn=sn;return buf.duration;}"""
 NM = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']; nm = lambda m: NM[m % 12] + str(m // 12 - 1) if m is not None else '—'
@@ -22,6 +24,10 @@ with sync_playwright() as pw:
         pg.evaluate("""([t,lv])=>{const o=pickQ;pickQ=(id,L)=>{for(let i=0;i<4000;i++){const L2=i<1500&&lv?lv:1+i%GBY[id].levels.length,q=o(id,L2);if(q.ui==='mic'&&q.target.join()===t&&(!q.metro||q.freeStart))return q;}return o(id,L);};}""", [','.join(map(str, c['mic']['target'])), c.get('qlv')])
         # the take starts at the instant listening starts, as it did when it was recorded (so 'already sounding' notes are treated alike)
         pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
+        # a clicked take is replayed at the tempo it was played at: the report's own (newer reports), else inferred from the spacing of the heard notes and the level's notes per click
+        lab = c.get('label', ''); div = 3 if 'triplets' in lab else 2 if 'eighths' in lab else 1; hs = c['mic'].get('heard') or []
+        gaps = sorted(hs[k+1]['t'] - hs[k]['t'] for k in range(len(hs) - 1)); bpm = c['mic'].get('metro') or (round(60000 / (gaps[len(gaps)//2] * div) / 2) * 2 if c['game'] == 'scales' and gaps else None)
+        if bpm: pg.evaluate("([g,b])=>{const o=G(g);o.opts=Object.assign({},o.opts||{},{bpm:b});}", [c['game'], bpm])
         pg.click('[data-act=start]'); pg.wait_for_timeout(400)
         same = pg.evaluate('S.q.target.join()') == ','.join(map(str, c['mic']['target']))
         pg.wait_for_function("S&&(S.locked||/Nothing heard/.test(S.micMsg||''))", timeout=120000)
@@ -29,9 +35,15 @@ with sync_playwright() as pw:
         if silent:   # nothing survived the loudness gate: the take is not graded (right when the player says they played nothing)
             ok = ('play anything' in r['text'] or "didn't play" in r['text'] or 'didnt play' in r['text']); passed += ok
             print(f"#{r['id']} {c['label']:14s} was {'right' if c['ok'] else 'WRONG'} → now NOT GRADED (nothing heard){'' if same else '  (question not matched)'}  — “{r['text']}”"); pg.close(); continue
-        ok = pg.evaluate('S.answers.at(-1).ok'); passed += ok
+        ok = pg.evaluate('S.answers.at(-1).ok')
+        # free-start takes: the replay's click is not in phase with the recording, so the time is judged around the take's own median offset
+        free = pg.evaluate('!!S.q.freeStart'); tnote = ''
+        if free:
+            v = pg.evaluate("(()=>{const r=S.micResult,B=60000/S.q.metro,o=r.per.map(x=>x.off).filter(x=>x!=null).sort((a,b)=>a-b),med=o.length?o[o.length>>1]:0,late=r.per.filter(x=>x.off!=null&&Math.abs(x.off-med)>B*0.25).length;return {notesOk:r.notesOk,late,lateMax:r.lateMax,miss:r.missN,wrong:r.wrongN,bpm:S.q.metro}})()")
+            ok = bool(v['notesOk'] and v['late'] <= v['lateMax']); tnote = f"  [{v['bpm']} bpm · missing {v['miss']} · wrong {v['wrong']} · off the beat {v['late']} of {v['lateMax']} allowed]"
+        passed += ok
         heard = pg.evaluate('S.micResult.per.map(x=>x.got)'); extra = pg.evaluate('S.micResult.extra')
-        print(f"#{r['id']} {c['label']:14s} was {'right' if c['ok'] else 'WRONG'} → now {'RIGHT' if ok else 'WRONG'}  heard {' '.join(map(nm, heard))}{'  extra '+' '.join(map(nm, extra)) if extra else ''}{'' if same else '  (question not matched)'}{'  errors '+str(errs) if errs else ''}  — “{r['text']}”")
+        print(f"#{r['id']} {c['label']:14s} was {'right' if c['ok'] else 'WRONG'} → now {'RIGHT' if ok else 'WRONG'}  heard {' '.join(map(nm, heard))}{'  extra '+' '.join(map(nm, extra)) if extra else ''}{'' if same else '  (question not matched)'}{tnote}{'  errors '+str(errs) if errs else ''}  — “{r['text']}”")
         pg.close()
     b.close()
 print(f'\n{passed}/{len(reps)} reported takes now graded right')

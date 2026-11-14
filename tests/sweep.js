@@ -116,6 +116,10 @@ Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES 
    if(late.ok||late.timeOk||!late.notesOk){bad++;console.log('timed strums: half a beat late passes',q.label);}if(wrong.ok){bad++;console.log('timed strums: a wrong chord passes',q.label);}
    if(q.strumAltSeq&&q.strumAltSeq.some((al,i)=>!al.some(v=>v.join()===q.strumSeq[i].join()))){bad++;console.log('shown grip not among the accepted ones',q.label);}}
  for(const kind of ['maj','min','turn','cycle'])for(let t=0;t<60;t++){const q=gtLineQ(kind)();if(!q.strumSeq){bad++;console.log('guide-tone line fell back',kind);break;}if(q.strumSeq.some(v=>v.length!==2||![5,6,7].includes(v[1]-v[0]))){bad++;console.log('guide-tone pair is not a 3rd and a 7th',kind,JSON.stringify(q.strumSeq));break;}}}
+/* the lowest notes may be heard an octave up (laptop mic); nothing higher may */
+{const one=(m,g)=>micGrade({ui:'mic',target:[m],octaveFree:false,maxNotes:1,names:['x'],degs:['x']},{notes:[{midi:g,mf:g,t:500,dur:400}],firstAt:500}).ok;
+ if(!one(40,52)||!one(42,54)||!one(44,56)||!one(46,58)||!one(40,40)){bad++;console.log('low notes: the octave above is not accepted');}
+ if(one(47,59)||one(52,64)||one(60,72)||one(40,64)||one(52,40)){bad++;console.log('low-octave rule too wide');}}
 /* count-in questions: what sounds in the count-in is not part of the answer; a note in the first bar proper still is */
 {const gens=[GBY.fretboard.levels[8].g[0],alOneQ({pat:['up']})];for(let t=0;t<60;t++){const q=gens[t%2](),B=60000/q.metro,bs=4*B+100,N=q.target.map((m,i)=>({midi:m,mf:m,t:bs+q.grid[i]*B})),mk=x=>({notes:x.concat(N).sort((a,b)=>a.t-b.t),firstAt:1000,beat:B,beatStart:bs});
    if(!micGrade(q,mk([])).ok||!micGrade(q,mk([{midi:40,mf:40,t:900},{midi:57,mf:57,t:bs-B*1.2}])).ok){bad++;console.log('count-in: a sound in the count-in fails the take',q.label);}

@@ -3091,7 +3091,8 @@ const GAMES=[
  {id:'scales',cat:'neck',mic:true,name:'Scale Runner',area:'Positions and patterns · guitar',desc:'Leavitt’s position playing: the major scale in one position with finger stretches and no shifts (the twelve fingering types), then thirds, triads and seventh chords through each position (up, down, alternating), all twelve keys in one position, and the modes as a new home note inside positions you already own. Always with the click.',levels:[
   {n:'The five basic fingerings',d:'C major in positions II, VII, XII, V and IX (types 1, 2, 3, 4, 1A): up, in quarter notes',g:[scQ({pat:[['scale','up']]})]},
   {n:'Up and down',d:'Quarter notes with the click',g:[scQ({pat:[['scale','updown']]})]},
-  {n:'Eighths and triplets',d:'The same run in eighths, then in triplets',g:[scQ({pat:[['scale','updown']],div:2}),scQ({pat:[['scale','updown']],div:3})]},
+  {n:'Eighth notes',d:'The same run, two notes per click',g:[scQ({pat:[['scale','updown']],div:2})]},
+  {n:'Triplets',d:'The same run, three notes per click',g:[scQ({pat:[['scale','updown']],div:3})]},
   {n:'Thirds',d:'Up, then down from the top',g:[scQ({pat:[['3','up'],['3','down']]})]},
   {n:'Thirds, alternating',d:'One up, the next down; then in eighth notes',g:[scQ({pat:[['3','alt']]}),scQ({pat:[['3','alt'],['3','up']],div:2})]},
   {n:'Triads, every position',d:'Up, down, alternating; all twelve positions of C',g:[scQ({pos:SC_ALL,pat:[['tri','up'],['tri','down'],['tri','alt']]})]},
@@ -3367,6 +3368,7 @@ const REORDERS5={guidetones:{n:6,m:{5:4,6:4}},earprog:{n:14,m:{10:9,11:9,12:10,1
 /* 14 Nov 2026, the voicings review: Shells (the comping levels first, drop-3 last), Drop-2 (paper levels joined, the top set first, cadences played, melody on top in the middle), Tension Grips (the two harmonised-scale levels moved to Shells and Drop-2) */
 const REORDERS8={shells:{n:8,m:{5:9,6:10,7:11,8:6}},drop2:{n:14,m:{1:1,2:1,3:3,4:4,5:5,6:6,7:8,8:10,9:13,10:14,11:15,12:16,13:17,14:9}},tgrips:{n:8,m:{8:7}}};
 const REORDERS9={sight:{n:17,m:{7:8,8:9,9:10,10:11,11:12,12:13,13:14,14:15,15:16,16:17,17:18}}};   /* 14 Nov 2026 (user request): Reading L7 “Two notes, first position” inserted before the first read-a-line level */
+const REORDERS10={scales:{n:12,m:{4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:12,12:13}}};   /* 14 Nov 2026 (user request): Scale Runner L3 “Eighths and triplets” split into L3 eighths and L4 triplets; the old level's answers stay on 3 */
 const REORDERS7={sight:{n:16,m:{3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:12,12:13,13:14,14:15,15:16,16:17}}};   /* 13 Nov 2026 (user request): Reading L3 “Ledger lines, above and below” inserted after the whole staff */
 const REORDERS6={eariv:{n:10,m:{2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11}}};   /* 11 Nov 2026 (user request): a level for M2 against M3 alone, inserted after the anchors */
 const REORDERS3={rhyread:{n:17,m:{6:5,7:6,8:7,9:8,10:9,11:9,12:9,13:10,14:11,15:12,16:13,17:14}},jazzrhy:{n:12,m:{10:9,11:10,12:11}}};   /* paper levels moved out to Rhythm Theory (6 Nov 2026) */
@@ -3410,6 +3412,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(REORDERS9[id]&&!(g.mig&&g.mig.r34)){const was=g.lvl;migrateReorder(id,g,REORDERS9[id],'r34');
     if(was===7){g.lvl=7;g.unl=[...new Set([...(g.unl||[]),8])].sort((a,b)=>a-b);if(g.last===8)g.last=7;}   /* the old level 7 was the frontier: the new level 7 becomes it */
     saveLocal();}
+  if(REORDERS10[id]&&!(g.mig&&g.mig.r35)){migrateReorder(id,g,REORDERS10[id],'r35');saveLocal();}
   if(id==='eariv'&&g.mig&&g.mig.r31&&!g.mig.lc31){countBackfill(id,g);g.mig={...g.mig,lc31:1};saveLocal();}   /* r31 shifted the levels but not the per-level answer counts: rebuild them from the (shifted) rounds */
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh1)){g.hist={};if(g.hm)g.hm={g:{},s:{}};g.mig={...(g.mig||{}),gh1:1};saveLocal();}   /* 6 Nov 2026: accuracy blocks scored by the wrong rule; sessions and timing kept */
   if(RZ1.includes(id)&&!(g.mig&&g.mig.gh2)){const cut=new Date(2026,10,6,19,0).getTime();let tm=0,rn=0,rc=0;const rl={};   /* 6 Nov 2026 evening: the pre-fix blocks (all 0) removed from the log, rounds, counts */
@@ -3720,13 +3723,13 @@ function grooveEnd(quiet){grooveWake(false);if(!GR)return;const g=G(GR.gid),st=G
    Gates are soft: nothing locks, the home page recommends where to work next and each lobby shows which stage a level belongs to. */
 const PATH=[
  {n:'Ground',d:'Steady time, every note on the neck, the major scale in every key, and the sound of the key: degrees, first intervals, first bends.',
-  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,4],['eardeg',1,4],['eariv',1,4],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,3]]},
+  steps:[['pulse',1,7],['rhyread',1,5],['rhytheory',1,4],['fretboard',1,9],['hunt',1,5],['intervals',1,4],['sight',1,4],['eardeg',1,4],['eariv',1,4],['sing',1,2],['bends',1,4],['tunes',1,2],['scales',1,4]]},
  {n:'Triads',d:'The three-note chords by heart, on paper, on all string sets and by ear; reading in first position; playing phrases back; the first comping rhythms.',
-  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',4,7],['along',1,4],['eardeg',5,7],['eariv',5,6],['cr',1,6],['sight',5,11],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
+  steps:[['spelling',1,5],['triads',1,9],['neckiv',1,3],['earchord',1,2],['earprog',1,3],['outer',1,2],['tunes',3,4],['scales',5,8],['along',1,4],['eardeg',5,7],['eariv',5,6],['cr',1,6],['sight',5,11],['hunt',6,8],['intervals',5,7],['pulse',8,9],['rhyread',6,9],['rhytheory',5,7],['comping',1,2],['bends',5,7]]},
  {n:'Sevenths & function',d:'Seventh chords and what they do in a key: numerals, shells, guide tones, arpeggios through II–V–I, voice leading and walking bass.',
-  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,8],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',8,9],['along',5,8],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',7,9],['triads',10,11],['sight',12,15],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
+  steps:[['spelling',6,8],['analysis',1,7],['shells',1,4],['guidetones',1,4],['voicelead',1,8],['arp',1,8],['walking',1,5],['tunes',5,6],['improv',1,4],['scales',9,10],['along',5,8],['earchord',3,4],['earprog',4,5],['outer',3,6],['earmode',1,3],['sing',3,5],['eariv',7,9],['triads',10,11],['sight',12,15],['pulse',10,14],['rhyread',10,14],['rhytheory',8,9],['jazzrhy',1,6],['comping',3,5]]},
  {n:'Jazz harmony & voicings',d:'Drop-2 grips in every key, substitutions and borrowed chords, the chord–scale choice, the first tunes, longer dictation and phrasing over changes.',
-  steps:[['drop2',1,15],['shells',5,8],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',10,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',10,12],['along',9,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',16,18],['jazzrhy',7,9],['comping',6,8]]},
+  steps:[['drop2',1,15],['shells',5,8],['analysis',8,12],['chordscale',1,4],['repertoire',1,3],['earchord',5,9],['earprog',6,12],['outer',7,8],['earmode',4,7],['eariv',10,11],['eardeg',8,9],['sing',6,9],['cr',7,10],['improv',5,8],['scales',11,13],['along',9,12],['tgrips',1,5],['triads',12,13],['neckiv',4,7],['arp',9,9],['sight',16,18],['jazzrhy',7,9],['comping',6,8]]},
  {n:'Advanced',d:'Melodic-minor and symmetric scales, avoid notes, extensions, drop-3, bebop lines and the standards.',
   steps:[['chordscale',5,7],['spelling',9,10],['shells',9,11],['drop2',16,18],['arp',10,10],['repertoire',4,8],['jazzrhy',10,11],['earmode',8,8],['tgrips',6,9]]}];
 /* ============ SKILL TREE (Nov 2026): the same levels as PATH, drawn as skills that unlock skills ============
@@ -3764,10 +3767,10 @@ const SKILLS=[
  {id:'s9',tr:'solo',n:'Expressive bends',d:'Bend with vibrato, the blues curl, pre-bends.',req:[['bends',5,7]],pre:['s4']},
  {id:'s10',tr:'solo',n:'Arpeggios',d:'Seventh-chord arpeggios in position, in time, through II–V–I and as guide-tone lines.',req:[['arp',1,8]],pre:['s8','c3']},
  {id:'s11',tr:'solo',n:'Read melodic rhythms, fifth position',d:'Syncopated and swung lines in position, pitch and time together; fifth position.',req:[['sight',12,15]],pre:['s6','r2']},
- {id:'z1',tr:'solo',n:'Seven positions',d:'The major scale in every position, up and down, in quarters, eighths and triplets.',req:[['scales',1,3]],pre:[]},
- {id:'z2',tr:'solo',n:'Scale patterns',d:'Thirds, triads and seventh chords through a position: up, down, alternating.',req:[['scales',4,7]],pre:['z1']},
- {id:'z3',tr:'solo',n:'Round the circle',d:'The paired shapes through twelve keys, scale and patterns.',req:[['scales',8,9]],pre:['z2']},
- {id:'z4',tr:'solo',n:'Modes in the positions',d:'A new home note, mode sevenths, one root through seven modes.',req:[['scales',10,12]],pre:['z3']},
+ {id:'z1',tr:'solo',n:'Seven positions',d:'The major scale in every position, up and down, in quarters, eighths and triplets.',req:[['scales',1,4]],pre:[]},
+ {id:'z2',tr:'solo',n:'Scale patterns',d:'Thirds, triads and seventh chords through a position: up, down, alternating.',req:[['scales',5,8]],pre:['z1']},
+ {id:'z3',tr:'solo',n:'Round the circle',d:'The paired shapes through twelve keys, scale and patterns.',req:[['scales',9,10]],pre:['z2']},
+ {id:'z4',tr:'solo',n:'Modes in the positions',d:'A new home note, mode sevenths, one root through seven modes.',req:[['scales',11,13]],pre:['z3']},
  {id:'a1',tr:'solo',n:'Along one string',d:'The scale as steps in a line: one string in every key, thirds, then two strings climbing.',req:[['along',1,4]],pre:['z1']},
  {id:'a2',tr:'solo',n:'Shifts and the whole neck',d:'From one position into the next, then the full range of the instrument on a route of your own.',req:[['along',5,8]],pre:['a1','z2']},
  {id:'a3',tr:'solo',n:'Free travel',d:'Cross the neck in time in your own line; modes and melodic minor along and across.',req:[['along',9,12]],pre:['a2']},
@@ -4463,9 +4466,12 @@ scales:[
 {a:'Up and back down without stopping at the top.',
  w:['The turn at the top. Do not repeat the highest note.','Coming down, the stretches arrive in the opposite order.'],
  t:['Descending is a separate skill. Most players are weaker going down because they practise up more.']},
-{a:'The same run in eighth notes, then in triplets.',
- w:['Triplets cross the strings in a different place each beat. Keep strict alternate picking and let the accents fall where they fall.','Evenness matters more than speed.'],
- t:['Triplets put the accent on a different finger each beat, which evens out the hand.']},
+{a:'The same run in eighth notes: two notes per click.',
+ w:['The note on the click and the note between must be the same length. The off-beat note is the one that rushes.','Down-stroke on the click, up-stroke between, on every string.'],
+ t:['Evenness matters more than speed. The click is never faster than 80 on this level.','With two notes a beat the accent always falls on a down-stroke, so this is the easiest subdivision to keep even.']},
+{a:'The same run in triplets: three notes per click.',
+ w:['Three equal notes. The usual fault is long–short–short.','Strict alternate picking means the click falls on a down-stroke, then on an up-stroke, in turn. Do not change the picking to avoid it.'],
+ t:['Triplets put the accent on a different finger and a different pick direction each beat, which evens out both hands. The click is never faster than 63 on this level.','Each string holds two or three notes, so the string change lands in a different place in every beat. That is the difficulty, and the benefit.']},
 {k:['The scale in thirds: play a note, skip one, come back and start from the next. 1–3, 2–4, 3–5.'],
  w:['The notes are easy; the string crossings are the work. Thirds cross strings almost every pair.','Know which thirds are major and which minor as you play them.'],
  s:'Picking control across strings, and hearing the scale as stacked thirds, which is how chords are built.',

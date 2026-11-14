@@ -108,6 +108,9 @@ The user's goals: improvise, hear and recreate tunes, read, listen educationally
 ## Reading L7 “Two notes, first position” (14 Nov 2026, user: level 7 was too big a step; 18 levels)
 Inserted before the first read-a-line level: two written notes played one after the other, **no click and no count-in** (`readLineQ(win,strings,null,null,{len:2,free:true})`: `o.len` fixes the number of notes, `o.free` drops `metro`/`grid`). `REORDERS9` (flag `r34`) shifts the old levels 7–17 up by one; a player whose frontier was the old level 7 keeps level 7 as the frontier with the old one open as 8 (the user's case). `PATH`/`SKILLS` ranges and `LEVEL_NOTES.sight` moved with it. Verified on the user's data: 1,066 answers before and after, second load a no-op.
 
+## Scale Runner L3 split (14 Nov 2026, user request; 13 levels)
+“Eighths and triplets” became L3 “Eighth notes” and L4 “Triplets”. `REORDERS10` (flag `r35`) shifts the old levels 4–12 up by one; the old level 3's answers stay on 3. `PATH`/`SKILLS` ranges and `LEVEL_NOTES.scales` moved with it. Verified on the user's data (frontier stays 3, 253 answers before and after, second load a no-op).
+
 ## Scale Runner question as tags (14 Nov 2026, user: “I have to look hard to know if it's eighth notes or triplets”)
 The prompt of `scQ` and `scModeQ` is `scTags(what, position, play, div, sub)`: four big tags — key or mode, **Position**, what to play, and the rhythm in its own colour (`.qtags .rhy.r1` grey quarters, `.r2` yellow eighths, `.r3` green triplets, with “n per click”) — and one small line (`.qsub`). The standing instructions (running click, start on any click, alternate picking, stretches not shifts, the pass rule, the colour code) moved to the level screen: `LOBBY_NOTES.scales`. Keep new Scale Runner questions in this form.
 

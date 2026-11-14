@@ -116,6 +116,11 @@ Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES 
    if(late.ok||late.timeOk||!late.notesOk){bad++;console.log('timed strums: half a beat late passes',q.label);}if(wrong.ok){bad++;console.log('timed strums: a wrong chord passes',q.label);}
    if(q.strumAltSeq&&q.strumAltSeq.some((al,i)=>!al.some(v=>v.join()===q.strumSeq[i].join()))){bad++;console.log('shown grip not among the accepted ones',q.label);}}
  for(const kind of ['maj','min','turn','cycle'])for(let t=0;t<60;t++){const q=gtLineQ(kind)();if(!q.strumSeq){bad++;console.log('guide-tone line fell back',kind);break;}if(q.strumSeq.some(v=>v.length!==2||![5,6,7].includes(v[1]-v[0]))){bad++;console.log('guide-tone pair is not a 3rd and a 7th',kind,JSON.stringify(q.strumSeq));break;}}}
+/* Reading's two-note level: the click runs, any click may be the first; the second note belongs on the next click */
+{const gen=GBY.sight.levels[6].g[1];for(let t=0;t<60;t++){const q=gen(),B=1000,g=(t1,t2,m2=q.target[1])=>micGrade(q,{notes:[{midi:q.target[0],mf:q.target[0],t:t1,dur:400},{midi:m2,mf:m2,t:t2,dur:400}],firstAt:t1,beat:B,beatStart:100}).ok;
+   if(q.target.length!==2||q.metro!==60||!q.freeStart||q.grid.join()!=='0,1'){bad++;console.log('two-note level: not a free-start click question',q.label);continue;}
+   if(!g(100+7*B,100+8*B)||!g(100+3*B+90,100+4*B+120)){bad++;console.log('two-note level: two notes on two clicks fail',q.label);}
+   if(g(100+7*B,100+9*B)||g(100+7*B,100+8*B+500)||g(100+7*B,100+8*B,q.target[1]+1)){bad++;console.log('two-note level: a late or wrong second note passes',q.label);}}}
 /* the lowest notes may be heard an octave up (laptop mic); nothing higher may */
 {const one=(m,g)=>micGrade({ui:'mic',target:[m],octaveFree:false,maxNotes:1,names:['x'],degs:['x']},{notes:[{midi:g,mf:g,t:500,dur:400}],firstAt:500}).ok;
  if(!one(40,52)||!one(42,54)||!one(44,56)||!one(46,58)||!one(40,40)){bad++;console.log('low notes: the octave above is not accepted');}

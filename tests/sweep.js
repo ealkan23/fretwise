@@ -181,6 +181,13 @@ GAMES.forEach(x=>{const N=LESSON_NOTES[x.id];if(!N||N.length<3){bad++;console.lo
 GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.meter||4;for(let k=0;k<24;k++){let b;try{b=c.bar(k,M);}catch(e){bad++;console.log('GROOVE throws',x.id,i+1,e.message);return;}
   if(!b||!Array.isArray(b.on)||!Array.isArray(b.ev)){bad++;console.log('GROOVE bar shape',x.id,i+1,k);return;}for(let j=0;j<b.on.length;j++){const o=b.on[j];if(!(o>=0&&o<M)||(j&&o<=b.on[j-1])){bad++;console.log('GROOVE hits',x.id,i+1,k,JSON.stringify(b.on));return;}}
   if(c.click&&typeof c.click(k,0)!=='boolean'){bad++;console.log('GROOVE click',x.id,i+1);}if(c.bpm2&&!(c.bpm2(k,100)>=40)){bad++;console.log('GROOVE bpm2',x.id,i+1);}if(c.feel&&typeof c.feel(k)!=='number'){bad++;console.log('GROOVE feel',x.id,i+1);}}}));
+/* the road map: every chart unrolls to the order written out by hand; a played chart has no two bars alike and every aksak bar fills its meter */
+{const want={rep:'1 2 3 4 1 2 3 4 5 6 7 8',rep2:'1 2 3 4 5 6 3 4 5 6 7 8',end1:'1 2 3 4 1 2 3 5 6 7 8',end2:'1 2 3 4 1 2 5 6 7 8 9 10 11 12',dcfine:'1 2 3 4 5 6 7 8 1 2 3 4',dsfine:'1 2 3 4 5 6 7 8 3 4 5 6',dscoda:'1 2 3 4 5 6 7 8 3 4 5 6 9 10 11 12',dccoda:'1 2 3 4 5 6 7 8 1 2 3 4 9 10 11 12',full:'1 2 3 1 2 4 5 6 7 8 5 6 9 10 11 12'};
+ for(const k of Object.keys(CHARTS)){const o=chartOrder(CHARTS[k]).map(w=>w+1).join(' ');if(o!==want[k]){bad++;console.log('CHART order',k,o);}if(!CHART_TXT[k]){bad++;console.log('CHART text',k);}if(CHARTS[k].n%4){bad++;console.log('CHART lines',k);}
+  for(let l=0;l*4<CHARTS[k].n;l++){const sg=chartSigns(CHARTS[k],l,4);if(sg.some(s=>s.b<0||s.b+(s.len||1)>4)){bad++;console.log('CHART sign off the line',k,l);}}}
+ if(Object.keys(want).length!==Object.keys(CHARTS).length){bad++;console.log('CHART untested template');}
+ for(let i=0;i<40;i++)for(const k of Object.keys(CHARTS)){const ch=mkChart(k,['q','ee','h','r','re']);const sig=ch.bars.map(b=>JSON.stringify(b.on));if(ch.bars.length!==ch.n||new Set(sig).size!==ch.n){bad++;console.log('CHART bars alike',k);break;}}
+ GBY.aksak.levels.forEach((lv,i)=>[lv.c].concat(lv.c.alt||[]).forEach(c=>{const M=c.groups.reduce((a,b)=>a+b,0);if(c.meter!==M||!c.groups.every(g=>g===2||g===3)){bad++;console.log('AKSAK groups',i+1);}for(let k=0;k<12;k++){const b=c.bar(k,M),tot=b.ev.reduce((a,e)=>a+e.d,0);if(Math.abs(tot-M)>1e-6){bad++;console.log('AKSAK bar length',i+1,tot,M);break;}}}));}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

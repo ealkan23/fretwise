@@ -2530,10 +2530,9 @@ function upperQ(){return ()=>{const bassRoot=P(rootPick(['C','F','G','Bb','D','E
 /* ear: dictation, bass lines, inversions, drop-2 sounds, quality in context, blues forms */
 function earDictQ(len,degs){return ()=>{const k=rootPick(EAR_KEYS),root=P(k),t=tonic4(root);let picks=[R(['1','3','5'])];while(picks.length<len){const d=R(degs);if(d!==picks.at(-1))picks.push(d);}
   const mids=picks.map(d=>{let m=t+DEG_SEMI[d];if(m>74)m-=12;return m;}),ans=picks.join(' '),names=picks.map(d=>nm(degNote(root,d)));
-  const dis=[];for(let i=0;i<6;i++){const c=picks.slice();const j=ri(1,len-1);let d;do{d=R(degs);}while(d===c[j]);c[j]=d;dis.push(c.join(' '));}
-  return A({key:`edc-${picks.join('')}`,label:`dictation ${ans}`,answer:ans,choices:mc(ans,shuffle([...new Set(dis)].filter(x=>x!==ans)),5),factor:len>=5?2.6:2.2,prompt:`Cadence in <b>${kname(k)} major</b>, then <b>${len} notes</b>. Which degrees, in order?`,visual:listenCard(`Cadence, then ${len} notes`,'melodic dictation'),
+  return ({ui:'spell',sound:true,tokens:DEG_ORDER.filter(d=>degs.includes(d)),need:len,key:`edc-${picks.join('')}`,label:`dictation ${ans}`,answer:picks,answerText:ans,factor:len>=5?3.4:len>=3?2.8:2.2,prompt:`Cadence in <b>${kname(k)} major</b>, then <b>${len} notes</b>. Write their degrees, in order.`,visual:listenCard(`Cadence, then ${len} notes`,'melodic dictation'),
     audio:()=>{const d=playChords(cadenceOf(pc(root),false),0.8);mids.forEach((m,i)=>Piano.note(m,d+0.15+i*0.75,0.7,0.85));return d+0.3+mids.length*0.75;},reveal:`<div class="reveal2"><div class="muted">${names.join(' – ')}</div></div>`,
-    explain:`<b>${ans}</b> = ${names.join(' – ')} in ${kname(k)}. Catch the first note by its pull to the tonic, then hear each step as up or down and by how much.`,hint:'Sing the line back on numbers before you choose.'});};}
+    explain:`<b>${ans}</b> = ${names.join(' – ')} in ${kname(k)}. Catch the first note by its pull to the tonic, then hear each step as up or down and by how much.`,hint:'Sing the line back on numbers before you write.'});};}
 function earBassQ(){return ()=>{const k=rootPick(EAR_KEYS),root=P(k),pats=[['1','6','2','5'],['1','4','5','1'],['2','5','1','1'],['1','6','4','5'],['3','6','2','5'],['1','♭7','4','1'],['6','2','5','1']],p=R(pats),ans=p.join(' – ');
   const chs=p.map(d=>{const s=DEG_SEMI[d];const q=d==='1'?'maj7':d==='5'?'7':d==='4'?'maj7':d==='♭7'?'7':'m7';return {pcs:CH[q].map(x=>mod(pc(root)+s+IV[x][1],12)),bass:mod(pc(root)+s,12)};});
   return A({key:`eb-${p.join('')}`,label:`bass ${ans}`,answer:ans,choices:mc(ans,shuffle(pats.map(x=>x.join(' – ')).filter(x=>x!==ans)),5),factor:2.2,prompt:`Four chords in <b>${kname(k)}</b>. Follow the <b>bass</b>: which roots (as degrees)?`,visual:listenCard('Four chords','listen to the bottom voice'),audio:()=>playChords(chs,0.9),
@@ -3450,8 +3449,8 @@ const GAMES=[
   {n:'Whole major scale',d:'All seven degrees, and the minor tonic triad',g:[earDegree(['1','2','3','4','5','6','7']),earDegree(['1','♭3','5'],{minor:true})]},
   {n:'Hear it, play it',d:'Find the note on the guitar after the cadence (microphone)',g:[degPlayQ(['1','2','3','4','5','6','7'])]},
   {n:'Minor key',d:'Degrees after a minor cadence (Im – IVm – V7 – Im)',g:[earDegree(['1','2','♭3','4','5','♭6','♭7','7'],{minor:true})]},
-  {n:'Two notes',d:'Name both degrees in order',g:[earDegree(['1','2','3','4','5','6','7'],{two:true}),earDegree(DEG_ORDER)]},
-  {n:'Dictation',d:'Three and four notes after the cadence',g:[earDictQ(3,['1','2','3','4','5','6','7']),earDictQ(4,['1','2','3','4','5','6','7'])]},
+  {n:'Two notes',d:'Write both degrees in order',g:[earDictQ(2,['1','2','3','4','5','6','7']),earDictQ(2,['1','2','3','4','5','6','7']),earDegree(DEG_ORDER)]},
+  {n:'Dictation',d:'Three and four notes after the cadence, written down',g:[earDictQ(3,['1','2','3','4','5','6','7']),earDictQ(4,['1','2','3','4','5','6','7'])]},
   {n:'Blue and chromatic tones',d:'Adds ♭3 ♭7 ♯4',g:[earDegree(['1','2','♭3','3','4','♯4','5','6','♭7','7'])]},
   {n:'Long dictation',d:'Five-note lines with chromatic tones',g:[earDictQ(5,['1','2','♭3','3','4','♯4','5','6','♭7','7'])]},
   {n:'Melodic dictation I',d:'One bar with its rhythm, by step between 1 and 5: write every value and its degree',g:[melDictQ({cells:['q','ee','h'],bars:1,lo:0,hi:4,min:3,max:6})]},
@@ -3488,9 +3487,9 @@ const GAMES=[
   {n:'The 12-bar blues',d:'Basic, quick-change or jazz blues: where does the harmony leave I7?',g:[earFormQ(['basic blues','quick-change blues','jazz blues'])]},
   {n:'Minor keys',d:'Im – IVm – V7 – Im and friends',g:[earProg(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7']),earProg(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7']),earDictProgQ(['i – iv – V7 – i','i – VI – III – VII','ii° – V7 – i','i – ♭VII – ♭VI – V7'])]},
   {n:'Every chord of the minor key',d:'Im, II°, ♭III, IVm, Vm or V7, ♭VI, ♭VII: one chord, four in any order, and the cycle in minor',g:[earOneQ(P_MIN,true),earFreeQ(P_MIN,true),earCycleQ(true,4)]},
-  {n:'II–V–I and its substitutes',d:'Plain, tritone sub, backdoor, secondary dominant',g:[earProg(['ii – V – I (plain)','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)'])]},
+  {n:'II–V–I and its substitutes',d:'Plain, tritone sub, backdoor, secondary dominant: name it, then write the numerals',g:[earProg(['ii – V – I (plain)','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)']),earDictProgQ(['ii – V – I (plain)','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)'])]},
   {n:'Everything so far',d:'Any of the above',g:[earProg(['I – IV – V – I','I – vi – IV – V','I – V – vi – IV','ii – V – I (plain)','ii – ♭II7 – I (tritone sub)','iv – ♭VII7 – I (backdoor)','I – VI7 – ii – V (secondary dominant)','i – iv – V7 – i'])]},
-  {n:'Turnarounds',d:'Two-bar turnarounds with passing and substitute chords',g:[earProg(['I – vi – ii – V | iii – vi – ii – V','I – VI7 – ii – V7 | I – VI7 – ii – V7','I – ♯i°7 – ii – ♯ii°7 | iii – VI7 – ii – V7','I – ♭III7 – ♭VI7 – ♭II7 (Dameron turnaround)'])]},
+  {n:'Turnarounds',d:'Two-bar turnarounds with passing and substitute chords: name them, then write them',g:[earProg(['I – vi – ii – V | iii – vi – ii – V','I – VI7 – ii – V7 | I – VI7 – ii – V7','I – ♯i°7 – ii – ♯ii°7 | iii – VI7 – ii – V7','I – ♭III7 – ♭VI7 – ♭II7 (Dameron turnaround)']),earDictProgQ(['I – vi – ii – V | iii – vi – ii – V','I – VI7 – ii – V7 | I – VI7 – ii – V7','I – ♯i°7 – ii – ♯ii°7 | iii – VI7 – ii – V7','I – ♭III7 – ♭VI7 – ♭II7 (Dameron turnaround)'])]},
   {n:'Blues & rhythm changes',d:'All five forms: adds the minor blues and rhythm changes A',g:[earFormQ()]},
   {n:'Spot the substitute',d:'Which bar of the turnaround carries the sub?',g:[earWhichBarQ(),earFormQ()]},
   {n:'Root motion',d:'Two chords: did the bass move a 4th, a 3rd or a step? Then whole phrases by 4ths, 3rds or steps',g:[earMotionQ(),earMotionQ('phrase')]},

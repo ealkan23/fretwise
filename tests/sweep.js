@@ -203,6 +203,20 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  for(const c of P_145)for(let i=0;i<3;i++){const ch=dch(0,c[0],c[1],i);if(ch.bass!==mod(c[0]+[0,4,7][i],12))eb('inversion bass');}
  if(P_DIA7.map(epTok).join(' ')!=='I IIm IIIm IV V VIm VII°'||P_MIN.map(epTok).join(' ')!=='Im II° ♭III IVm Vm V7 ♭VI ♭VII'||CYC_MAJ.map(epTok).join(' ')!=='I IV VII° IIIm VIm IIm V I')eb('diatonic numerals');
  CYC_MAJ.concat(CYC_MIN).forEach((c,j,a)=>{if(j%8&&![5,6].includes(mod(c[0]-a[j-1][0],12)))eb('cycle step');});}
+/* Scale Runner, the run forms: from the tonic (starts and ends on the lowest tonic, touches the top and the bottom note, covers every note, never skips);
+   one octave tonic to tonic; to the 7th (thirteen notes, chord tones on the beats); the other scales stay inside their set and inside the major type's frets;
+   one octave from any root: the root is under the named finger, and with the second finger on strings 6 or 5 there is no stretch */
+{const sb=m=>{bad++;console.log('SCALE',m);};
+ for(let P=1;P<=12;P++)for(let k=0;k<12;k++){const z=scPos(k,P),n=z.notes.length,pcs=z.notes.map(x=>mod(x.m-k,12)),t=scRun(z,k,'tonic'),at=pcs.map((p,i)=>p===0?i:-1).filter(i=>i>=0);
+   if(!t||t[0]!==at[0]||t.at(-1)!==at[0]||!t.includes(0)||!t.includes(n-1)||new Set(t).size!==n||t.some((v,i)=>i&&Math.abs(v-t[i-1])!==1)||t.length!==2*(n-1)+1){sb('tonic run '+k+' '+P);}
+   const o=scRun(z,k,'oct',0);if(at.length>1&&(!o||o.length!==15||pcs[o[0]]!==0||pcs[o[7]]!==0||o.at(-1)!==o[0]))sb('octave '+k+' '+P);
+   const b=scRun(z,k,'bh',0);if(b&&(b.length!==13||[0,2,4,6,8,10,12].map(i=>pcs[b[i]]).join()!=='0,4,7,11,7,4,0'))sb('to the 7th '+k+' '+P+' '+(b&&[0,2,4,6,8,10,12].map(i=>pcs[b[i]])));
+   const tn=scRun(z,k,'tonics');if(tn&&tn.some(i=>pcs[i]!==0))sb('tonics '+k+' '+P);
+   for(const [id,S0] of Object.entries(SC_SCALES)){if(id==='maj')continue;const par=mod(k+S0.par,12),zz=scPos(par,P,S0.s.map(x=>mod(k+x,12))),maj=scPos(par,P);if(zz.type!==maj.type||zz.notes.some(x=>!S0.s.includes(mod(x.m-k,12)))||zz.notes.some(x=>x.f<maj.lo||x.f>maj.hi)||new Set(zz.notes.map(x=>mod(x.m-k,12))).size!==S0.s.length)sb('derived '+id+' '+k+' '+P);}}
+ for(const fg of [1,2,4])for(const st of [6,5,4,3]){let seen=0;for(let i=0;i<60;i++){const q=scOctQ({strings:[st],fingers:[fg]})();if(!/^sco-/.test(q.key))continue;seen++;const m=q.prompt.match(/string ([0-9]), fret ([0-9]+)/),f0=+m[2],Pn=ROMAN.indexOf(q.prompt.match(/Position ([IVX]+)/)[1]);
+     if(f0-Pn!==fg-1||q.target.length!==15||q.target[7]-q.target[0]!==12||q.target.at(-1)!==q.target[0]||q.target[0]!==OPEN[st]+f0){sb('octave form '+st+' '+fg);break;}
+     if(fg===2&&st>=5&&/ pb-st"/.test(q.visual)){sb('second finger form has a stretch '+st);break;}}if(!seen&&!(st===3&&fg!==1))sb('octave form never made '+st+' '+fg);if(seen&&st===3&&fg!==1)sb('octave form from string 3 should need the first finger');}
+ GBY.scales.levels.forEach((lv,li)=>lv.g.forEach(g=>{for(let i=0;i<40;i++){const q=g();if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)){sb('text L'+(li+1));break;}if(q.target.some((m,j)=>j&&m===q.target[j-1])){sb('repeat L'+(li+1));break;}}}));}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

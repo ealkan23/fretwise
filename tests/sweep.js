@@ -217,6 +217,22 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
      if(f0-Pn!==fg-1||q.target.length!==15||q.target[7]-q.target[0]!==12||q.target.at(-1)!==q.target[0]||q.target[0]!==OPEN[st]+f0){sb('octave form '+st+' '+fg);break;}
      if(fg===2&&st>=5&&/ pb-st"/.test(q.visual)){sb('second finger form has a stretch '+st);break;}}if(!seen&&!(st===3&&fg!==1))sb('octave form never made '+st+' '+fg);if(seen&&st===3&&fg!==1)sb('octave form from string 3 should need the first finger');}
  GBY.scales.levels.forEach((lv,li)=>lv.g.forEach(g=>{for(let i=0;i<40;i++){const q=g();if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)){sb('text L'+(li+1));break;}if(q.target.some((m,j)=>j&&m===q.target[j-1])){sb('repeat L'+(li+1));break;}}}));}
+/* modes: every scale has one label per note and holds its chord; its colour notes are its own; it equals its parent scale from the parent's root;
+   bright to dark lowers one note a half step each time; the careful notes are the textbook ones; the octave path climbs inside six frets;
+   an improvised line fails outside the scale, without the colour note, on a repeated note or on a landing note outside the chord */
+{const mb=m=>{bad++;console.log('MODES',m);},PAR={'major':[0,2,4,5,7,9,11],'melodic minor':[0,2,3,5,7,9,11],'harmonic minor':[0,2,3,5,7,8,11]};
+ for(const [n,M0] of Object.entries(MD)){const fam=mdFam(n);if(!fam){mb('no family '+n);continue;}const F=MD_FAM[fam];if(M0.d.length!==M0.s.length||new Set(M0.d).size!==M0.d.length||M0.s[0]!==0||M0.s.some((x,i)=>i&&x<=M0.s[i-1]))mb('shape '+n);
+   if(!F.pcs.every(x=>M0.s.includes(x))||!F.ct.every(x=>M0.s.includes(x)))mb('chord not in scale '+n);if(!M0.c.length||!M0.c.every(l=>M0.d.includes(l)))mb('colour '+n);
+   if(M0.par){const set=PAR[M0.par[0]].map(x=>mod(x-M0.par[1],12)).sort((a,b)=>a-b);if(set.join()!==M0.s.join())mb('parent '+n);}}
+ for(let i=0;i<MD_BRIGHT.length-1;i++){const a=MD[MD_BRIGHT[i]].s,b=MD[MD_BRIGHT[i+1]].s,df=a.map((x,j)=>x-b[j]);if(df.filter(x=>x).length!==1||!df.includes(1))mb('bright order '+MD_BRIGHT[i]);}
+ const care={Ionian:'4',Dorian:'',Phrygian:'♭2,♭6',Lydian:'',Mixolydian:'4',Aeolian:'♭6',Locrian:'♭2'};for(const [n,v] of Object.entries(care))if(mdCare(n,mdFam(n)).join()!==v)mb('careful notes '+n+' '+mdCare(n,mdFam(n)));
+ if(mdParent('Lydian ♭7',0)!=='G melodic minor'||mdParent('altered',0)!=='D♭ melodic minor'||mdParent('Locrian ♮2',0)!=='E♭ melodic minor'||mdParent('Dorian',2)!=='C major'||mdParent('Mixolydian ♭9 ♭13',7)!=='C harmonic minor')mb('parent names');
+ for(const [n,M0] of Object.entries(MD))for(let rp=0;rp<12;rp++)for(const st of [6,5]){const f=mod(rp-OPEN[st],12);if(f<2||f>10)continue;const u=octPath({s:st,f},M0.s);if(!u){mb('no path '+n+' '+rp);continue;}if(u.some((x,i)=>i&&x.m<=u[i-1].m)||u.at(-1).m-u[0].m!==12||Math.max(...u.map(x=>x.f))-Math.min(...u.map(x=>x.f))>6||u.some((x,i)=>i&&x.s>u[i-1].s))mb('path '+n+' '+rp);}
+ const g=modeSoloQ({set:[['maj','Lydian'],['min','Dorian'],['dom','altered'],['dim','whole-half'],['dom','whole tone']]});for(let i=0;i<120;i++){const q=g(),R0=q.msolo,mk=T=>({notes:T.map((m,j)=>({midi:m,mf:m,t:q.grid[j]*750+3000})),firstAt:3000,beat:750,beatStart:3000});
+   if(!micGrade(q,mk(q.target)).ok){mb('solo example '+q.key);break;}const out=q.target.slice();let o=out[3]+1;while(R0.pcs.includes(mod(o,12)))o++;out[3]=o;if(micGrade(q,mk(out)).ok){mb('solo outside accepted');break;}
+   const nc=q.target.map(m=>R0.col.includes(mod(m,12))?null:m),k0=nc.map((m,j)=>m===null?j:-1).filter(j=>j>=0);if(k0.length<=2&&k0.every(j=>j<16)){const res=mk(q.target);res.notes=res.notes.filter((_,j)=>!k0.includes(j));if(micGrade(q,res).ok){mb('solo without the colour note accepted '+q.key);break;}}
+   const rp2=q.target.slice();rp2[5]=rp2[4];if(micGrade(q,mk(rp2)).ok){mb('solo repeated note accepted');break;}const ld=q.target.slice();let l=ld[16]+1;while(R0.ct.includes(mod(l,12))||!R0.pcs.includes(mod(l,12))||l===ld[15])l++;ld[16]=l;if(micGrade(q,mk(ld)).ok){mb('solo landing accepted');break;}}
+ GBY.modes.levels.forEach((lv,li)=>lv.g.forEach(gn=>{for(let i=0;i<60;i++){const q=gn();if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)){mb('text L'+(li+1)+' '+q.key);break;}if(!q.vamp||!(q.vamp.bpm>0)){mb('no band L'+(li+1));break;}if(!q.msolo&&q.target.some((m,j)=>j&&m===q.target[j-1])){mb('repeat L'+(li+1)+' '+q.key);break;}}}));}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

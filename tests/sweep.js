@@ -61,14 +61,14 @@ const LEAKS={spelling:{6:/m7♭5|dim7|m[(]maj7[)]|sus|add9|half-diminished|dimin
 for(const [id,lvs] of Object.entries(LEAKS))for(const [L,re] of Object.entries(lvs))GBY[id].levels[L-1].g.forEach(gen=>{for(let i=0;i<150;i++){const q=gen(),t=[q.prompt,JSON.stringify(q.answer),q.label].join(' ');if(re.test(t)){bad++;console.log('LEAK',id,L,t.slice(0,120));break;}}});
 /* the path: every level of every game in exactly one stage step */
 {const seen={};PATH.forEach((st,si)=>st.steps.forEach(([id,a,b])=>{if(!GBY[id]){bad++;console.log('PATH unknown game',id);return;}if(b>GBY[id].levels.length||a<1||a>b){bad++;console.log('PATH bad range',id,a,b);}for(let L=a;L<=b;L++){const k=id+' '+L;if(seen[k]!==undefined){bad++;console.log('PATH twice',k);}seen[k]=si;}}));
- GAMES.forEach(x=>x.levels.forEach((_,i)=>{if(seen[x.id+' '+(i+1)]===undefined){bad++;console.log('PATH missing',x.id,i+1);}}));
+ GAMES.filter(x=>!x.retired).forEach(x=>x.levels.forEach((_,i)=>{if(seen[x.id+' '+(i+1)]===undefined){bad++;console.log('PATH missing',x.id,i+1);}}));
  /* within a game the stages never go backwards */
  GAMES.forEach(x=>{let p=0;x.levels.forEach((_,i)=>{const s2=seen[x.id+' '+(i+1)];if(s2<p){bad++;console.log('PATH order',x.id,i+1);}p=Math.max(p,s2);});});}
 /* the skill tree: every level in exactly one skill, a skill's levels all in its column's stage, earlier levels of a game in ancestor skills, no cycles */
 {const own={},sb=m=>{bad++;console.log('SKILL',m);};const anc=id=>{const out=new Set(),st=[...SKBY[id].pre];while(st.length){const p=st.pop();if(p===id){sb('cycle at '+id);return out;}if(!SKBY[p]){sb('unknown pre '+p);continue;}if(!out.has(p)){out.add(p);st.push(...SKBY[p].pre);}}return out;};
  SKILLS.forEach(n=>{if(!SK_TRACKS.some(t=>t[0]===n.tr))sb('track '+n.id);if(n.goal)return;const c=skCol(n);n.req.forEach(([g,a,b])=>{for(let L=a;L<=b;L++){const k=g+' '+L;if(own[k])sb('twice '+k);own[k]=n.id;if(stageOf(g,L)!==c)sb(n.id+' '+k+' stage '+stageOf(g,L)+' != column '+c);}});
   n.pre.forEach(p=>{if(SKBY[p]&&!SKBY[p].goal&&skCol(SKBY[p])>c)sb(n.id+' builds on a later skill '+p);});});
- GAMES.forEach(x=>{let prev=null;x.levels.forEach((_,i)=>{const k=x.id+' '+(i+1),id=own[k];if(!id){sb('missing '+k);return;}if(prev&&prev!==id&&!anc(id).has(prev))sb(k+': skill '+id+' does not build on '+prev);prev=id;});});
+ GAMES.filter(x=>!x.retired).forEach(x=>{let prev=null;x.levels.forEach((_,i)=>{const k=x.id+' '+(i+1),id=own[k];if(!id){sb('missing '+k);return;}if(prev&&prev!==id&&!anc(id).has(prev))sb(k+': skill '+id+' does not build on '+prev);prev=id;});});
  SKILLS.forEach(n=>anc(n.id));GAMES.forEach(x=>{const s=STD[x.id];if(!s||!(s.acc>=PASS&&s.acc<=1))sb('no master standard for '+x.id);else if(s.flu&&!FLU_GAMES.includes(x.id))sb('time standard on an untimed game '+x.id);});console.log('skills',SKILLS.length);}
 /* interval shapes: every shape the text gives lands on its interval from every start string; jazz voicings hold only chord tones */
 for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const m=part.match(/^(same string|next string up|([0-9]) strings up), (same fret|([0-9]+) frets? (up|back))(?: [(](same fret|([0-9]+) frets? (up|back)) when it crosses G–B[)])?$/);
@@ -82,7 +82,7 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
  const own={};GOAL_KEYS.forEach(k=>{const Gl=GOALS[k];if(!Gl.n||!Gl.end||!Gl.col||Gl.stages.length<4){bad++;console.log('GOALS shape',k);}const last={};
    Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length){bad++;console.log('GOALS stage',k,n);}sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||from<1||to<from||to>x.levels.length){bad++;console.log('GOALS step range',k,n,gid,from,to);return;}
      if(last[gid]!==undefined&&from<=last[gid]){bad++;console.log('GOALS: a game goes backwards inside a goal',k,gid,from);}last[gid]=to;for(let L=from;L<=to;L++){const id=gid+':'+L;if(own[id]){bad++;console.log('GOALS: level in two steps',id,own[id],k+(n+1));}own[id]=k+(n+1);}});});});
- GAMES.forEach(x=>x.levels.forEach((_,i)=>{if(!own[x.id+':'+(i+1)]){bad++;console.log('GOALS: level in no step',x.id,i+1);}}));
+ GAMES.filter(x=>!x.retired).forEach(x=>x.levels.forEach((_,i)=>{if(!own[x.id+':'+(i+1)]){bad++;console.log('GOALS: level in no step',x.id,i+1);}}));
  for(const k of ['A','B','C','D'])if(GOALS[k].stages.length!==5){bad++;console.log('GOALS: five stages',k);}
  /* stacking: the levels below a step's range belong to steps of the same or an earlier stage number, so no stage waits on a later one */
  const stageOfLv={};GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach((sg,n)=>sg.steps.forEach(([gid,from,to])=>{for(let L=from;L<=to;L++)stageOfLv[gid+':'+L]=n;})));
@@ -252,6 +252,10 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  for(const n of WHOLE){const f=FORMS.find(x=>x.n===n);if(!f||f.bars.length!==want[n]){bad++;console.log('FORM length',n,f&&f.bars.length);continue;}if(formChords(f).some(c=>!symParse(c.sym))){bad++;console.log('FORM symbol',n);}}
  if(Object.keys(want).length!==WHOLE.length){bad++;console.log('FORM list');}
  const g=scaleMelQ({len:[5,8]});for(let i=0;i<60;i++){const q=g();if(!/^cms-/.test(q.key))continue;if(q.strumSeq.some((v,j)=>!q.strumAltSeq[j].some(a=>a.at(-1)===v.at(-1)))||q.strumSeq.some((v,j)=>j&&v.at(-1)===q.strumSeq[j-1].at(-1))||q.strumSeq.some(v=>v.at(-1)<64||v.at(-1)>77)){bad++;console.log('MELODY harmonised',q.key);break;}}}
+/* John's lean ladders: the played triad drill is nine notes of the chord, three different inversions climbing or falling, no note twice in a row */
+{const g=triRunQ({down:true,sets:['4-3-2','3-2-1','5-4-3','6-5-4']});for(let i=0;i<150;i++){const q=g();if(!/^trun-/.test(q.key))continue;const groups=[q.target.slice(0,3),q.target.slice(3,6),q.target.slice(6,9)],pcs=new Set(q.target.map(m=>m%12));
+  if(q.target.length!==9||pcs.size!==3||groups.some(gr=>gr[0]>=gr[1]||gr[1]>=gr[2]||gr[2]-gr[0]>12)||new Set(groups.map(gr=>gr[0]%12)).size!==3||q.target.some((m,j)=>j&&m===q.target[j-1])||/NaN|undefined/.test(q.prompt+q.visual+q.explain)){bad++;console.log('TRIAD run',q.key,q.target);break;}}
+ if(gamesIn('neck').some(x=>x.id==='guidetones')||!GBY.guidetones){bad++;console.log('retired game still offered, or its data lost');}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

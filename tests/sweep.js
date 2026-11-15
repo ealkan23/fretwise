@@ -233,6 +233,17 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
    const nc=q.target.map(m=>R0.col.includes(mod(m,12))?null:m),k0=nc.map((m,j)=>m===null?j:-1).filter(j=>j>=0);if(k0.length<=2&&k0.every(j=>j<16)){const res=mk(q.target);res.notes=res.notes.filter((_,j)=>!k0.includes(j));if(micGrade(q,res).ok){mb('solo without the colour note accepted '+q.key);break;}}
    const rp2=q.target.slice();rp2[5]=rp2[4];if(micGrade(q,mk(rp2)).ok){mb('solo repeated note accepted');break;}const ld=q.target.slice();let l=ld[16]+1;while(R0.ct.includes(mod(l,12))||!R0.pcs.includes(mod(l,12))||l===ld[15])l++;ld[16]=l;if(micGrade(q,mk(ld)).ok){mb('solo landing accepted');break;}}
  GBY.modes.levels.forEach((lv,li)=>lv.g.forEach(gn=>{for(let i=0;i<60;i++){const q=gn();if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)){mb('text L'+(li+1)+' '+q.key);break;}if(!q.vamp||!(q.vamp.bpm>0)){mb('no band L'+(li+1));break;}if(!q.msolo&&q.target.some((m,j)=>j&&m===q.target[j-1])){mb('repeat L'+(li+1)+' '+q.key);break;}}}));}
+/* the harmony-book levels: the facts behind them */
+{const hb=m=>{bad++;console.log('HARMONY',m);},tn=d=>(kIn(d+2)?'9':'♭9')+(kIn(d+9)?'13':'♭13');
+ if(tn(0)!=='913'||tn(2)!=='913'||tn(9)!=='9♭13'||tn(11)!=='♭9♭13'||tn(4)!=='♭9♭13')hb('secondary dominant tensions');
+ if(UST.map(u=>ustLab(u[0])).join('|')!=='9 ♯11 13|♯9 5 ♭7|♯11 ♭7 ♭9|♭13 1 ♯9|13 ♭9 3')hb('upper structures');
+ for(const it of MI_SC){const S0=MD[it[3]].s,ct=CH[it[1]].map(x=>IV[x][1]);if(!ct.every(x=>S0.includes(mod(x,12))))hb('borrowed chord scale does not hold its chord '+it[2]);const col=it[1]==='m7'?9:6;if(!S0.includes(col)||!kIn(it[0]+col))hb('borrowed chord scale: its colour note is not a note of the key '+it[2]);}
+ for(const [n,M0] of Object.entries(MD)){if(M0.s.length!==7)continue;let c=0;for(let p=0;p<12;p++)if([0,2,4,7,9].every(x=>M0.s.includes(mod(p+x,12))))c++;if(M0.par&&M0.par[0]==='major'&&c!==3)hb('pentatonics in '+n+' '+c);}
+ for(const T of QUARTAL)for(let rp=0;rp<12;rp++)stackGrips(T.str,T.iv,rp).forEach(a=>{const ms=tabMidi(a);if(ms.length!==T.iv.length||ms[0]%12!==rp||T.iv.some((x,i)=>ms[i]-ms[0]!==x))hb('fourth voicing '+T.n+' '+tabStr(a));});
+ if(!stackGrips([5,4,3,2,1],[0,5,10,15,19],4).map(tabStr).includes('x-7-7-7-8-7'))hb('the five-note fourth voicing of E minor');
+ for(let i=0;i<200;i++){const q=modQ('common')();if(/^an-mod-c/.test(q.key)&&!/share 3 of/.test(q.explain)){hb('keys a fifth apart share three seventh chords: '+q.explain.slice(0,90));break;}}
+ for(let i=0;i<100;i++){const q=coltraneQ('fill')();const m=q.explain.match(/^([^.]*)\./)[1].split(' – ');if(m.length!==7){hb('coltrane length');break;}}
+ const dj=DIM_JOB.filter(j=>j[3]==='up');if(dj.some(j=>mod(j[2][0]-j[1],12)!==1)||DIM_JOB.filter(j=>j[3]==='aux').some(j=>j[1]!==j[0][0]))hb('diminished jobs');}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

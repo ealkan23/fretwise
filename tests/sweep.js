@@ -247,6 +247,11 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 /* Reading: a line in a key holds only notes of that key, shows its signature and no accidental; a line with one accidental has exactly one */
 {for(const [ky,v] of Object.entries(READ_KEYS)){const g=readLineQ([0,4],[1,2,3,4,5,6],1,null,{key:ky}),set=[0,2,4,5,7,9,11].map(x=>(x+v[0])%12);for(let i=0;i<40;i++){const q=g();if(q.target.some(m=>!set.includes(m%12))||/st-acc[^>]*>.*st-head/.test(q.visual.split('st-glyph')[1].split('<ellipse')[1]||'')||(q.visual.match(/class="st-acc"/g)||[]).length!==Math.abs(v[1])||!q.key.includes(ky)){bad++;console.log('READING key line',ky,q.key,(q.visual.match(/class="st-acc"/g)||[]).length);break;}}}
  const g=readLineQ([0,4],[1,2,3,4,5,6],1,null,{chrom:true});for(let i=0;i<80;i++){const q=g();if(q.target.filter(m=>!NAT.includes(m%12)).length!==1||(q.visual.match(/class="st-acc"/g)||[]).length!==1){bad++;console.log('READING accidental line',q.key);break;}}}
+/* whole forms: the right number of bars, every symbol parses, every form in WHOLE exists; a harmonised melody: each top note is a tone of its chord and the top of its grip */
+{const want={'Blue Bossa (whole form)':16,'Take the A Train (whole form)':32,'Satin Doll (whole form)':32,'All The Things You Are (whole form)':36,'Autumn Leaves (whole form, G minor)':32,'Rhythm changes (whole form, B♭)':32};
+ for(const n of WHOLE){const f=FORMS.find(x=>x.n===n);if(!f||f.bars.length!==want[n]){bad++;console.log('FORM length',n,f&&f.bars.length);continue;}if(formChords(f).some(c=>!symParse(c.sym))){bad++;console.log('FORM symbol',n);}}
+ if(Object.keys(want).length!==WHOLE.length){bad++;console.log('FORM list');}
+ const g=scaleMelQ({len:[5,8]});for(let i=0;i<60;i++){const q=g();if(!/^cms-/.test(q.key))continue;if(q.strumSeq.some((v,j)=>!q.strumAltSeq[j].some(a=>a.at(-1)===v.at(-1)))||q.strumSeq.some((v,j)=>j&&v.at(-1)===q.strumSeq[j-1].at(-1))||q.strumSeq.some(v=>v.at(-1)<64||v.at(-1)>77)){bad++;console.log('MELODY harmonised',q.key);break;}}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

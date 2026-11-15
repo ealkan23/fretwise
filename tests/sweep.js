@@ -244,6 +244,9 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  for(let i=0;i<200;i++){const q=modQ('common')();if(/^an-mod-c/.test(q.key)&&!/share 3 of/.test(q.explain)){hb('keys a fifth apart share three seventh chords: '+q.explain.slice(0,90));break;}}
  for(let i=0;i<100;i++){const q=coltraneQ('fill')();const m=q.explain.match(/^([^.]*)\./)[1].split(' – ');if(m.length!==7){hb('coltrane length');break;}}
  const dj=DIM_JOB.filter(j=>j[3]==='up');if(dj.some(j=>mod(j[2][0]-j[1],12)!==1)||DIM_JOB.filter(j=>j[3]==='aux').some(j=>j[1]!==j[0][0]))hb('diminished jobs');}
+/* Reading: a line in a key holds only notes of that key, shows its signature and no accidental; a line with one accidental has exactly one */
+{for(const [ky,v] of Object.entries(READ_KEYS)){const g=readLineQ([0,4],[1,2,3,4,5,6],1,null,{key:ky}),set=[0,2,4,5,7,9,11].map(x=>(x+v[0])%12);for(let i=0;i<40;i++){const q=g();if(q.target.some(m=>!set.includes(m%12))||/st-acc[^>]*>.*st-head/.test(q.visual.split('st-glyph')[1].split('<ellipse')[1]||'')||(q.visual.match(/class="st-acc"/g)||[]).length!==Math.abs(v[1])||!q.key.includes(ky)){bad++;console.log('READING key line',ky,q.key,(q.visual.match(/class="st-acc"/g)||[]).length);break;}}}
+ const g=readLineQ([0,4],[1,2,3,4,5,6],1,null,{chrom:true});for(let i=0;i<80;i++){const q=g();if(q.target.filter(m=>!NAT.includes(m%12)).length!==1||(q.visual.match(/class="st-acc"/g)||[]).length!==1){bad++;console.log('READING accidental line',q.key);break;}}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

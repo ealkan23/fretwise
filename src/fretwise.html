@@ -1949,19 +1949,22 @@ const READ_BARS=[['q','q','q','q'],['h','q','q'],['q','q','h'],['h','h'],['e','q
 const readRhythm=(cells)=>{if(cells){const {ev}=rhyBar(cells,2);return ev.map(e=>e.d);}const out=[];for(let b=0;b<2;b++){let p=R(READ_BARS);if(b===1&&p.at(-1)!=='h'&&Math.random()<.6)p=R(READ_BARS.filter(x=>x.at(-1)==='h'));p.forEach(t=>t==='e'?out.push(.5,.5):out.push(t==='h'?2:1));}return out;};
 /* Reading: a 4–6 note line of naturals in one position, read and played in time */
 /* o: {len, free} — a fixed number of notes, and free = no count-in: the click runs, the player starts on any click, and the notes are judged as quarter notes from there (the two-note bridge level, 14 Nov 2026; first built without a click, the user asked for the running click) */
-function readLineQ(win,strings,rhy,swing,o){return ()=>{const cand=[];for(const s of strings)for(let f=win[0];f<=win[1];f++){const m=OPEN[s]+f;if(NAT.includes(m%12)&&!cand.includes(m))cand.push(m);}cand.sort((a,b)=>a-b);
+const READ_KEYS={G:[7,1],D:[2,2],A:[9,3],F:[5,-1],Bb:[10,-2],Eb:[3,-3]};
+function readLineQ(win,strings,rhy,swing,o){return ()=>{const KY=o&&o.key?(Array.isArray(o.key)?R(o.key):o.key):null,KS=KY?[0,2,4,5,7,9,11].map(x=>(x+READ_KEYS[KY][0])%12):NAT,ks=KY?READ_KEYS[KY][1]:0,cand=[];for(const s of strings)for(let f=win[0];f<=win[1];f++){const m=OPEN[s]+f;if(KS.includes(m%12)&&!cand.includes(m))cand.push(m);}cand.sort((a,b)=>a-b);
   for(let t=0;t<60;t++){const dur=rhy?readRhythm(Array.isArray(rhy)?rhy:null):null,len=dur?dur.length:(o&&o.len)||ri(4,6),free=!!(o&&o.free),idx=[ri(0,cand.length-1)];let g=0;while(idx.length<len&&g++<200){const j=idx.at(-1)+R([-2,-1,1,1,2,-1]);if(j>=0&&j<cand.length)idx.push(j);}
     const mids=idx.map(j=>cand[j]);if(mids.length<len||!noDup(mids))continue;
-    const ws=mids.map(m=>writtenOf(m,1)),names=ws.map(wName),spots=mids.map(m=>posOf(m).filter(x=>x.f>=win[0]&&x.f<=win[1]).sort((a,b)=>b.s-a.s)[0]),pos=win[0]===0?'first position':`position ${win[0]}`;
+    /* o.chrom: one note of the line becomes the half step under the note after it (a written accidental) */
+    if(o&&o.chrom){const js=[];for(let j=1;j<len-1;j++){const c=mids[j+1]-1;if(!KS.includes(c%12)&&c!==mids[j-1]&&posOf(c).some(x=>x.f>=win[0]&&x.f<=win[1]))js.push(j);}if(!js.length)continue;const j=R(js);mids[j]=mids[j+1]-1;if(!noDup(mids))continue;}
+    const ws=mids.map(m=>writtenOf(m,ks<0?-1:1)),wsK=ws.map(w=>KY&&KS.includes(mod(NAT[w.l]+w.a,12))?{...w,a:0}:w),SV=ok=>ks?staffRhySVG(wsK,ok,dur,ks):staffLineSVG(ws,ok,dur),keyTxt=KY?` in <b>${nm(P(KY))} major</b> (${Math.abs(ks)} ${ks>0?'sharp':'flat'}${Math.abs(ks)>1?'s':''} in the signature)`:'',names=ws.map(wName),spots=mids.map(m=>posOf(m).filter(x=>x.f>=win[0]&&x.f<=win[1]).sort((a,b)=>b.s-a.s)[0]),pos=win[0]===0?'first position':`position ${win[0]}`;
     let grid=dur?dur.reduce((a,d,k)=>(a.push(k?a[k-1]+dur[k-1]:0),a),[]):mids.map((_,k)=>k);if(swing)grid=grid.map(g=>Math.abs(g%1-.5)<1e-6?Math.floor(g)+.67:g);
     if(free)return M({key:`rl${len}-${win[0]}-${mids.join('_')}`,label:`${len} notes in ${pos}: ${names.join(' ')}`,target:mids,octaveFree:false,maxNotes:len,metro:60,grid:mids.map((_,k)=>k),freeStart:true,degs:names.map(n=>n.replace(/\d+$/,'')),names,hideTarget:true,
       prompt:`Read the <b>${len===2?'two':len} notes</b> and play them in <b>${pos}</b> (frets ${win[0]}–${win[1]}) as <b>quarter notes</b>: one on a click, the next on the following click. The click keeps running: <b>start on any click</b> when you are ready.`,visual:`<div class="staffwrap">${staffLineSVG(ws,0,null)}</div>`+fretSVG({dots:[],win}),answerText:names.join(' '),
       explain:`${names.join(' – ')}: ${spots.map((p,k)=>`${names[k]} on string ${p.s}, fret ${p.f}`).join('; ')}.`,
       after:()=>`<div class="staffwrap">${staffLineSVG(ws,1,null)}</div>`+fretSVG({dots:spots.map((p,k)=>({s:p.s,f:p.f,cls:'fb-mark',t:String(k+1)})),win}),hint:'See both notes first, and have the second one under a finger before you play the first.'});
-    return M({key:`rl-${win[0]}-${rhy?(Array.isArray(rhy)?(swing?'s-':'j-'):'r-'):''}${mids.join('_')}`,label:`Line in ${pos}${rhy?(swing?' (swing)':' with rhythm'):''}: ${names.join(' ')}`,target:mids,octaveFree:false,maxNotes:len,metro:swing?90:60,grid,degs:names.map(n=>n.replace(/\d+$/,'')),names,hideTarget:true,
-      prompt:rhy?`Read the line, rhythm included, and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}) after the count-in: quarter = one click, half = two, eighths = two per click${swing?'; <b>swing</b> the eighths':''}.`:`Read the line and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}), one note per click after the count-in.`,visual:`<div class="staffwrap">${staffLineSVG(ws,0,dur)}</div>`+fretSVG({dots:[],win}),answerText:names.join(' '),
+    return M({key:`rl-${win[0]}-${KY?KY+'-':''}${o&&o.chrom?'x-':''}${rhy?(Array.isArray(rhy)?(swing?'s-':'j-'):'r-'):''}${mids.join('_')}`,label:`Line in ${pos}${rhy?(swing?' (swing)':' with rhythm'):''}: ${names.join(' ')}`,target:mids,octaveFree:false,maxNotes:len,metro:swing?90:60,grid,degs:names.map(n=>n.replace(/\d+$/,'')),names,hideTarget:true,
+      prompt:rhy?`Read the line${keyTxt}, rhythm included, and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}) after the count-in: quarter = one click, half = two, eighths = two per click${swing?'; <b>swing</b> the eighths':''}.`:`Read the line and play it in <b>${pos}</b> (frets ${win[0]}–${win[1]}), one note per click after the count-in.`,visual:`<div class="staffwrap">${SV(0)}</div>`+fretSVG({dots:[],win}),answerText:names.join(' '),
       explain:`${names.join(' – ')}: ${spots.map((p,k)=>`${names[k]} on string ${p.s}, fret ${p.f}`).join('; ')}.`,
-      after:()=>`<div class="staffwrap">${staffLineSVG(ws,1,dur)}</div>`+fretSVG({dots:spots.map((p,k)=>({s:p.s,f:p.f,cls:'fb-mark',t:String(k+1)})),win}),hint:'Name every note during the count-in; keep the hand in position.'});}
+      after:()=>`<div class="staffwrap">${SV(1)}</div>`+fretSVG({dots:spots.map((p,k)=>({s:p.s,f:p.f,cls:'fb-mark',t:String(k+1)})),win}),hint:'Name every note during the count-in; keep the hand in position.'});}
   return sightQ(win,strings,0)();};}
 /* Triad Shapes: from one triad to the next chord's nearest inversion on the same strings */
 function tvlQ(){return ()=>{for(let t=0;t<120;t++){const k=rootPick(['C','F','G','D','A','Bb','Eb','E']),sc=scale(P(k),'major'),set=R(['3-2-1','4-3-2','5-4-3']),[da,db]=R([[0,3],[0,4],[3,4],[4,0],[0,5],[5,3],[1,4],[3,0],[5,1]]),ca=diatonic(sc,da),cb=diatonic(sc,db);
@@ -3361,14 +3364,18 @@ const GAMES=[
   {n:'Two notes, first position',d:'Read two notes on the staff and play them on two clicks in a row; the click keeps running and you start when you are ready (microphone)',g:[readLineQ([0,3],[1,2,3],null,null,{len:2,free:true}),readLineQ([0,3],[1,2,3,4,5,6],null,null,{len:2,free:true}),readLineQ([0,3],[1,2,3,4,5,6],null,null,{len:2,free:true})]},
   {n:'Read a line, first position',d:'4–6 notes on the staff, played in time (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6])]},
   {n:'Rhythm lines, first position',d:'Two bars of quarters, halves and eighths, read and played in time (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],1)]},
+  {n:'Lines in G and F',d:'One sharp, one flat: the key signature is at the clef, not at the note. First position, with rhythm (microphone)',g:[readLineQ([0,4],[1,2,3,4,5,6],1,null,{key:['G','F']})]},
   {n:'Positions II, III, IV',d:'Reading in the low positions between open and fifth',g:[sightQ([2,5],[1,2,3,4,5,6],1),sightQ([3,6],[1,2,3,4,5,6],1),sightQ([4,7],[1,2,3,4,5,6],1)]},
   {n:'Read a line, positions II–IV',d:'Lines with rhythm in frets 2–7 (microphone)',g:[readLineQ([2,5],[1,2,3,4,5,6],1),readLineQ([4,7],[1,2,3,4,5,6],1)]},
+  {n:'Lines in D and B♭; accidentals in a line',d:'Two sharps in position II, two flats in first position; then a line in C with one written accidental (microphone)',g:[readLineQ([2,5],[1,2,3,4,5,6],1,null,{key:'D'}),readLineQ([0,4],[1,2,3,4,5,6],1,null,{key:'Bb'}),readLineQ([0,4],[1,2,3,4,5,6],1,null,{chrom:true})]},
   {n:'Melodic rhythms, syncopated',d:'Lines in first and fifth position with dotted quarters, ties and off-beats (microphone)',g:[readLineQ([0,3],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h']),readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eq','eqe','h'])]},
   {n:'Fifth position',d:'Frets 5–8, up to C above the staff',g:[sightQ([5,8],[1,2,3,4,5,6],1)]},
   {n:'Read a line, fifth position',d:'Even notes, then rhythm, in frets 5–8 (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6]),readLineQ([5,8],[1,2,3,4,5,6],1)]},
   {n:'Melodic rhythms, swing',d:'The jazz figures with pitches: pushes and swing eighths in fifth position (microphone)',g:[readLineQ([5,8],[1,2,3,4,5,6],['q','ee','qe','eqe','qt','h'],true)]},
-  {n:'Ninth position, high ledger lines, dyads',d:'Frets 9–12 and the notes above the staff; two notes at once in first and fifth position',g:[sightQ([9,12],[1,2,3,4,5,6],1),trebleQ([10,11,12]),sightDyadQ([0,4]),sightDyadQ([5,9])]},
+  {n:'Seventh position',d:'Frets 7–10: find the notes, then read lines with rhythm; then in G and D (microphone)',g:[sightQ([7,10],[1,2,3,4,5,6],1),readLineQ([7,10],[1,2,3,4,5,6],1),readLineQ([7,10],[1,2,3,4,5,6],1,null,{key:['G','D']})]},
+  {n:'Ninth position, high ledger lines',d:'Frets 9–12 and the notes above the staff',g:[sightQ([9,12],[1,2,3,4,5,6],1),trebleQ([10,11,12])]},
   {n:'Read a line, ninth position',d:'Lines with rhythm in frets 9–12 (microphone)',g:[readLineQ([9,12],[1,2,3,4,5,6],1)]},
+  {n:'Two notes at once',d:'Dyads on the staff, in first and fifth position',g:[sightDyadQ([0,4]),sightDyadQ([5,9])]},
   {n:'Every place it lives',d:'Mark all spots for one exact pitch, frets 0–12',g:[sightQ([0,12],[1,2,3,4,5,6],1,1),sightQ([7,10],[1,2,3,4,5,6],1)]}]},
  {id:'hunt',cat:'neck',name:'Note Hunt',area:'One note, whole neck',desc:'Mark every place a note lives on all six strings, frets 0–12. Builds the octave map behind every scale and chord shape.',levels:[
   {n:'Open-string notes',d:'E, A, D, G, B — count shown',g:[huntQ(OPEN_PC,1)]},
@@ -3900,6 +3907,7 @@ const REORDERS4={fretboard:{n:8,m:{3:4,4:5,5:6,6:7,7:8,8:9}},sight:{n:18,m:{1:1,
 const REORDERS5={guidetones:{n:6,m:{5:4,6:4}},earprog:{n:14,m:{10:9,11:9,12:10,13:11,14:12}},earchord:{n:10,m:{10:9}}};   /* 9 Nov 2026 de-duplication: Guide Tones' arpeggio levels (= Arpeggio Runner), Hear the Progression's play-the-bass and write-it-down (= Bass & Top L7, the dictation already in L1/2/4), Hear the Chord's tension on top (= Bass & Top L5) */
 /* 14 Nov 2026, the voicings review: Shells (the comping levels first, drop-3 last), Drop-2 (paper levels joined, the top set first, cadences played, melody on top in the middle), Tension Grips (the two harmonised-scale levels moved to Shells and Drop-2) */
 const REORDERS8={shells:{n:8,m:{5:9,6:10,7:11,8:6}},drop2:{n:14,m:{1:1,2:1,3:3,4:4,5:5,6:6,7:8,8:10,9:13,10:14,11:15,12:16,13:17,14:9}},tgrips:{n:8,m:{8:7}}};
+const REORDERS15={sight:{n:18,m:{10:11,11:12,12:14,13:15,14:16,15:17,16:19,17:20,18:22}}},RD_NEW=[10,13,18,21];   /* 17 Nov 2026 (audit): lines with key signatures and accidentals, seventh position, dyads split from ninth position */
 const REORDERS9={sight:{n:17,m:{7:8,8:9,9:10,10:11,11:12,12:13,13:14,14:15,15:16,16:17,17:18}}};   /* 14 Nov 2026 (user request): Reading L7 “Two notes, first position” inserted before the first read-a-line level */
 const REORDERS14={scales:{n:13,m:{1:3,2:4,3:5,4:6,5:11,6:12,7:13,8:14,9:15,10:16,11:17,12:18,13:19}}},SC_NEW=[1,2,7,8,9,10];   /* 17 Nov 2026: Scale Runner rebuilt around the tonic (the user's teacher): tonics, one octave, the run from the tonic, movable forms, earlier modes; the recent windows start again because the run itself changed */
 const REORDERS10={scales:{n:12,m:{4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:12,12:13}}};   /* 14 Nov 2026 (user request): Scale Runner L3 “Eighths and triplets” split into L3 eighths and L4 triplets; the old level's answers stay on 3 */
@@ -3978,6 +3986,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
     if(was===7){g.lvl=7;g.unl=[...new Set([...(g.unl||[]),8])].sort((a,b)=>a-b);if(g.last===8)g.last=7;}   /* the old level 7 was the frontier: the new level 7 becomes it */
     saveLocal();}
   if(REORDERS10[id]&&!(g.mig&&g.mig.r35)){migrateReorder(id,g,REORDERS10[id],'r35');saveLocal();}
+  if(REORDERS15[id]&&!(g.mig&&g.mig.r40)){migrateReorder(id,g,REORDERS15[id],'r40');g.skip=[...new Set([...(g.skip||[]),...RD_NEW.filter(L=>L<g.lvl)])].sort((a,b)=>a-b);saveLocal();}
   if(REORDERS14[id]&&!(g.mig&&g.mig.r39)){migrateReorder(id,g,REORDERS14[id],'r39');g.skip=[...new Set([...(g.skip||[]),...SC_NEW.filter(L=>L<g.lvl)])].sort((a,b)=>a-b);g.hist={};if(g.hm)g.hm={g:{},s:{}};saveLocal();}
   if(REORDERS13[id]&&!(g.mig&&g.mig.r38)){migrateReorder(id,g,REORDERS13[id],'r38');g.skip=[...new Set([...(g.skip||[]),...EP_NEW.filter(L=>L<g.lvl)])].sort((a,b)=>a-b);saveLocal();}
   if(REORDERS12[id]&&!(g.mig&&g.mig.r37)){migrateReorder(id,g,REORDERS12[id],'r37');g.skip=[...new Set([...(g.skip||[]),...PU_NEW.filter(L=>L<g.lvl)])].sort((a,b)=>a-b);if(g.opts&&g.opts.bpmL)delete g.opts.bpmL;saveLocal();}
@@ -4401,8 +4410,8 @@ const GOALS={
   {n:'The whole tune',why:'A form comped in time with the chords checked, the remaining jazz figures, and placement, accents and extreme tempos.',steps:[['repertoire',9,9],['jazzrhy',7,11],['pulse',13,17],['twohands',19,19]]}]},
  F:{n:'Foundations',short:'Foundations',col:'#b9b3c4',end:'The neck, the page and the theory that every goal leans on.',stages:[
   {n:'The neck and the page',why:'Note names everywhere, reading in first position, written rhythm, scales and keys on paper.',steps:[['fretboard',1,9],['sight',1,8],['rhyread',1,5],['intervals',1,4],['hunt',1,5],['rhytheory',1,4],['neckiv',1,3]]},
-  {n:'Positions and syncopation',why:'Reading up the neck, syncopated rhythm, the scale along one string, every interval, first bends.',steps:[['sight',9,13],['rhyread',6,10],['along',1,4],['intervals',5,7],['hunt',6,8],['rhytheory',5,7],['neckiv',4,7],['bends',1,4]]},
-  {n:'High positions, fast rhythm',why:'Reading in the upper positions and on the high ledger lines; sixteenths and their rests, dotted figures, 6/8, 12/8 and cut time on the page.',steps:[['sight',14,18],['rhyread',11,17],['aksak',1,3]]},
+  {n:'Positions and syncopation',why:'Reading up the neck, syncopated rhythm, the scale along one string, every interval, first bends.',steps:[['sight',9,15],['rhyread',6,10],['along',1,4],['intervals',5,7],['hunt',6,8],['rhytheory',5,7],['neckiv',4,7],['bends',1,4]]},
+  {n:'High positions, fast rhythm',why:'Reading in the upper positions and on the high ledger lines; sixteenths and their rests, dotted figures, 6/8, 12/8 and cut time on the page.',steps:[['sight',16,22],['rhyread',11,17],['aksak',1,3]]},
   {n:'The whole neck',why:'Shifts between positions and the full range of the neck; broken and sixteenth-note triplets, odd and changing meters, accents over a running subdivision; swing and sixteenth dictation; the expressive bends.',steps:[['along',5,8],['rhyread',18,26],['rhytheory',8,12],['bends',5,7],['aksak',4,9],['modes',1,5]]},
   {n:'Advanced colours',why:'Modes in the positions and along the neck, melodic minor, symmetric and bebop scales, the melodic-minor modes by ear.',steps:[['scales',17,23],['along',10,12],['chordscale',5,11],['earmode',6,8],['aksak',10,14],['modes',6,12]]}]}};
 const GOAL_KEYS=['A','B','C','D','F'];
@@ -5124,6 +5133,10 @@ sight:[
 {a:'The same with rhythm: quarters, halves and eighths over two bars.',
  w:['Rhythm comes first. A right note in the wrong place is wrong.','Tap the rhythm once before you play it, if you need to.'],
  t:['Good readers scan the rhythm of a bar as one shape, then fill in pitches.']},
+{k:['A key signature changes a note everywhere on the line: in G every F is F♯, in F every B is B♭. Nothing is written at the note itself.','The lines are in first position, with rhythm.'],
+ w:['Before you play, say which notes the signature changes and find them under your fingers.','F♯ in first position: string 6 fret 2, string 4 fret 4, string 1 fret 2. B♭: string 5 fret 1, string 3 fret 3.','The usual mistake is to play the natural note out of habit.'],
+ s:'Reading in a key. Almost no real music is written in C.',
+ t:['The sharps arrive in the order F C G D A E B, the flats in the order B E A D G C F.','A major key with sharps is named a half step above its last sharp. A key with flats is named by its last flat but one; F has one flat.']},
 {k:['A position is the fret under the first finger; each finger takes one fret. In position II the first finger is at fret 2.','The same written note is now on a different string and fret than in first position.'],
  w:['No open strings. Notes you played open are now fretted on the next lower string.','Stay in position. Do not slide back to first position for a note you know there.'],
  s:'Reading away from the nut, which is where the guitar becomes one instrument and not six open strings.',
@@ -5131,6 +5144,9 @@ sight:[
 {a:'Lines with rhythm in positions II to IV.',
  w:['Decide the position before the first note and stay in it.'],
  t:['Choose the position from the highest and lowest notes of the line.']},
+{a:'Two sharps (D major, in position II) and two flats (B♭ major, in first position). Then lines in C with one accidental written at the note.',
+ w:['D major: F♯ and C♯. B♭ major: B♭ and E♭.','An accidental at a note holds for the rest of that bar and no longer.'],
+ t:['An accidental inside a line is usually a half step leading into the next note. Read it as a pair with the note it leads to.']},
 {a:'Syncopated lines: dotted quarters, ties and off-beat entries, with pitches.',
  w:['A tied note is not picked again.','The note after a dotted quarter is on the “and”.'],
  t:['This is how melodies in a fake book are written. Count the rhythm before you add the notes.']},
@@ -5144,13 +5160,19 @@ sight:[
 {a:'Swung lines with pushes, in fifth position.',
  w:['Written even eighths are played long–short.','A note tied over the bar line: do not play the downbeat.'],
  t:['Reading swing is reading even eighths and playing them unevenly. Accent the off-beats lightly.']},
-{k:['Ninth position, frets 9 to 12, and the notes above the staff. Also dyads: two notes stacked on one stem, played together.'],
- w:['High ledger lines: A, C and E on the lines, B and D in the spaces.','In a dyad read the bottom note, then the distance to the top note.'],
- s:'The upper register, and the first step toward reading chords.',
- t:['High positions are needed when a melody goes above the C on fret 8, and for octave melodies in the Wes Montgomery style.','Stacked thirds sit line–line or space–space; sixths sit line–space with two positions between.']},
+{a:'Seventh position: frets 7 to 10. First the notes, then lines with rhythm, then lines in G and D.',
+ w:['The lowest note is B on string 6. The first string reaches high D at fret 10.','C major fits this position with no stretch.'],
+ t:['Positions V and VII are the two most-used reading positions on the guitar: between them they cover the staff without a shift.']},
+{a:'Ninth position, frets 9 to 12, and the notes on ledger lines above the staff.',
+ w:['Above the staff the notes are read by counting ledger lines: A sits on the first one, C on the second, E on the third.'],
+ t:['The twelfth fret repeats the open strings an octave higher: use it to check where you are.']},
 {a:'Lines with rhythm in ninth position.',
  w:['Frets are closer together up here; watch your intonation and finger spacing.'],
  t:['The same line can be read an octave lower in position II. Hearing both is good practice.']},
+{k:['Two notes written one above the other are played together.'],
+ w:['Read from the bottom note up.','Find the lower note first, then the distance to the upper one: a third is line to line or space to space.'],
+ s:'The first step towards reading chords and chord melody.',
+ t:['On neighbouring strings a major third is one fret back on the higher string and a minor third two frets back. Between strings 3 and 2 each is one fret less.']},
 {k:['One written pitch lives in up to three places between the nut and fret 12, and more above. Each has a different tone and a different set of neighbours.'],
  w:['Exact pitch, not just the letter: the octave matters.','Each string lower is five frets higher, four from the B string to the G string.'],
  s:'Choice of fingering: the freedom to play a line where it sounds and connects best.',

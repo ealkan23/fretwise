@@ -323,7 +323,7 @@ tap:       bpm, len (beats), countIn, clicks (beats in bar that click), onsets, 
 - Scale degrees as numbers; Roman numerals only in Berklee form (IIm7, V7, IMaj7 — always upper case, quality in the symbol).
 - Drop-2 naming "from close" only (never "by bass note" in questions).
 - Find-the-grip questions are mark-on-neck (or play it), never tab multiple choice.
-- Only the sampled piano for sound; no synth tones except the metronome tick and, on the Metronome page only, the synthesised drums the user asked for.
+- **Sound: no piano-only rule any more (16 Nov 2026, user: “It wasn't supposed to be a rule like this. Use whatever instrument serves the educational point”).** Any instrument or sound may be used where it teaches better (bass, drums, guitar samples). Older notes in this file that cite “the piano-only sound rule” as a blocker (Hear the Chord with guitar audio, drums only on the Metronome page) are superseded. Check the licence of any new samples before vendoring them.
 - Keep all stats; never reset or restructure `STORE` without a migration (see the fretboard `v7` level-shift migration in `G()`).
 
 ## Not built yet (from the review)

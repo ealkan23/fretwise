@@ -188,6 +188,21 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  if(Object.keys(want).length!==Object.keys(CHARTS).length){bad++;console.log('CHART untested template');}
  for(let i=0;i<40;i++)for(const k of Object.keys(CHARTS)){const ch=mkChart(k,['q','ee','h','r','re']);const sig=ch.bars.map(b=>JSON.stringify(b.on));if(ch.bars.length!==ch.n||new Set(sig).size!==ch.n){bad++;console.log('CHART bars alike',k);break;}}
  GBY.aksak.levels.forEach((lv,i)=>[lv.c].concat(lv.c.alt||[]).forEach(c=>{const M=c.groups.reduce((a,b)=>a+b,0);if(c.meter!==M||!c.groups.every(g=>g===2||g===3)){bad++;console.log('AKSAK groups',i+1);}for(let k=0;k<12;k++){const b=c.bar(k,M),tot=b.ev.reduce((a,e)=>a+e.d,0);if(Math.abs(tot-M)>1e-6){bad++;console.log('AKSAK bar length',i+1,tot,M);break;}}}));}
+/* ear and solfège additions: sight-singing lines are in their key, sit where they are written and never repeat a note; a melody dictation fails on one wrong degree;
+   sung arpeggios never repeat a note across a chord change; every harmonised bar fits exactly its own chord; an inverted chord has the named tone in the bass */
+{const eb=m=>{bad++;console.log('EAR',m);};
+ GBY.sightsing.levels.forEach((lv,li)=>{for(let i=0;i<150;i++){const q=lv.g[0]();if(q.target.some((m,j)=>j&&m===q.target[j-1])){eb('sight repeat L'+(li+1));break;}if(q.target.some((m,j)=>j&&Math.abs(m-q.target[j-1])>7)){eb('sight leap L'+(li+1)+' '+q.target);break;}
+   if(q.names.some((n,j)=>pc(P(n))!==mod(q.target[j],12))){eb('sight name L'+(li+1));break;}if(Math.min(...q.target)<55||Math.max(...q.target)>84){eb('sight range L'+(li+1)+' '+q.target);break;}if(!/<svg class="staff"/.test(q.visual)||/NaN|undefined/.test(q.visual)){eb('sight staff L'+(li+1));break;}}});
+ for(const k of ['C','G','D','A','F','Bb','Eb']){const ns=ssNotes(P(k),[-1,0,1,2,3,4,5,6,7],false);if(Math.abs(ssKeySig(P(k),false))>3)eb('keysig '+k);ns.forEach(x=>{const nat=x.midi-P(x.name).a,st=LET.indexOf(x.name[0])+7*(Math.floor(nat/12)-1)-30;if(st!==x.w.step||mod(nat,12)!==NAT[LET.indexOf(x.name[0])])eb('staff step '+k+' '+x.name);});}
+ if(ssKeySig(P('G'),false)!==1||ssKeySig(P('Eb'),false)!==-3||ssKeySig(P('D'),true)!==-1||ssKeySig(P('E'),true)!==1||ssNotes(P('C'),[0],false)[0].w.step!==-2||ssNotes(P('G'),[0],false)[0].w.step!==2||ssNotes(P('F'),[0],false)[0].w.step!==1)eb('reference staff positions');
+ [melDictQ({cells:['q','ee','h'],bars:1,lo:0,hi:4,min:3,max:6}),melDictQ({cells:['q','ee','h','qe'],bars:2,lo:-1,hi:7,skips:.3,triad:true,min:5,max:9})].forEach((g,gi)=>{for(let i=0;i<120;i++){const q=g();if(!check(q,q.answer.map(e=>({...e})))){eb('melody self '+gi);break;}
+   const w=q.answer.map(e=>({...e}));w[0].p=w[0].p==='1'?'2':'1';if(check(q,w)){eb('melody wrong degree accepted');break;}const u=q.answer.map(e=>({...e}));delete u[u.length-1].p;if(check(q,u)){eb('melody missing degree accepted');break;}if(q.answer.some(e=>e.rest)||q.answer.some((e,j)=>j&&e.p===q.answer[j-1].p)){eb('melody shape');break;}}});
+ for(const [id,pr] of Object.entries(ARP_PROGS)){const t=arpTones(pr);if(t.some((x,j)=>j&&x===t[j-1]))eb('arpeggio repeat '+id);}
+ for(const pool of [P_145,P_DIA6]){const g=harmQ(pool),lab=p=>DEG_ORDER.find(d=>DEG_SEMI[d]===p);for(let i=0;i<200;i++){const q=g(),bars=q.key.slice(3).split('_').map(b=>b.split('.').map(Number));
+   const ok=bars.every((b,j)=>{const f=pool.filter(c=>b.every(p=>CH[c[1]].map(x=>mod(c[0]+IV[x][1],12)).includes(p)));return f.length===1&&epTok(f[0])===q.answer[j];});if(!ok){eb('harmonise not unique '+q.key);break;}}}
+ for(const c of P_145)for(let i=0;i<3;i++){const ch=dch(0,c[0],c[1],i);if(ch.bass!==mod(c[0]+[0,4,7][i],12))eb('inversion bass');}
+ if(P_DIA7.map(epTok).join(' ')!=='I IIm IIIm IV V VIm VII°'||P_MIN.map(epTok).join(' ')!=='Im II° ♭III IVm Vm V7 ♭VI ♭VII'||CYC_MAJ.map(epTok).join(' ')!=='I IV VII° IIIm VIm IIm V I')eb('diatonic numerals');
+ CYC_MAJ.concat(CYC_MIN).forEach((c,j,a)=>{if(j%8&&![5,6].includes(mod(c[0]-a[j-1][0],12)))eb('cycle step');});}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

@@ -2806,6 +2806,14 @@ const BLUES_F=['F7','B♭7','F7','F7','B♭7','B♭7','F7','F7','C7','B♭7','F7
 const compBar=(p,chord)=>({on:COMP[p].on.slice(),ev:COMP[p].ev.map(e=>({...e})),label:COMP[p].n,chord});
 const cComp=(pick,x)=>Object.assign({bar:k=>compBar(pick(k),BLUES_F[k%12])},x||{});
 const tuneBar=k=>{const list=(STORE.tunes||[]).filter(t=>t.ok&&parseRhy(t.rhy).bars&&parseRhy(t.rhy).meter===4);if(!list.length)return null;const tn=list[Math.floor(k/16)%list.length],p=parseRhy(tn.rhy),b=k%p.bars,ev=p.ev.filter(e=>e.t>=b*4&&e.t<(b+1)*4).map(e=>({...e,t:e.t-b*4}));return {on:ev.filter(e=>!e.rest).map(e=>tn.swing&&Math.abs(e.t%1-.5)<1e-6?Math.floor(e.t)+.67:e.t),ev,label:`${tn.n}, bar ${b+1}`};};
+/* ============ AKSAK (16 Nov 2026, the user's teacher: asymmetrical rhythms, meters in eighth notes built from groups of two and three, up to 11 and 13) ============
+   Three ways into each meter: the uneven beats themselves (one tap per group), every eighth note with the click on the group starts, and reading rhythms
+   beamed by group with the click on beat 1 only. The engine's beat is the eighth note; tempos are eighth notes a minute. */
+const c8st=groups=>{const st=[];let c=0;groups.forEach(n=>{st.push(c);c+=n;});return st;};
+const c8b=(groups,x)=>c8(groups,Object.assign({bar:()=>{const st=c8st(groups);return {on:st,ev:st.map((t,i)=>({t,d:groups[i]}))};},tp:[160,280,200,'One tap per group: short beats are two eighths, long beats three. The eighth has to move fast enough for the groups to feel like beats, not like counting.']},x||{}));
+const c8e=(groups,x)=>c8(groups,Object.assign({bar:()=>{const M=groups.reduce((a,b)=>a+b,0),on=Array.from({length:M},(_,i)=>i);return {on,ev:on.map(t=>({t,d:1}))};},tp:[140,240,180,'Every eighth note under one finger: about three taps a second is comfortable, four is the limit.']},x||{}));
+const c8r=(groups,x)=>c8(groups,Object.assign({click:(bar,b)=>b===0,tp:[140,240,170,'Reading in groups: slow enough to see the next group while you play this one.']},x||{}));
+const AK=g=>g.join(' + ');
 /* ============ TWO HANDS (16 Nov 2026, the user's teacher: rhythmic independence; The Reading Drummer, Progressive Steps to Syncopation) ============
    Two keys, one per hand: F left, J right. A bar has two lines of hits (on = right, on2 = left) and two staves. Not drum technique: what is general is
    doing two different things in time. evFrom writes a staff from a list of hits (a note lasts to the next hit in its beat, an empty beat is a rest). */
@@ -3356,7 +3364,23 @@ const GAMES=[
   {n:'The ride pattern',d:'Swing: ding, ding-a-ding in the right hand; 2 and 4 in the left',g:[tapReadQ(['q','ee','r'],2)],c:cH(()=>hb(H_RIDE,hOn([1,3])),{swing:true,note:'The jazz ride pattern, swung, over the hi-hat beats 2 and 4.'})},
   {n:'Clave against the pulse',d:'The 3-2 son clave in the right hand; quarters in the left',g:[tapReadQ(['q','ee','r'],2)],c:cH(k=>hb(k%2?hOn([1,2]):H_DQ,subdivBar(4,1),k%2?'clave, the two side':'clave, the three side'),{note:'The clave is two bars long: three hits, then two.'})},
   {n:'Bossa',d:'The thumb on beats 1 and 3 in the left hand; the two-bar finger pattern in the right',g:[tapReadQ(['q','ee','r'],2)],c:cH(k=>{const p=COMP[k%2?'bossa2':'bossa'];return hb({on:p.on.slice(),ev:p.ev.map(e=>({...e}))},hOn([0,2]),k%2?'bossa, bar two':'bossa, bar one');},{note:'Straight eighths. The left hand is the thumb on the bass strings; the right hand is the chord.'})},
-  {n:'A pattern under syncopation',d:'Left holds a pattern that changes every eight bars; right reads syncopation',g:[tapReadQ(['q','ee','r'],2)],c:cH(k=>{const m=Math.floor(k/8)%3,L0=m===0?subdivBar(4,1):m===1?hOn([1,3]):H_DQ;return hb(rhyBar(['q','ee','eqe','eq','qe','re','tie'],1,false,4),L0,['left: quarters','left: 2 and 4','left: dotted quarters'][m]);})}]},
+  {n:'A pattern under syncopation',d:'Left holds a pattern that changes every eight bars; right reads syncopation',g:[tapReadQ(['q','ee','r'],2)],c:cH(k=>{const m=Math.floor(k/8)%3,L0=m===0?subdivBar(4,1):m===1?hOn([1,3]):H_DQ;return hb(rhyBar(['q','ee','eqe','eq','qe','re','tie'],1,false,4),L0,['left: quarters','left: 2 and 4','left: dotted quarters'][m]);})},
+  {n:'Uneven beats',d:'Aksak in two hands: the left plays the short and long beats, the right every eighth note',g:[tapReadQ(['q','ee','r'],2)],c:(()=>{const mk=gr=>c8(gr,{hands:true,bar:()=>{const st=c8st(gr),M=gr.reduce((a,b)=>a+b,0),on=Array.from({length:M},(_,i)=>i);return {on,ev:on.map(t=>({t,d:1})),on2:st,ev2:st.map((t,i)=>({t,d:gr[i]})),label:AK(gr)};},tp:[140,220,160,'Two parts at once in an uneven meter: slow enough to feel where the long beat is.']});return Object.assign(mk([2,2,3]),{alt:[mk([3,2,2]),mk([2,2,3]),mk([2,2,2,3]),mk([2,3])]});})()}]},
+ {id:'aksak',cat:'rhythm',tap:true,name:'Aksak',area:'Uneven meters · groups of two and three',desc:'Meters counted in eighth notes and felt as short and long beats: 5/8, 7/8, 8/8 as 3 + 3 + 2, the 9/8 aksak, 10/8, 11/8 and 13/8. For each: the uneven beats, every eighth note, then reading rhythms beamed by group.',levels:[
+  {n:'5/8: the two beats',d:'A short beat and a long beat: 2 + 3, and 3 + 2',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([2,3]),{alt:[c8b([3,2]),c8b([2,3])]})},
+  {n:'5/8: every eighth',d:'All five eighth notes, the click on the two beats',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8e([2,3]),{alt:[c8e([3,2]),c8e([2,3])]})},
+  {n:'5/8: reading',d:'Rhythms beamed 2 + 3 or 3 + 2, the click on beat 1 only',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8r([2,3]),{alt:[c8r([3,2]),c8r([2,3])]})},
+  {n:'7/8: the three beats',d:'Two short and one long: 2 + 2 + 3, 3 + 2 + 2, 2 + 3 + 2',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([2,2,3]),{alt:[c8b([2,3,2]),c8b([2,2,3]),c8b([3,2,2])]})},
+  {n:'7/8: every eighth',d:'All seven eighth notes, the click on the three beats',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8e([2,2,3]),{alt:[c8e([2,3,2]),c8e([2,2,3]),c8e([3,2,2])]})},
+  {n:'7/8: reading',d:'Rhythms beamed by group, the click on beat 1 only',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8r([2,2,3]),{alt:[c8r([2,3,2]),c8r([2,2,3]),c8r([3,2,2])]})},
+  {n:'8/8 as 3 + 3 + 2',d:'Eight eighths that are not 4/4: the beats, every eighth, then reading',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([3,3,2]),{alt:[c8r([3,3,2]),c8b([3,3,2]),c8e([3,3,2])]})},
+  {n:'9/8 aksak: the four beats',d:'2 + 2 + 2 + 3: three short beats and a long one; then every eighth',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([2,2,2,3]),{alt:[c8e([2,2,2,3]),c8b([2,2,2,3])]})},
+  {n:'9/8: reading, and the other nine',d:'Reading in 2 + 2 + 2 + 3; then the same nine eighths as 3 + 3 + 3',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8r([2,2,2,3]),{alt:[c8r([2,2,2,3]),c8r([2,2,2,3]),c8r([3,3,3])]})},
+  {n:'10/8: 3 + 2 + 2 + 3',d:'Long, short, short, long: the beats, then every eighth',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([3,2,2,3]),{alt:[c8e([3,2,2,3]),c8b([3,2,2,3])]})},
+  {n:'10/8: reading',d:'Rhythms beamed 3 + 2 + 2 + 3',g:[tapReadQ(['q','ee','r'],2)],c:c8r([3,2,2,3])},
+  {n:'11/8',d:'2 + 2 + 3 + 2 + 2: the beats, every eighth, then reading',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([2,2,3,2,2]),{alt:[c8r([2,2,3,2,2]),c8b([2,2,3,2,2]),c8e([2,2,3,2,2])]})},
+  {n:'13/8',d:'2 + 2 + 2 + 3 + 2 + 2: the beats, every eighth, then reading',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8b([2,2,2,3,2,2]),{alt:[c8r([2,2,2,3,2,2]),c8b([2,2,2,3,2,2]),c8e([2,2,2,3,2,2])]})},
+  {n:'Any of them',d:'Reading in 5, 7, 9 and 10: a different meter each session',g:[tapReadQ(['q','ee','r'],2)],c:Object.assign(c8r([2,3]),{alt:[c8r([3,2]),c8r([2,3]),c8r([2,2,3]),c8r([2,2,2,3]),c8r([3,2,2]),c8r([3,2,2,3])]})}]},
  {id:'rhyread',cat:'rhythm',tap:true,name:'Reading Rhythm',area:'Notation, in Leavitt’s order',desc:'Read rhythms and tap them with the click, in the order A Modern Method introduces them: note values and rests, ties and dots, eighths, the dotted quarter, off-beats, 3/4 and 2/4, triplets, syncopation, sixteenths and their rests, 6/8 and 12/8, cut time, broken and sixteenth-note triplets, 5/4 and 3/8, changing meters, and accents over a running subdivision. Tap only: the paper side (counting, dictation) is in Rhythm Theory & Dictation. Flow mode for endless reading.',levels:[
   {n:'Whole, half, quarter',d:'Note values and rests in 4/4',g:[tapReadQ(['w','h','q','r','hr'],2)],c:cCells(['w','h','q','r','hr'])},
   {n:'Ties and dots',d:'A dot adds half; a tie adds the next note',g:[tapReadQ(['q','h','qe','tie','r'],2)],c:cCells(['q','h','qe','tie','r'])},
@@ -3949,13 +3973,13 @@ const GOALS={
   {n:'Cadences and the first rhythms',why:'Shells through II–V–I, minor and round the cycle; guide tones that connect; four-to-the-bar and the Charleston; the click on 2 and 4.',steps:[['shells',4,6],['comping',1,2],['voicelead',1,5],['pulse',7,12],['twohands',1,5]]},
   {n:'The blues in time',why:'A shell with a tension, a twelve-bar chorus with the click, pushes, the first jazz figures, and the blues forms by heart.',steps:[['shells',7,8],['comping',3,4],['jazzrhy',1,3],['repertoire',1,1],['voicelead',6,8],['twohands',6,11]]},
   {n:'Standards',why:'The forms of the standards, their changes strummed from memory, bossa and ballad feels, and drop-2 cadences in time.',steps:[['repertoire',2,8],['comping',5,8],['jazzrhy',4,6],['drop2',18,18],['twohands',12,18]]},
-  {n:'The whole tune',why:'A form comped in time with the chords checked, the remaining jazz figures, and placement, accents and extreme tempos.',steps:[['repertoire',9,9],['jazzrhy',7,11],['pulse',13,17]]}]},
+  {n:'The whole tune',why:'A form comped in time with the chords checked, the remaining jazz figures, and placement, accents and extreme tempos.',steps:[['repertoire',9,9],['jazzrhy',7,11],['pulse',13,17],['twohands',19,19]]}]},
  F:{n:'Foundations',short:'Foundations',col:'#b9b3c4',end:'The neck, the page and the theory that every goal leans on.',stages:[
   {n:'The neck and the page',why:'Note names everywhere, reading in first position, written rhythm, scales and keys on paper.',steps:[['fretboard',1,9],['sight',1,8],['rhyread',1,5],['intervals',1,4],['hunt',1,5],['rhytheory',1,4],['neckiv',1,3]]},
   {n:'Positions and syncopation',why:'Reading up the neck, syncopated rhythm, the scale along one string, every interval, first bends.',steps:[['sight',9,13],['rhyread',6,10],['along',1,4],['intervals',5,7],['hunt',6,8],['rhytheory',5,7],['neckiv',4,7],['bends',1,4]]},
-  {n:'High positions, fast rhythm',why:'Reading in the upper positions and on the high ledger lines; sixteenths and their rests, dotted figures, 6/8, 12/8 and cut time on the page.',steps:[['sight',14,18],['rhyread',11,17]]},
-  {n:'The whole neck',why:'Shifts between positions and the full range of the neck; broken and sixteenth-note triplets, odd and changing meters, accents over a running subdivision; swing and sixteenth dictation; the expressive bends.',steps:[['along',5,8],['rhyread',18,25],['rhytheory',8,9],['bends',5,7]]},
-  {n:'Advanced colours',why:'Modes in the positions and along the neck, melodic minor, symmetric and bebop scales, the melodic-minor modes by ear.',steps:[['scales',11,13],['along',10,12],['chordscale',5,7],['earmode',6,8]]}]}};
+  {n:'High positions, fast rhythm',why:'Reading in the upper positions and on the high ledger lines; sixteenths and their rests, dotted figures, 6/8, 12/8 and cut time on the page.',steps:[['sight',14,18],['rhyread',11,17],['aksak',1,3]]},
+  {n:'The whole neck',why:'Shifts between positions and the full range of the neck; broken and sixteenth-note triplets, odd and changing meters, accents over a running subdivision; swing and sixteenth dictation; the expressive bends.',steps:[['along',5,8],['rhyread',18,25],['rhytheory',8,9],['bends',5,7],['aksak',4,9]]},
+  {n:'Advanced colours',why:'Modes in the positions and along the neck, melodic minor, symmetric and bebop scales, the melodic-minor modes by ear.',steps:[['scales',11,13],['along',10,12],['chordscale',5,7],['earmode',6,8],['aksak',10,14]]}]}};
 const GOAL_KEYS=['A','B','C','D','F'];
 /* the stage map and the skill tree are the goals plan (15 Nov 2026, user: “I meant this plan in terms of the skill tree”): a column is a stage, a track is a goal,
    a box is one step — a game and its levels. Derived from GOALS; nothing to keep in step by hand. */
@@ -4005,7 +4029,7 @@ const STD={
  repertoire:{acc:.9,why:'know the forms and changes by heart'},
  walking:{acc:.9,why:'walk a bar that works, every key'},
  voicelead:{acc:.95,why:'move the guide tones to the next chord without looking'},
- pulse:{acc:.9,ab:25,why:'steady, tight time'},twohands:{acc:.9,ab:35,why:'two different parts at once without either one disturbing the other'},rhyread:{acc:.9,ab:30,why:'read any figure and place it within 30 ms'},jazzrhy:{acc:.9,ab:30,why:'the jazz figures in your hands, swung and placed'},rhytheory:{acc:.9,flu:.7,why:'rhythm read and written on paper without working it out'},
+ pulse:{acc:.9,ab:25,why:'steady, tight time'},aksak:{acc:.9,ab:35,why:'uneven meters felt as long and short beats, not counted'},twohands:{acc:.9,ab:35,why:'two different parts at once without either one disturbing the other'},rhyread:{acc:.9,ab:30,why:'read any figure and place it within 30 ms'},jazzrhy:{acc:.9,ab:30,why:'the jazz figures in your hands, swung and placed'},rhytheory:{acc:.9,flu:.7,why:'rhythm read and written on paper without working it out'},
  comping:{acc:.85,ab:35,why:'tight comping time'}};
 /* seconds a game's standard means, from its own questions' targets (median over the sampled questions of its timed levels) */
 const STD_SEC={};function stdSeconds(gid){if(STD_SEC[gid]!==undefined)return STD_SEC[gid];const s=STD[gid],ts=[];if(s&&s.flu)GBY[gid].levels.forEach((lv,i)=>{if(!levelFlu(gid,i+1))return;for(const gen of lv.g)for(let k=0;k<3;k++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const t=fluTarget(gid,q);if(t)ts.push(t);}catch(e){}}});
@@ -4021,7 +4045,7 @@ function stdText(gid){const s=STD[gid];if(!s)return '';const p=[`${Math.round(s.
 const PLAN=(()=>{const w1=['DAB','CDF','ABC','DBF','ACD','BCF','ABD'],w2=['CBA','DCF','BAD','CAF','BDC','ADF','BAC'];return [...w1,...w2,...w1,...w2].map(x=>[x.split('').map(k=>GOALS[k].short).join(' · '),x.split('')]);})();
 const DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 /* badges (9 Nov 2026, user decision): two axes per game. k = kind of skill: life (never retires), warm (drill to the standard, then check), once (knowledge: retires from the plan when every level is at the standard). c = how central to jazz guitar: core, support, side. */
-const BADGE={twohands:['warm','support'],scales:['life','core'],along:['life','core'],tgrips:['warm','core'],tunes:['life','core'],improv:['life','core'],pulse:['life','core'],sight:['life','core'],rhyread:['life','core'],jazzrhy:['life','core'],comping:['life','core'],eardeg:['life','core'],earprog:['life','core'],outer:['life','core'],earmode:['life','core'],sing:['life','core'],cr:['life','core'],arp:['life','core'],repertoire:['life','core'],
+const BADGE={aksak:['warm','side'],twohands:['warm','support'],scales:['life','core'],along:['life','core'],tgrips:['warm','core'],tunes:['life','core'],improv:['life','core'],pulse:['life','core'],sight:['life','core'],rhyread:['life','core'],jazzrhy:['life','core'],comping:['life','core'],eardeg:['life','core'],earprog:['life','core'],outer:['life','core'],earmode:['life','core'],sing:['life','core'],cr:['life','core'],arp:['life','core'],repertoire:['life','core'],
  fretboard:['warm','core'],spelling:['warm','core'],triads:['warm','core'],drop2:['warm','core'],shells:['warm','core'],chordscale:['warm','core'],rhytheory:['warm','core'],hunt:['warm','support'],neckiv:['warm','support'],eariv:['warm','support'],earchord:['warm','support'],guidetones:['warm','support'],voicelead:['warm','support'],bends:['warm','side'],walking:['warm','side'],
  intervals:['once','core'],analysis:['once','core']};
 /* course numbers (12 Nov 2026, user: like university years, per master): 101 = where that master's section starts, 201 = builds on the 101s, 301 = the section's top.
@@ -4031,7 +4055,7 @@ const COURSE={fretboard:101,hunt:101,sight:101,scales:101,along:201,triads:201,n
  shells:101,voicelead:201,drop2:201,tgrips:301,
  eardeg:101,eariv:101,sing:101,tunes:101,earchord:201,earprog:201,outer:201,cr:201,earmode:301,
  bends:101,walking:201,improv:201,repertoire:301,
- pulse:101,rhyread:101,twohands:201,rhytheory:201,comping:201,jazzrhy:301};
+ pulse:101,rhyread:101,twohands:201,aksak:301,rhytheory:201,comping:201,jazzrhy:301};
 const COURSE_TXT={101:'first year: start here in this section',201:'second year: builds on the 101 games of this section',301:'third year: the top of this section, after the 201 games'};
 const BADGE_TXT={life:['For life','a musician never stops: it stays in the plan whatever the standard says'],warm:['Keep warm','drill it to the standard, then check it now and then'],once:['Learn once','knowledge: when every level is at the standard it leaves the plan (Learned ✓) and stays replayable'],core:['Core','the spine of jazz guitar'],support:['Supporting','strengthens a core skill'],side:['Side','a real skill, lower priority here']};
 function gameLearned(gid){const g=G(gid);if(!g.n)return false;return GBY[gid].levels.every((_,i)=>lvStd(gid,i+1).ok);}
@@ -4057,7 +4081,7 @@ function runDone(gid,played){if(!RUN||RUN.gid!==gid||!played)return;STORE.plan=S
 function runBar(){if(!RUN)return '';const j=planTicks(RUN.i).findIndex(v=>!v),nx=j>=0?planCell(RUN.i,j).step:null;
   return `<div class="banner runbar"><h2>Session ${RUN.i+1} · ${PLAN[RUN.i][0]}</h2><span>${RUN.ticked?`${GBY[RUN.gid].name} ticked. `:''}${nx?`Next: <b>${stepText(nx)}</b> <button class="btn small primary" data-act="runnext">Continue ▶</button>`:'<b>Session complete.</b>'} <button class="btn small ghost" data-act="runstop">${nx?'Stop here':'Close'}</button></span></div>`;}
 function runButton(){const i=runSession();if(i<0)return '';const tk=planTicks(i);return `<div class="runrow"><button class="btn primary big" data-act="runstart">▶ Play session ${i+1}</button><span class="muted">${[0,1,2].map(j=>{const t=stepText(planCell(i,j).step);return tk[j]?`<s>${t}</s>`:t;}).join(' → ')} · one round each, ticked as you go</span></div>`;}
-const SHORTN={twohands:'Two Hands',scales:'Scale Runner',along:'Along the Neck',tgrips:'Tension Grips',tunes:'Tunes by Ear',improv:'Improvise',outer:'Bass & Top',earmode:'Modes by ear',analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
+const SHORTN={aksak:'Aksak',twohands:'Two Hands',scales:'Scale Runner',along:'Along the Neck',tgrips:'Tension Grips',tunes:'Tunes by Ear',improv:'Improvise',outer:'Bass & Top',earmode:'Modes by ear',analysis:'Analysis',earprog:'Progressions',eardeg:'Degrees',eariv:'Intervals by ear',earchord:'Chords by ear',rhytheory:'Rhythm Theory',rhyread:'Reading Rhythm',neckiv:'Neck Intervals',guidetones:'Guide Tones',voicelead:'Voice Leading',shells:'Shells & Drop-3',chordscale:'Chord–Scale',intervals:'Intervals & Keys',spelling:'Chord Spelling',cr:'Call & Response',bends:'Bends',drop2:'Drop-2',pulse:'Pulse & Feel',jazzrhy:'Jazz Rhythm',hunt:'Note Hunt',sight:'Reading',arp:'Arpeggios',walking:'Walking Line',sing:'Sing It',triads:'Triads',repertoire:'Repertoire',fretboard:'Fretboard',comping:'Comping'};
 /* ticks are the user's own: STORE.plan[i] = [bool,bool,bool] per session; nothing is tracked by date */
 /* the ticks of the old calendar meant other games: cleared once when the goals plan replaced it (STORE.planV) */
 const planTicks=i=>{if(STORE.planV!==2){STORE.plan={};STORE.planV=2;saveLocal();}return ((STORE.plan||{})[i])||[false,false,false];};
@@ -4366,8 +4390,56 @@ twohands:[
  t:['On the guitar the thumb plays the bass strings and the fingers pluck the chord: this is the same coordination, away from the instrument.']},
 {a:'The left-hand pattern changes every eight bars: quarters, then 2 and 4, then dotted quarters. The right hand reads syncopation throughout.',
  w:['The dotted-quarter pattern in the left hand crosses the beats: 1, the “and” of 2, 4.','The change of left-hand pattern at the eight-bar mark.'],
- t:['This is the summary level: any steady part under any written part.']}],
-rhyread:[
+ t:['This is the summary level: any steady part under any written part.']},
+{a:'An uneven meter in two hands: the left plays one note per beat (short beats of two eighths, long beats of three), the right plays every eighth. The meter changes from session to session: 7/8, 9/8 and 5/8.',
+ w:['The left hand is the dancer’s feet, the right hand the counting. Listen to the left.','On the long beat the right hand has three notes before the left plays again. Do not hurry the third one.'],
+ t:['Say the left hand aloud as “short, short, long”. If you can say it, your hand can play it.']}],
+ aksak:[
+{k:['5/8 has two beats, and they are not the same length: one is two eighth notes, the other three.','You tap the beats, one tap each. The click plays them with you.'],
+ w:['The long beat is half as long again as the short one. Give it its full length: the usual fault is to cut it and land early on the next bar.','2 + 3 and 3 + 2 are different meters to the ear. Notice which comes first.','Do not count to five. Say “short, long” or “1-2, 1-2-3”.'],
+ s:'Feeling a beat that changes length. Everything in this game rests on it.',
+ t:['The short beat is written as a quarter note, the long beat as a dotted quarter.','The tempo number counts eighth notes. 200 means the eighths run at 200 a minute; the beats are slower and uneven.','“Aksak” is Turkish for limping: the bar leans on its long beat.']},
+{a:'All five eighth notes, with the click still on the two beats.',
+ w:['Every eighth is the same length. Only the grouping is uneven.','Lean a little on the first eighth of each group, so the two beats can still be heard inside the five.']},
+{a:'Written rhythms in 5/8. The click is now on beat 1 only: you keep the grouping yourself.',
+ w:['Read by beam. Each beamed group is one beat, of two or three eighths.','A dotted quarter fills a long beat, a quarter fills a short one.'],
+ t:['With the click only on beat 1, the bar is one long unit. Hear the downbeat coming.']},
+{k:['7/8 has three beats: two short and one long.','Where the long beat sits gives three meters: 2 + 2 + 3, 3 + 2 + 2 and 2 + 3 + 2.'],
+ w:['In 2 + 2 + 3 the long beat ends the bar, and the next downbeat seems to arrive late. In 3 + 2 + 2 the bar starts long and then hurries.','The level changes grouping between sessions. Find the long beat in the count-in before you play.'],
+ s:'Hearing where the long beat is: the identity of every uneven meter.',
+ t:['Think of 7/8 as a bar of 4/4 with one eighth missing, or as 3/4 with one eighth added. Both are true and neither helps as much as “short, short, long”.']},
+{a:'All seven eighth notes, the click on the three beats.',
+ w:['The three eighths of the long beat must not turn into a triplet. They are the same eighths as the others.']},
+{a:'Reading in 7/8, the click on beat 1 only.',
+ w:['Look at the beams first to find the grouping, then read the rhythm.','A rest at the start of a group still starts the beat. Feel it.']},
+{k:['Eight eighth notes grouped 3 + 3 + 2: two long beats and a short one.','It lasts exactly as long as a bar of 4/4 but has three beats instead of four.'],
+ w:['The second long beat starts on the “and” of 2 of a 4/4 bar. Against a 4/4 pulse it is a syncopation; here it is a beat.','The short beat at the end pushes into the next bar.'],
+ s:'The uneven grouping that lives inside ordinary time.',
+ t:['The same three attacks are the tresillo of Cuban music and the first bar of the 3-2 son clave.','Much pop, Latin and Balkan music moves in 3 + 3 + 2 while the bar is written as 4/4.']},
+{k:['The 9/8 aksak: four beats, three short and one long, 2 + 2 + 2 + 3.','This is not the 9/8 of a jig, which is three long beats.'],
+ w:['Three even short beats and then the long one: do not shorten it out of habit.','In the every-eighth sessions, the last group has three notes.'],
+ s:'The best-known Turkish uneven meter, felt in four.',
+ t:['Counted “1-2, 1-2, 1-2, 1-2-3”.','Dave Brubeck’s “Blue Rondo à la Turk” is built on this bar.']},
+{a:'Reading in the 9/8 aksak; some sessions use the other 9/8, 3 + 3 + 3, so that you hear the difference.',
+ w:['The same nine eighths: four beats in one grouping, three in the other. The beams tell you which.'],
+ t:['3 + 3 + 3 is compound time: every beat is long, so nothing limps.']},
+{k:['10/8 as 3 + 2 + 2 + 3: long, short, short, long.','The bar is the same forwards and backwards.'],
+ w:['Two long beats meet across the bar line: the long beat that ends one bar is followed by the long beat that starts the next.','Keep the two short beats in the middle even.'],
+ s:'A four-beat uneven meter with two long beats.',
+ t:['In Turkish music a 10/8 grouped this way is called curcuna.']},
+{a:'Reading in 10/8, the click on beat 1 only.',
+ w:['Ten eighths is a long bar to hold with one click. Feel the middle of the bar: the second short beat ends at the half-way point.']},
+{k:['11/8 here is 2 + 2 + 3 + 2 + 2: five beats with the long one in the middle.','First the beats, then every eighth, then reading: one session each.'],
+ w:['Count beats, never eighths: “short, short, long, short, short”.','After the long beat there are two more short beats. The bar does not end where a 7/8 would.'],
+ s:'Holding a five-beat uneven bar.',
+ t:['Eleven can be grouped in other ways. Whatever the grouping, find where the long beat is.']},
+{a:'13/8 as 2 + 2 + 2 + 3 + 2 + 2: six beats, the long one fourth.',
+ w:['Hear it as a 9/8 aksak followed by two short beats.'],
+ t:['Long bars are learned as two smaller bars joined together.']},
+{a:'Reading in 5, 7, 9 and 10, a different meter each session, the click on beat 1 only.',
+ w:['Use the count-in and the beams to find the grouping before the first note.'],
+ t:['This is how uneven meters arrive in real music: you are told the meter, or you see the beams, and you have one bar to feel it.']}],
+ rhyread:[
 {k:['A note value is a length, and a rest is a length of silence. Both are counted.','On the page that stands still you read ahead: your eyes are on the next bar while you play this one.'],
  w:['Hold long notes for their full length. Cutting a half note short is a wrong rhythm even if it started on time.','Rests are played by counting them, not by waiting.','Keep your eyes moving left to right. Stopping on a note you just played is how you lose the place.'],
  s:'The basic reading reflex: seeing a length and producing it without translating it into words.',
@@ -5565,6 +5637,11 @@ walking:[
  t:['Joe Pass and Tuck Andress walk bass lines and comp at the same time. This is the lower half of that skill.']}],
 };
 /* the voicings review (14 Nov 2026): what each voicing game added about using the grips */
+LESSON_NOTES.aksak=[
+ {h:'Short and long beats',p:['The meters you know have beats of one length. In 4/4 every beat is two eighth notes; in 6/8 every beat is three. An uneven meter mixes the two kinds in one bar: some beats are two eighths long, some three. The eighth note stays perfectly even. Only the beats are uneven.','So 7/8 is not “seven beats”. It is three beats, two short and one long, and 9/8 in its aksak form is four beats, three short and one long. Musicians who grow up with these meters do not count eighths. They feel a short and long step, the way you feel the swing of a waltz without counting to three.',['Short beat: two eighths, written as a quarter note.','Long beat: three eighths, written as a dotted quarter.','The beams on the page always show the groups.']]},
+ {h:'The meters in this game',p:[['5/8: 2 + 3 or 3 + 2. Two beats.','7/8: 2 + 2 + 3, 3 + 2 + 2 or 2 + 3 + 2. Three beats.','8/8: 3 + 3 + 2. Three beats in the time of a 4/4 bar.','9/8 aksak: 2 + 2 + 2 + 3. Four beats. (The 9/8 of compound time is 3 + 3 + 3: three beats.)','10/8: 3 + 2 + 2 + 3. Four beats.','11/8: 2 + 2 + 3 + 2 + 2. Five beats.','13/8: 2 + 2 + 2 + 3 + 2 + 2. Six beats.'],'The longer meters can be grouped in other ways too. The groupings here are common ones; when you meet a tune, the grouping is whatever its melody and its drummer play.']},
+ {h:'How to practise them',p:['Three steps for every meter, and the levels follow them. First tap only the beats, with the click, until short and long feel like steps and not like arithmetic. Then tap every eighth note and lean on the first of each group. Then read rhythms, with the click on beat 1 only, so that the grouping comes from you.','Speak the groups: “1-2, 1-2, 1-2-3”. Walk them: one step per beat, a longer stride for the long one. Clap the beats while you say the eighths. The body learns the limp faster than the eyes do.','The tempo is given in eighth notes a minute. Uneven meters are easier at a moving tempo than at a slow one: too slow and you count every eighth, and the beats disappear.']},
+ {h:'Where you hear them',p:['Turkish, Greek, Bulgarian and other Balkan music uses these meters for dancing. The 9/8 aksak is the best known in Turkey; a 10/8 grouped 3 + 2 + 2 + 3 is called curcuna.','In jazz, Dave Brubeck’s “Blue Rondo à la Turk” sets the 2 + 2 + 2 + 3 bar against 3 + 3 + 3. The 3 + 3 + 2 grouping is everywhere: it is the tresillo of Cuban music, and it is hidden inside a great deal of music written in 4/4.']}];
 LESSON_NOTES.twohands=[
  {h:'What independence is',p:['Two hands playing different rhythms are not doing two things at once. They are playing one combined rhythm, and each note of it belongs to the left hand, the right hand or both. You learn that combined rhythm slowly, as a single pattern, and only later hear it as two parts.','That is why the first step with any new combination is to say where the hands meet. “Together, right, left, together” is a rhythm you can learn like any other.']},
  {h:'A steady part and a changing part',p:['Most real independence has this shape: one limb keeps something constant, the other plays music. A drummer’s ride cymbal and left hand, a pianist’s left hand and right hand, a guitarist’s foot and strumming hand, or the thumb and fingers in a bossa nova.','The steady part has to become automatic before anything is added to it. Play it alone until you can speak over it. If it wavers when the other hand gets difficult, the tempo is too fast.',['Quarters under a written rhythm.','2 and 4 under a written rhythm: the hi-hat.','Filling the gaps: one hand plays the written rhythm, the other every eighth note it leaves out.']]},
@@ -6191,6 +6268,9 @@ const LESSONS={
  voicelead:{how:['Find the 3rd and 7th of the first chord on the given strings.','Move each to the nearest 3rd or 7th of the next chord.','Play the two pairs back and forth until the motion is in your hands.'],
   rules:['II → V: the 7th of IIm7 falls a half step to the 3rd of V; the 3rd of IIm7 stays and becomes the 7th of V.','V → I: the 7th of V falls a half step to the 3rd of I; the 3rd of V stays as the 7th of IMaj7.','In minor: IIm7♭5 → V7 → Im7 follows the same motion.'],
   take:'Two voices moving by half steps outline a whole progression. It is the most efficient comping there is, and the skeleton of good lines.'},
+ aksak:{how:['Feel beats, not eighths: a short beat is two eighths, a long beat three. Step or clap the beats first.','Say the groups aloud: “1-2 1-2 1-2-3”. Never count “1 2 3 4 5 6 7”.','Start with one tap per beat, then fill in every eighth, then read.','The tempo number is eighth notes a minute.'],
+  rules:['Short beat = 2 eighths, written as a quarter. Long beat = 3 eighths, written as a dotted quarter.','5/8 is 2 + 3 or 3 + 2. 7/8 is 2 + 2 + 3, 3 + 2 + 2 or 2 + 3 + 2. The 9/8 aksak is 2 + 2 + 2 + 3.','The beams on the page show the groups: read by beam.','3 + 3 + 2 fills a bar of 4/4 exactly: it is the uneven grouping inside ordinary time.'],
+  take:'An uneven meter is a small number of beats of two lengths. Once you hear long and short, 9/8 has four beats and is no harder than 4/4.'},
  twohands:{how:['Learn each hand alone first, then put them together slowly. Speed comes last.','Say where the hands meet: “together, right, left, together”. The meeting points are the map.','Keep the steady hand automatic. If it stops when the other hand gets hard, slow down until it does not.','F is the left hand, J is the right. Keep the fingers resting on the keys.'],
   rules:['Three against two fits in six parts: the hands meet on 1, then right, left, right. Say “nice cup of tea”.','Three against four fits in twelve parts: the three-side plays every fourth one, the four-side every third.','The paradiddle is R L R R, L R L L: the double stroke switches the leading hand.','The 3-2 son clave is 1, the and of 2, 4, then 2 and 3 in the next bar.'],
   take:'Independence is not two things at once: it is one combined rhythm that you learn as a whole and then hear as two parts.'},

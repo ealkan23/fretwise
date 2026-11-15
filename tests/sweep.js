@@ -76,8 +76,17 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   for(let s=6;s-n>=1;s--){const tt=s-n,o=(s>=3&&tt<=2&&n>0)?offB:off;if(OPEN[tt]-OPEN[s]+o!==semi){bad++;console.log('SHAPE wrong',k,part,'from string',s);}}}}
 {const r0=OPEN[IVMAP_ROOT.s]+IVMAP_ROOT.f;for(const [d,s2,f,semi] of IVMAP){if(OPEN[s2]+f-r0!==semi||(semi%12)!==({R:0,'3':4,'5':7,'6':9,'7':11,'9':2,'11':5,'13':9})[d]){bad++;console.log('IVMAP wrong',d,s2,f);}if(s2===IVMAP_ROOT.s&&semi>0){bad++;console.log('IVMAP on the root string',d);}}}
 /* the plan: 28 days of three existing games, every game at least once, no game twice in a day */
-{const seen=new Set();if(PLAN.length!==28){bad++;console.log('PLAN days',PLAN.length);}PLAN.forEach(([th,gs],i)=>{if(gs.length!==3||new Set(gs).size!==3){bad++;console.log('PLAN day',i,gs);}gs.forEach(g=>{if(!GBY[g]){bad++;console.log('PLAN unknown game',g);}seen.add(g);});});
- GAMES.forEach(x=>{if(!seen.has(x.id)){bad++;console.log('PLAN never plays',x.id);}});}
+/* the goals plan: 28 sessions of three goal bubbles (18 per goal, 12 foundations); every level of every game in exactly one step; a game's ranges rise through a goal's stages */
+{if(PLAN.length!==28){bad++;console.log('PLAN sessions',PLAN.length);}const cnt={};PLAN.forEach(([th,ks],i)=>{if(ks.length!==3||new Set(ks).size!==3||ks.some(k=>!GOALS[k])){bad++;console.log('PLAN session',i,ks);}ks.forEach(k=>cnt[k]=(cnt[k]||0)+1);});
+ if(['A','B','C','D'].some(k=>cnt[k]!==18)||cnt.F!==12){bad++;console.log('PLAN goal counts',JSON.stringify(cnt));}
+ const own={};GOAL_KEYS.forEach(k=>{const Gl=GOALS[k];if(!Gl.n||!Gl.end||!Gl.col||Gl.stages.length<4){bad++;console.log('GOALS shape',k);}const last={};
+   Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length){bad++;console.log('GOALS stage',k,n);}sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||from<1||to<from||to>x.levels.length){bad++;console.log('GOALS step range',k,n,gid,from,to);return;}
+     if(last[gid]!==undefined&&from<=last[gid]){bad++;console.log('GOALS: a game goes backwards inside a goal',k,gid,from);}last[gid]=to;for(let L=from;L<=to;L++){const id=gid+':'+L;if(own[id]){bad++;console.log('GOALS: level in two steps',id,own[id],k+(n+1));}own[id]=k+(n+1);}});});});
+ GAMES.forEach(x=>x.levels.forEach((_,i)=>{if(!own[x.id+':'+(i+1)]){bad++;console.log('GOALS: level in no step',x.id,i+1);}}));
+ for(const k of ['A','B','C','D'])if(GOALS[k].stages.length!==5){bad++;console.log('GOALS: five stages',k);}
+ /* stacking: the levels below a step's range belong to steps of the same or an earlier stage number, so no stage waits on a later one */
+ const stageOfLv={};GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach((sg,n)=>sg.steps.forEach(([gid,from,to])=>{for(let L=from;L<=to;L++)stageOfLv[gid+':'+L]=n;})));
+ GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach((sg,n)=>sg.steps.forEach(([gid,from])=>{for(let L=1;L<from;L++)if(stageOfLv[gid+':'+L]>n){bad++;console.log('GOALS: stage',k+(n+1),gid,'from',from,'waits on a later stage (level',L,'is in stage',stageOfLv[gid+':'+L]+1+')');break;}})));}
 /* every generator of every level must produce questions when called directly: pickQ swallows throwing generators (a level would silently lose a question type) */
 GAMES.forEach(x=>{S.gid=x.id;x.levels.forEach((lv,li)=>lv.g.forEach((gen,gi)=>{let ok=0,err='';for(let t=0;t<30;t++){try{gen();ok++;}catch(e){err=e.message;}}if(!ok){bad++;console.log('GENERATOR THROWS',x.id,'L'+(li+1),'g'+gi,err);}}));});
 /* tunes: every phrase parses and fits the guitar; improvise: a line on one note, and a line a half step off the example, must fail */

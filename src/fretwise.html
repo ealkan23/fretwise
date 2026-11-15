@@ -3459,6 +3459,7 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(!(g.mig&&g.mig.rl2)){if(RZ1.includes(id)&&id!=='rhytheory')rlOlder(g);g.mig={...(g.mig||{}),rl2:1};saveLocal();}
   if(!(g.mig&&g.mig.rl3)){rlTag(g,id);g.mig={...(g.mig||{}),rl3:1};saveLocal();}
   if(id==='pulse'&&!(g.mig&&g.mig.pu1)){g.opts=Object.assign({},g.opts||{},{tapMic:true});g.mig={...(g.mig||{}),pu1:1};saveLocal();}   /* 8 Nov 2026: strumming is the default (the keyboard has no dynamics and its own latency) */
+  if(id==='pulse'&&!(g.mig&&g.mig.ur3)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur3:1};saveLocal();}   /* 15 Nov 2026: the user asked for every Pulse & Feel level open (opened, not passed: g.lvl, the stats and the tree stay as they are) */
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}return g;};
 function saveLocal(){try{localStorage.setItem('fretwise-v1',JSON.stringify(STORE));}catch(e){}}

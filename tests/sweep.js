@@ -256,6 +256,10 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 {const g=triRunQ({down:true,sets:['4-3-2','3-2-1','5-4-3','6-5-4']});for(let i=0;i<150;i++){const q=g();if(!/^trun-/.test(q.key))continue;const groups=[q.target.slice(0,3),q.target.slice(3,6),q.target.slice(6,9)],pcs=new Set(q.target.map(m=>m%12));
   if(q.target.length!==9||pcs.size!==3||groups.some(gr=>gr[0]>=gr[1]||gr[1]>=gr[2]||gr[2]-gr[0]>12)||new Set(groups.map(gr=>gr[0]%12)).size!==3||q.target.some((m,j)=>j&&m===q.target[j-1])||/NaN|undefined/.test(q.prompt+q.visual+q.explain)){bad++;console.log('TRIAD run',q.key,q.target);break;}}
  if(gamesIn('neck').some(x=>x.id==='guidetones')||!GBY.guidetones){bad++;console.log('retired game still offered, or its data lost');}}
+/* Scale Runner weights: the tonic under finger 1 or 2 on string 6 or 5 in C at positions II, III, VII, VIII and not at V, IX, X, XII; those are drawn more often, none is dropped */
+{const h=[2,3,5,7,8,9,10,12].filter(P=>scHomeFinger(0,P)).join();if(h!=='2,3,7,8'){bad++;console.log('SCALE home-finger positions',h);}const c={};for(let i=0;i<8000;i++){const P=scPickPos(0,SC_SEVEN);c[P]=(c[P]||0)+1;}
+ if(SC_SEVEN.some(P=>!c[P])||!(c[7]>c[5]*1.25&&c[8]>c[9]*1.25&&c[7]<c[5]*1.8)){bad++;console.log('SCALE weights',JSON.stringify(c));}
+ const z=scPos(0,8);if(z.type!=='4C'||!z.notes.some(x=>x.s===6&&x.f===8&&!x.st)){bad++;console.log('SCALE position VIII',z.type);}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

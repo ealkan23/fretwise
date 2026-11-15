@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Scale Runner: first- and second-finger shapes weighted (18 Nov 2026, the teacher: “pay most attention to the shapes that start with the index or middle finger”)
+`scHomeFinger(rp,P)` = the tonic sits under finger 1 or 2 on string 6 or 5; `scPickPos` draws such positions half again as often (weight 3 to 2; the user asked for “slightly”), nothing is dropped. In C: II and VII (second finger), III and VIII (first finger). **Position VIII added** to `SC_SEVEN` (eight positions now; type 4C). `scOctQ` draws fingers 2 and 1 three times each to finger 4's two. Sweep: the four positions, the ratio, position VIII's type.
+
 ## Over-removal corrected (17 Nov 2026, the same evening; user: “deleting singing intervals because there is hear the intervals is very wrong… did you do the same to John?”)
 I had, in several places: levels were removed because they shared material with another level, though they asked for a different action. **Rule from now on: remove a level only when another level asks for the same action on the same material; singing, hearing, naming, marking on the neck and playing are different actions. List what would be lost and let the user decide.** The user then asked for only the clearly necessary ones back, staying lean.
 - Restored in Scale Runner (`REORDERS18`, flag `r44`; 14 levels): **“Modes in every position”** (level 12: `scModeQ('home')` and `scModeQ('one')` — the Modes game only plays one octave from a root on strings 6 or 5), **seventh chords as their own level** (10; merged with triads, a level could be passed on triads alone), and the **bottom-to-top run** as a third generator of level 2 (the user had asked for both run forms).

@@ -5,6 +5,15 @@ from playwright.sync_api import sync_playwright
 root = pathlib.Path(__file__).resolve().parent.parent
 reps = [r for r in json.loads((root / 'fixlist' / 'reports.json').read_text()) if r.get('audioFile') and (r.get('ctx') or {}).get('mic')]
 _ids = {int(a) for a in sys.argv[1:] if a.isdigit()}; _games = [a for a in sys.argv[1:] if not a.isdigit()]   # e.g. fix_takes.py scales   or   fix_takes.py 60 61 62
+# Note Hunt was merged into Fretboard (18 Nov 2026): its reports replay in Fretboard, at the level the old one became
+_HM = {1: 10, 2: 10, 3: 10, 4: 11, 5: 12, 6: 13, 7: 14, 8: 15}
+for r in reps:
+    c = r['ctx']
+    if c.get('game') == 'hunt':
+        c['game'] = 'fretboard'
+        for k in ('level', 'lv', 'L'):
+            if k in c: c[k] = _HM.get(c[k], 10)
+_games = ['fretboard' if g == 'hunt' else g for g in _games] if _games else _games
 if _games: reps = [r for r in reps if r['ctx'].get('game') in _games]
 if _ids: reps = [r for r in reps if r['id'] in _ids]
 FEED = """async (b64)=>{const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer;const c=Piano.ac();await c.resume();const buf=await c.decodeAudioData(raw);

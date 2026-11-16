@@ -6203,7 +6203,7 @@ LESSON_NOTES.drop2.push({h:'Choosing the grip: nearest, and the note on top',p:[
 LESSON_NOTES.tgrips.push({h:'Colour in the cadence, and leaving the root out',p:['Tensions are chosen so that they lead somewhere. In IIm9 – V13 – IMaj9 the 9th of the II chord is the same note as the 13th of the V, and it falls a step to the 9th of the I: one top voice ties the three chords together.','With a bass player the root is taken. Three notes are enough: the 3rd and 7th say what the chord is and one more note colours it. There are two forms and they alternate through a cadence.',['3rd on the bottom: 3–7–9 (X9, Xm9, XMaj9).','7th on the bottom: 7–3–13 on a dominant, 7–3–5 on m7 and Maj7.','IIm9 (3rd on the bottom) → V13 (7th on the bottom) → IMaj9 (3rd on the bottom): the top two notes barely move.']]});
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
-   The user's own image (art/castle-hall.webp, made with ChatGPT; 1536×1024) brought to life, classy and slow: the candles breathe and glow,
+   The user's own image (art/castle-hall.webp, made with ChatGPT; the second one, 1527×1030, since 19 Nov 2026) brought to life, classy and slow: the candles breathe and glow,
    the light beam swells and shimmers with drifting dust and the odd glint on the piano's gold, and a translucent layer of pixel clouds drifts
    very slowly behind the glass, clipped to each pane so it never crosses the stone. All positions are in image pixels (measured from the art)
    and mapped to the screen with the image's cover fit. The centre behind the game is softly darkened for reading. */
@@ -6330,25 +6330,25 @@ function vMetro(){const c=metCfg(),M=MET_METERS[c.meter],on=MET&&MET.on,styles=O
    during play; the long talk is built from the player's data (masterFacts → masterTalk), and rewritten by Claude when an API key is set (masterAI). */
 const FRAMES=['idle','cheer','wince','talk','angry','amazed'];
 const MASTERS={
- rhythm:{n:'Bongi',spr:'rhythm',pos:[350,725],h:138,role:'Rhythm & Time',
+ rhythm:{n:'Bongi',spr:'rhythm',pos:[330,770],h:138,role:'Rhythm & Time',
   voice:'a playful street-percussionist monkey behind a pair of bongos. Short, punchy sentences with a beat to them; teases kindly; everything is about feel, the pocket, counting out loud, the body keeping time.',
   say:{ok:['In the pocket!','Tight!','That one sat right.','Groovin’.'],miss:['Ooh, that one fell off the beat.','Count it out loud.','Easy. Feel the one.'],streak:['Now you are cooking!','Do not stop, do not stop!'],unlock:['New level! Drum roll!'],start:['Count it in. One, two…'],end:['Good sweat.','We go again tomorrow.']}},
- neck:{n:'John',spr:'neck',pos:[440,545],h:186,role:'Fretboard',
+ neck:{n:'John',spr:'neck',pos:[452,612],h:186,role:'Fretboard',
   voice:'a gentle, barefoot, spiritual rock guitarist. Soft-spoken and sincere; talks about knowing the neck so completely that you can forget it and just listen; simplicity, touch, patience.',
   say:{ok:['Yeah. You saw it before you played it.','Beautiful.','That is it.'],miss:['No hurry. Look for the octave.','Breathe. Say the name first.','It is right next to one you know.'],streak:['You are not counting any more. Feel that?','It is opening up.'],unlock:['A new part of the neck. Go slowly.'],start:['Say each note before your hand moves.'],end:['That was real practice.','Let it settle.']}},
- theory:{n:'Alfred',spr:'theory',pos:[1183,592],h:190,role:'Theory',
+ theory:{n:'Alfred',spr:'theory',pos:[1168,645],h:190,role:'Theory',
   voice:'an elderly English butler who is also a fine pianist. Formal, exact, dry wit, calls the student “sir”; treats harmony as good manners: everything spelled correctly, nothing calculated at the table.',
   say:{ok:['Quite right, sir.','Correct.','Precisely.'],miss:['Not quite, sir. Spell it by letters.','A moment’s thought, sir.','The third, sir. Mind the third.'],streak:['Admirable, sir.','One begins to suspect you have been studying.'],unlock:['The next chapter, sir.'],start:['When you are ready, sir.'],end:['A profitable session, sir.','That will do for today.']}},
- voicings:{n:'Joe',spr:'voicings',pos:[1010,790],h:178,role:'Voicings & Grips',
+ voicings:{n:'Joe',spr:'voicings',pos:[905,805],h:178,role:'Voicings & Grips',
   voice:'a calm, bald jazz guitar master of chord melody, seated with an archtop. Economical and practical, a quiet smile; says things like learn tunes, move one finger, keep the common tone; no fuss.',
   say:{ok:['There it is.','Nice grip.','Good. Now the next one.'],miss:['Find the root first.','One finger moved, that is all.','Slow. Which inversion is it?'],streak:['That is how the hands learn.','Smooth.'],unlock:['More grips. Good.'],start:['Root, then the rest.'],end:['Good work. Play them in a tune.','That is enough for the hands.']}},
- ear:{n:'Jessica',spr:'ear',pos:[700,478],h:188,role:'Ear & Solfège',
+ ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',
   voice:'a glamorous 1940s nightclub singer in a red sequin gown. Warm, theatrical, a little teasing; insists you sing everything before you play it; talks about where a note wants to go.',
   say:{ok:['You heard it, darling.','Perfect pitch of mind.','Oh, lovely.'],miss:['Sing it first, darling.','Where does it want to go?','Listen for home.'],streak:['Now you are really listening.','Darling, you are on fire.'],unlock:['A new song for you.'],start:['Sing the tonic before you answer.'],end:['Your ears are tired. That is good.','Rest them, darling.']}},
- applied:{n:'Jimmi',spr:'applied',pos:[1015,470],h:192,flip:true,   /* by the moon window, turned to look out of it (hall only) */role:'Applied',
+ applied:{n:'Jimmi',spr:'applied',pos:[1010,540],h:192,flip:true,   /* by the moon window, turned to look out of it (hall only) */role:'Applied',
   voice:'a psychedelic blues-rock showman from the sixties. Loose, vivid, generous; wants you to take risks, bend the note until it cries, play it like you mean it; technique is only there to say something.',
   say:{ok:['Yeah, man!','That sang.','Right on.'],miss:['No sweat. Say it again, slower.','Hear it first, then let it out.','Aim for the chord tone, baby.'],streak:['You are flying now!','Keep that fire!'],unlock:['New ground, brother.'],start:['Play it like you mean it.'],end:['That had soul.','Come back and burn some more.']}}};
-const PLAYER={n:'Emir',spr:'player',pos:[700,700],h:178};
+const PLAYER={n:'Emir',spr:'player',pos:[705,772],h:178};
 const artURL=id=>(window.ART_DATA&&window.ART_DATA['masters/'+id])||`art/masters/${id}.png`;
 const sprHTML=(id,frame,cls='')=>`<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;
 function sprFrame(el,frame){if(el)el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}
@@ -6501,11 +6501,11 @@ function buddyReact(ev,x){if(!BUD)return;const L=MASTERS[BUD.cat].say;
   else if(ev==='miss')buddySay(x?'angry':'wince',R1(L.miss),2600);
   else if(ev==='unlock')buddySay('amazed',R1(L.unlock),4000);
   else if(ev==='end')buddySay(x>=0.85?'cheer':x<0.6?'wince':'talk',R1(L.end),6000);}
-const CASTLE={src:'art/castle-hall.webp',W:1536,H:1024,
-  flames:[[309,306],[337,327],[169,455],[152,634],[191,674]],                                  // candle flame tips
-  panes:[[486,205,514,304],[522,205,546,308],[555,205,590,311],[637,205,680,317],[688,205,722,322],[787,205,821,331],[831,205,866,336],[874,205,913,340],[922,205,963,344],
-         [1035,205,1072,352],[1080,205,1137,355],[1145,205,1206,358],[1215,205,1287,361],[1304,205,1357,364],[1438,205,1485,390],[1492,205,1528,392]],
-  beam:[[1536,212],[1536,332],[1480,612],[1250,548]],piano:[1236,380,1500,640]};
+const CASTLE={src:'art/castle-hall.webp',W:1527,H:1030,   /* the second hall (19 Nov 2026): rug, two candelabra, music stand, crescent moon; everything below re-measured from it */
+  flames:[[291,303],[320,324],[149,453],[131,637],[171,677],[507,356],[530,335],[553,354],[876,355],[899,340],[922,356]],   // candle flame tips: the skull candles, then the two candelabra
+  panes:[[472,195,532,305],[540,190,578,312],[624,160,668,318],[676,160,712,322],[772,150,811,332],[819,130,859,337],[866,125,904,342],[911,160,958,348],
+         [1028,190,1068,352],[1076,130,1131,358],[1139,115,1207,365],[1215,115,1293,372],[1301,135,1376,380],[1437,170,1483,385],[1490,170,1527,300]],
+  beam:[[1527,238],[1527,395],[1470,625],[1245,555]],piano:[1238,385,1502,660]};
 let BG=null;
 setTimeout(()=>{try{bgInit();}catch(e){}},0);
 function bgWanted(){return true;}   /* 10 Nov 2026: the hall is always there, whatever the system theme */

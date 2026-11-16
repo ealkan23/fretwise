@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## The second hall (19 Nov 2026, user: “change the background to this”; snapshot before it: tag `v-2026-11-19-before-new-hall`)
+`art/castle-hall.webp` is the user's new image (1527×1030: a rug, two candelabra, a music stand, a guitar case, a small table with books, a crescent moon). `CASTLE` re-measured from it: eleven flame tips (five skull candles, six on the candelabra; found as bright warm clusters), fifteen panes (by eye on gridded 2× crops), the beam quad, the piano box. The masters stand round the rug as in the user's reference screenshot: John by the guitar case, Jessica at the music stand between the candelabra, Jimmi right of the second candelabrum, Alfred beside the piano bench, Joe on his stool left of the book table, Bongi front left, Emir in the middle (`MASTERS[cat].pos`, `PLAYER.pos`, in image pixels). Older notes that describe the first image (the red moon, 1536×1024) are superseded.
+
 ## Alfred (19 Nov 2026, user: “replace Alfred with this”)
 The theory master is **Alfred** (was Albert; the user had not named him before). New sheet from the user (`art-src/theory.png`, 1024×1536, six poses, no piano of his own), so `tools/sprites.py` no longer masks a piano out of the theory cells. Older notes that say “Albert” mean him.
 

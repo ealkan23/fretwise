@@ -260,6 +260,25 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 {const h=[2,3,5,7,8,9,10,12].filter(P=>scHomeFinger(0,P)).join();if(h!=='2,3,7,8'){bad++;console.log('SCALE home-finger positions',h);}const c={};for(let i=0;i<8000;i++){const P=scPickPos(0,SC_SEVEN);c[P]=(c[P]||0)+1;}
  if(SC_SEVEN.some(P=>!c[P])||!(c[7]>c[5]*1.25&&c[8]>c[9]*1.25&&c[7]<c[5]*1.8)){bad++;console.log('SCALE weights',JSON.stringify(c));}
  const z=scPos(0,8);if(z.type!=='4C'||!z.notes.some(x=>x.s===6&&x.f===8&&!x.st)){bad++;console.log('SCALE position VIII',z.type);}}
+/* the blues route: the five boxes of A minor pentatonic are the standard shapes; every box is two notes a string, twelve rising notes of the scale; the blues scale and the
+   major pentatonic in a box hold only their notes; bends in the key start on the named degree; the lick book has no note twice in a row and stays in the blues vocabulary;
+   Phrase and Space: the example passes, and a note in the rest, a changed repeat, an unchanged ending, an answer off the chord, a wrong landing and a note outside the scale fail */
+{const bb=m=>{bad++;console.log('BLUES',m);},tab=B=>[6,5,4,3,2,1].map(s=>B.spots.filter(x=>x.s===s).map(x=>x.f).join(',')).join('|');
+ const want=['5,8|5,7|5,7|5,7|5,8|5,8','8,10|7,10|7,10|7,9|8,10|8,10','10,12|10,12|10,12|9,12|10,13|10,12','12,15|12,15|12,14|12,14|13,15|12,15','3,5|3,5|2,5|2,5|3,5|3,5'];for(let k=1;k<=5;k++)if(tab(penBox(9,k))!==want[k-1])bb('A box '+k+' '+tab(penBox(9,k)));
+ if(tab(boxScale(9,1,BLUES_SC))!=='5,8|5,6,7|5,7|5,7,8|5,8|5,8'||tab(boxScale(9,1,PMAJ,true))!=='5,7|4,7|4,7|4,6|5,7|5,7')bb('A blues or major pentatonic in box 1');
+ for(let rp=0;rp<12;rp++)for(let k=1;k<=5;k++){const B=penBox(rp,k);if(!B||B.spots.length!==12||B.spots.some((x,i)=>!BX_PENT.includes(mod(x.m-rp,12))||(i&&x.m<=B.spots[i-1].m)||x.s!==6-Math.floor(i/2))||mod(B.spots[0].m-rp,12)!==BX_PENT[k-1]||B.hi-B.lo>4)bb('box '+rp+' '+k);}
+ GBY.boxes.levels.forEach((lv,li)=>lv.g.forEach(g=>{for(let i=0;i<60;i++){const q=g();if(!/^bx-/.test(q.key)){bb('fallback L'+(li+1));break;}if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)||q.target.some((m,j)=>j&&(m===q.target[j-1]||Math.abs(m-q.target[j-1])>4))||!q.vamp){bb('question L'+(li+1)+' '+q.key);break;}}}));
+ for(const [id,v] of Object.entries(BEND_DEG)){const g=bendDegQ([id]);for(let i=0;i<30;i++){const q=g(),m=q.label.match(/ in ([A-G][♯♭]?)$/);if(!/^bdd-/.test(q.key)||!m||mod(q.bendStart-pc(P(m[1])),12)!==v[0]){bb('bend '+id+' '+q.label+' '+q.bendStart);break;}}}
+ BLUES_LICKS.concat(LICK_MORE).forEach((L,i)=>{if(L[0].length!==L[1].length||L[0].some((x,j)=>j&&x===L[0][j-1])||L[0].some(x=>BLUES_DEG[mod(x,12)]===undefined)||L[1].some((b,j)=>j&&b<=L[1][j-1])||L[1].at(-1)>3.01)bb('lick '+(i+1));});if(BLUES_LICKS.length+LICK_MORE.length!==24)bb('lick count');
+ for(const id of Object.keys(PHR)){const q=phraseQ(id)(),S0=PHR[id],mk=(T,G)=>({notes:T.map((m,j)=>({midi:m,mf:m,t:G[j]*750+3000})),firstAt:3000,beat:750,beatStart:3000}),T=q.target,G0=q.grid,rp=q.phr.rp;
+   if(!micGrade(q,mk(T,G0)).ok){bb('phrase example '+id+' '+micGrade(q,mk(T,G0)).walkWhy);continue;}
+   const rb=S0.rest[0];if(micGrade(q,mk(T.concat([T[0]]),G0.concat([rb[0]*4+2]))).ok)bb('phrase: a note in the rest accepted '+id);
+   const o2=T.slice();o2[1]=o2[1]+1;while(S0.sc.includes(mod(o2[1]-rp,12)))o2[1]++;if(micGrade(q,mk(o2,G0)).ok)bb('phrase: a note outside the scale accepted '+id);
+   if(S0.rep){const c=T.slice(),i2=G0.findIndex(b=>b>=S0.play[S0.rep[1]][0]*4)+1;c[i2]=c[i2]+(S0.sc.includes(mod(c[i2]+2-rp,12))?2:3);if(S0.sc.includes(mod(c[i2]-rp,12))&&micGrade(q,mk(c,G0)).ok)bb('phrase: a changed repeat accepted '+id);}
+   if(S0.vary){const n=G0.filter(b=>b<8).length,c=T.slice(0,n).concat(T.slice(0,n));if(micGrade(q,mk(c,G0)).ok)bb('phrase: an unchanged ending accepted');}
+   if(S0.land){const c=T.slice();c[c.length-1]=T.at(-1)+5;if(micGrade(q,mk(c,G0)).ok)bb('phrase: an answer off the chord accepted');const d=T.slice(),n=G0.filter(b=>b<8).length;d[n-1]=57+mod(rp-9,12);if(micGrade(q,mk(d,G0)).ok)bb('phrase: a question ending on the root accepted');}
+   if(S0.landAt){const c=T.slice();c[c.length-1]=57+mod(rp-9,12)+7;if(micGrade(q,mk(c,G0)).ok)bb('phrase: a wrong landing note accepted');}
+   if(S0.differ){const n=G0.filter(b=>b<8).length,c=T.slice(0,2*n).concat(T.slice(0,n));if(micGrade(q,mk(c,G0)).ok)bb('phrase: a third phrase equal to the first accepted');}}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

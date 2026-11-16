@@ -7218,7 +7218,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='tree'||a==='path'){if(GR)grooveEnd(true);if(view.name==='play')return quit();if(REC)recStop(true);if(CK)ckStop(true);view={name:'path'};render();window.scrollTo(0,0);}
   else if(a==='skill'){const sx=document.querySelector('.sk-wrap')?.scrollLeft||0;view.skill=b.dataset.k;render();const w=document.querySelector('.sk-wrap');if(w)w.scrollLeft=sx;document.getElementById('skdet')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
   else if(a==='stats'){view={name:'stats',gid:b.dataset.g};render();window.scrollTo(0,0);}
-  else if(a==='sel'){view.sel=+b.dataset.l;render();}
+  else if(a==='sel'){view.sel=+b.dataset.l;if(e.detail>=2&&view.name==='lobby'&&!b.disabled)start(view.gid,view.sel);else render();}   /* a double click on a level starts it (18 Nov 2026, user request); the first click only selects */
   else if(a==='nmap'){view.nmap=b.dataset.k;render();}
   else if(a==='refsel'){const st=b.dataset.st==='none'?null:+b.dataset.st;view.ref=view.ref===st?null:st;render();}
   else if(a==='limit'){G(view.gid).limit=b.dataset.k;saveLocal();render();}

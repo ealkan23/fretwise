@@ -573,8 +573,8 @@ const G_iv={
    return C({snd:{seq:ascMidis([P(k),n],55)},key:`deg-${k}-${d}`,label:`${ORD[d]} of ${kname(k)}`,prompt:`What is the <b>${ORD[d]} degree</b> of <b>${kname(k)} major</b>?`,answer:ans,choices:mc(ans,noteDists(n)),
    explain:`${kname(k)} major: ${spell(sc)}. Degree ${d} is ${ans}.`,hint:`${kname(k)} major has ${sigTxt(sigOf(k))}.`});},
  whichDeg:()=>{const k=rootPick(ALL_MAJ.filter(x=>x!=='Cb'&&x!=='C#')),sc=scale(P(k),'major'),d=ri(2,7),ans=ORD[d];
-   return C({snd:{seq:ascMidis([P(k),sc[d-1]],55)},key:`wdeg-${k}-${d}`,label:`${nm(sc[d-1])} in ${kname(k)}`,prompt:`In <b>${kname(k)} major</b>, which scale degree is <b>${nm(sc[d-1])}</b>?`,answer:ans,choices:mc(ans,shuffle(ORD.slice(2,8))),
-   explain:`${kname(k)} major: ${spell(sc)}.`,hint:'Count letters from the tonic: tonic = 1st.'});},
+   return C({snd:{seq:ascMidis([P(k),sc[d-1]],55)},key:`wdeg-${k}-${d}`,label:`${nm(sc[d-1])} in ${kname(k)}`,prompt:`In <b>${kname(k)} major</b>, which scale degree is <b>${nm(sc[d-1])}</b>?`,answer:ans,row:true,choices:ORD.slice(1,8),chLab:Object.fromEntries(ORD.slice(1,8).map((o,i)=>[o,String(i+1)])),   /* all seven degrees, always, in order: key 3 is the 3rd, so the degree is typed, not picked out of four (18 Nov 2026) */
+   explain:`${kname(k)} major: ${spell(sc)}. ${nm(sc[d-1])} is the <b>${ans}</b>.`,hint:'Try to recall it as a pair before you count: the 3rd, 5th and 7th of the key first.'});},
  spellMaj:()=>{const k=rootPick(['G','D','A','E','B','F','Bb','Eb','Ab','Db']),sc=scale(P(k),'major'),ans=spell(sc);
    return C({snd:{scale:ascMidis([...sc,P(k)],55)},key:`spm-${k}`,label:`${kname(k)} major scale`,prompt:`Which is the <b>${kname(k)} major</b> scale?`,answer:ans,choices:mc(ans,spellDists(sc,P(k),[])),factor:2,
    explain:`Major = W W H W W W H, with each letter used once. ${kname(k)} major: ${ans}.`,hint:`${sigTxt(sigOf(k))}.`});},

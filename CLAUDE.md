@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Alfred (19 Nov 2026, user: “replace Alfred with this”)
+The theory master is **Alfred** (was Albert; the user had not named him before). New sheet from the user (`art-src/theory.png`, 1024×1536, six poses, no piano of his own), so `tools/sprites.py` no longer masks a piano out of the theory cells. Older notes that say “Albert” mean him.
+
 ## The blues route (18 Nov 2026, user: “I want to study the blues / Frusciante / Hendrix route as well… please add them, don't add double stops and fills”; snapshot before it: tag `v-2026-11-18-before-blues-route`; 40 games)
 A second road beside the jazz goals; the user is “fully ok” with it shifting priorities. Four additions; **Double Stops and Fills was offered and declined.**
 - **Blues Boxes** (`boxes`, neck, mic, 7 levels, COURSE 101, life/core): `penBox(rp,k)` = box k of the minor pentatonic: twelve notes in a row from the k-th scale note on string 6, two to a string (`BX_PENT`; `PENT` already existed as an object — name clash caught by the syntax check). `boxScale(rp,k,semis,wide)` = another scale inside the box's frets (blues scale; major pentatonic with one fret more below). `boxQ({boxes,scale,join,mix,div,roots})`: up and back; `join` = this box up, the next down; `mix` = minor up, major down in the same place. Over the I7 chord (`q.vamp`, shell voicing). Levels: box 1 · 2 and 3 · 4 and 5 · from box to box · the blue note · major and minor in one place · eighths and triplets. Sweep: A's five boxes equal the standard shapes (5-8 5-7 5-7 5-7 5-8 5-8 …), every box in every key, the blues and major shapes in A.

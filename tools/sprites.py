@@ -15,8 +15,6 @@ def key(a):
 for src in sorted((root/'art-src').glob('*.png')):
     a=key(np.array(Image.open(src).convert('RGB')));H,W=a.shape[:2];ch,cw=H//3,W//2
     cells=[a[r*ch:(r+1)*ch,c*cw:(c+1)*cw].copy() for r in range(3) for c in range(2)]
-    if src.stem=='theory':   # his own piano goes: he stands at the castle's
-        for c in cells:c[198:,297:,3]=0
     al=np.max([c[...,3] for c in cells],axis=0);ys,xs=np.where(al>0);x0,x1,y0,y1=xs.min(),xs.max()+1,ys.min(),ys.max()+1
     side=max(x1-x0,y1-y0)+8;cx=(x0+x1)//2;L=max(0,min(cw-side,cx-side//2));T=max(0,y1+4-side)
     sheet=Image.new('RGBA',(F*6,F))

@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Scale Runner: a first level in C only (17 Nov 2026, user: “put a level 1 where it is the same but only for C major”; 14 levels)
+Level 1 “The whole position, in C” = the whole-position run in C major only (the five basic fingerings, then the eight positions, and the bottom-to-top run); level 2 “The whole position: C, F and G” is the former first level without its C-only generator. `REORDERS22` (flag `r48`) shifts the old levels up by one; the new level is open and not passed (`g.skip`), the level page opens on it (`g.last=1`), and a player whose frontier was the old level 1 keeps level 1 as the frontier. `GOALS` and `LEVEL_NOTES.scales` moved with it. On the user's data: 713 answers kept, the 285 answers of the old first level stay with level 2, frontier 7 → 8, second load a no-op.
+
 ## “100 % and yellow” (17 Nov 2026, user)
 The accuracy bar is green only from `STD_N` (12) recent answers at the master standard. Fretboard 11 (the former Note Hunt) showed Guitar 100 % in yellow: the per-input window `g.hm.g[11]` held 11 answers (it started empty at the merge) though 220 had been played. `lvModeStats` now takes the level's own window `g.hist[L]` when an input's window is shorter than 12 and under a tenth of the level's answers came from the other input; the bar's tooltip says how many answers are still needed for green. A row with truly few answers (Screen: 1) stays yellow.
 

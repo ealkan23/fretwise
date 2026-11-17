@@ -26,9 +26,11 @@ try:
         r=R("view={name:'%s'}"%v)
         if r!='ok':bad.append((v,r))
     for x in pg.evaluate("GAMES.map(x=>x.id)"):
-        for v in ['lobby','stats']:
+        for v in ['lobby','stats','notes']:
             r=R("view={name:'%s',gid:'%s'}"%(v,x))
             if r!='ok':bad.append((v,x,r))
+    fe=pg.evaluate("NF.err.slice(0,10)")
+    if fe:bad.append(('note figures',fe))
     bad+=[('pageerror',e) for e in errs]
     b.close()
 finally: srv.terminate()

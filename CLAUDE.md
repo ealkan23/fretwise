@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Five masters: Jimmi removed (17 Nov 2026, user: “remove Jimi and add Jimi's games to John. Then put Bongi to where Jimi is”)
+The `applied` section and its master are gone: Improvise, Bends & Vibrato, Phrase and Space, Walking Line and Repertoire are `cat:'neck'` (John, 14 games; their `COURSE` numbers are unchanged). `CATS`, `MASTERS`, `VOICE`, `OWN` and `ADV` have five entries; a game's saved data does not depend on its section, so no migration. Bongi stands at Jimmi's old spot (`pos:[1010,540]`, not flipped); the front-left spot is empty. `art/masters/applied.png` and `art-src/applied.png` were deleted (in git history, last in commit 6221cae). Older notes that mention Jimmi, the Applied section or six masters are superseded.
+
 ## The second hall (19 Nov 2026, user: “change the background to this”; snapshot before it: tag `v-2026-11-19-before-new-hall`)
 `art/castle-hall.webp` is the user's new image (1527×1030: a rug, two candelabra, a music stand, a guitar case, a small table with books, a crescent moon). `CASTLE` re-measured from it: eleven flame tips (five skull candles, six on the candelabra; found as bright warm clusters), fifteen panes (by eye on gridded 2× crops), the beam quad, the piano box. The masters stand round the rug as in the user's reference screenshot: John by the guitar case, Jessica at the music stand between the candelabra, Jimmi right of the second candelabrum, Alfred beside the piano bench, Joe on his stool left of the book table, Bongi front left, Emir in the middle (`MASTERS[cat].pos`, `PLAYER.pos`, in image pixels). Older notes that describe the first image (the red moon, 1536×1024) are superseded.
 

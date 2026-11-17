@@ -3623,7 +3623,7 @@ const GAMES=[
   {n:'Which note changed?',d:'The borrowed chord brings in ♭3, ♭6 or ♭7: which?',g:[earBorrowQ('note'),earBorrowQ('which')]},
   {n:'Play the colour note',d:'Hear the vamp, play the degree that makes the mode (guitar)',g:[modePlayQ(['Dorian','Phrygian','Lydian','Mixolydian','Aeolian'])]},
   {n:'Melodic-minor modes',d:'Melodic minor, Lydian dominant, Locrian ♮2, altered over a drone',g:[earMMModeQ()]}]},
- {id:'improv',cat:'applied',mic:true,name:'Improvise',area:'Your own lines · guitar',desc:'Make up a line over the changes, in time. Nothing is given to copy: the rules of a good line are checked (chord tones on the strong beats, guide tones at the bar line, the scale between, approach notes that resolve).',levels:[
+ {id:'improv',cat:'neck',mic:true,name:'Improvise',area:'Your own lines · guitar',desc:'Make up a line over the changes, in time. Nothing is given to copy: the rules of a good line are checked (chord tones on the strong beats, guide tones at the bar line, the scale between, approach notes that resolve).',levels:[
   {n:'Chord tones, one chord',d:'One bar, four notes of the chord in your own order',g:[soloQ(SOLO.one)]},
   {n:'Chord tones through II–V',d:'Two bars: change chord, change notes',g:[soloQ(SOLO.iiV)]},
   {n:'Scale lines',d:'Chord tones on beats 1 and 3, the scale between',g:[soloQ(SOLO.sc)]},
@@ -3760,7 +3760,7 @@ const GAMES=[
   {n:'The lick book',d:'Twenty-four blues phrases that keep coming back, in A and E: hear one, play it back in time',g:[crBlues({keys:['A','E']})]},
   {n:'The lick book, any key',d:'The same phrases in A, E, G, C and D',g:[crBlues({keys:['A','E','G','C','D']})]},
   {n:'Double stops',d:'Diatonic 3rds and 6ths, picked together and graded as chords (beta)',g:[crDoubles()]}]},
- {id:'bends',cat:'applied',mic:true,name:'Bends & Vibrato',area:'Phrasing · guitar',desc:'Bend to pitch, release, pre-bend, vibrato and the blues curl. The mic follows your pitch and draws it against the target, in cents.',levels:[
+ {id:'bends',cat:'neck',mic:true,name:'Bends & Vibrato',area:'Phrasing · guitar',desc:'Bend to pitch, release, pre-bend, vibrato and the blues curl. The mic follows your pitch and draws it against the target, in cents.',levels:[
   {n:'Half-step bends',d:'Bend up a fret’s worth and hold it in tune',g:[bendQ('half')]},
   {n:'Vibrato',d:'Even width and speed on a held note',g:[bendQ('vibrato')]},
   {n:'Whole-step bends',d:'Up two frets’ worth: the rock and blues bend',g:[bendQ('whole')]},
@@ -3794,7 +3794,7 @@ const GAMES=[
   {n:'Constant structure and Coltrane changes',d:'One chord type moved by an interval; three key centres a major third apart',g:[constQ(),coltraneQ('fill'),coltraneQ('keys')]},
   {n:'Full analysis',d:'Write a progression in numerals; name the device, major and minor',g:[anProgNumQ(),anDeviceQ(['tt','bd','sd','mi','dp','pl','mn']),anNumeralQ([[0,'maj7'],[2,'m7'],[7,'7'],[9,'7'],[1,'7'],[10,'7'],[5,'m7'],[1,'dim7'],[11,'m7♭5']])]},
   {n:'Write the numerals',d:'Enter a progression in Berklee numerals yourself',g:[anWriteQ()]}]},
- {id:'repertoire',cat:'applied',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Know them on paper, then play them chord by chord on the guitar.',levels:[
+ {id:'repertoire',cat:'neck',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Know them on paper, then play them chord by chord on the guitar.',levels:[
   {n:'Blues in F and B♭',d:'Basic and jazz blues, bar by bar',g:[repBarQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F']),repNextQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F'])]},
   {n:'Minor & Bird blues',d:'Cm blues and Parker’s descending II–Vs',g:[repBarQ(['Minor blues in C','Bird blues in F']),repNextQ(['Minor blues in C','Bird blues in F','Jazz blues in F'])]},
   {n:'Rhythm changes',d:'A section in B♭ and the bridge',g:[repBarQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNextQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNumQ(['Rhythm changes A (B♭)','Rhythm changes bridge'])]},
@@ -3806,14 +3806,14 @@ const GAMES=[
   {n:'Comp the form, in time',d:'A blues chorus, then the first eight bars of the standards: every chord where the chart puts it, with the click (guitar)',g:[repCompQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F','Minor blues in C']),repCompQ(FORMS.map(f=>f.n).filter(n=>!WHOLE.includes(n)).filter(n=>!/blues/i.test(n)))]},
   {n:'Whole tunes: where am I?',d:'The complete forms of five standards and rhythm changes: what comes next, which bar is this',g:[repNextQ(WHOLE),repBarQ(WHOLE)]},
   {n:'Play a whole tune',d:'Every chord of a complete form, strummed in order, any common voicing (guitar)',g:[repPlayQ(WHOLE)]}]},
- {id:'phrase',cat:'applied',mic:true,name:'Phrase and Space',area:'Building a solo · guitar, over the band',desc:'A solo is phrases and the silence between them. Play two bars, rest two; say a phrase again; change its ending; ask and answer; land on the new chord; then a whole blues chorus built from one idea. Your own notes, checked by rules. Headphones: the band plays while the mic listens.',levels:[
+ {id:'phrase',cat:'neck',mic:true,name:'Phrase and Space',area:'Building a solo · guitar, over the band',desc:'A solo is phrases and the silence between them. Play two bars, rest two; say a phrase again; change its ending; ask and answer; land on the new chord; then a whole blues chorus built from one idea. Your own notes, checked by rules. Headphones: the band plays while the mic listens.',levels:[
   {n:'Play two, rest two',d:'Two bars of your own, two bars of silence, two bars of your own',g:[phraseQ('space')]},
   {n:'Say it again',d:'A phrase, a rest, and the same phrase again',g:[phraseQ('again')]},
   {n:'Change the ending',d:'The same phrase with a new last note or two',g:[phraseQ('vary')]},
   {n:'Call and answer',d:'A phrase that stays open, and one that ends on a note of the chord',g:[phraseQ('answer')]},
   {n:'Into the IV chord',d:'Play through bars 3 and 4 and land on beat 1 of bar 5 on a note of the new chord',g:[phraseQ('toIV')]},
   {n:'A chorus from one idea',d:'Twelve bars: your idea, the idea again over the IV chord, then something new, with empty bars between',g:[phraseQ('chorus')]}]},
- {id:'walking',cat:'applied',name:'Walking Line',area:'Bass lines over II–V',desc:'Root on 1, chord tones, and an approach note into the next root: name it, pick the bar that works, then place it on the bass strings.',levels:[
+ {id:'walking',cat:'neck',name:'Walking Line',area:'Bass lines over II–V',desc:'Root on 1, chord tones, and an approach note into the next root: name it, pick the bar that works, then place it on the bass strings.',levels:[
   {n:'Approach notes',d:'Chromatic from below or above, scale step, dominant approach',g:[walkQ('approach')]},
   {n:'Pick the bar',d:'Which four notes walk from II to V and from V to I?',g:[walkQ('pick'),walkQ('approach')]},
   {n:'On the bass strings',d:'Click the approach note on strings 6–3',g:[walkQ('neck')]},
@@ -3945,11 +3945,10 @@ const GAMES=[
 ];
 const GBY=Object.fromEntries(GAMES.map(g=>[g.id,g]));
 const CATS=[
- {id:'neck',name:'Fretboard',desc:'Where every note lives, reading it off the staff, and chord tones, triads and interval shapes under the hand.'},
+ {id:'neck',name:'Fretboard',desc:'Where every note lives, reading it off the staff, scales, triads and arpeggios under the hand, and putting it together: improvising, phrasing, bends, walking lines, repertoire.'},
  {id:'theory',name:'Theory',desc:'Intervals, keys, diatonic harmony, chord construction and scale choice.'},
  {id:'voicings',name:'Voicings & Grips',desc:'Inversions, drop-2, drop-3 and shells: reading them, naming them, finding them.'},
  {id:'ear',name:'Ear & Solfège',desc:'Hearing degrees, intervals, chord qualities and progressions; singing and playing back through the microphone.'},
- {id:'applied',name:'Applied',desc:'Putting it together on the instrument: improvising your own lines, repertoire, walking lines, bends.'},
  {id:'rhythm',name:'Rhythm & Time',desc:'Tapping with and against the click, reading rhythm, subdivisions, swing and comping rhythms.'}];
 const gamesIn=c=>GAMES.filter(g=>g.cat===c&&!g.retired)   /* a retired game keeps its data and its statistics; it is no longer offered */
  .map((g,i)=>[g,i]).sort((a,b)=>(COURSE[a[0].id]||999)-(COURSE[b[0].id]||999)||a[1]-b[1]).map(z=>z[0]);
@@ -6330,7 +6329,7 @@ function vMetro(){const c=metCfg(),M=MET_METERS[c.meter],on=MET&&MET.on,styles=O
    during play; the long talk is built from the player's data (masterFacts → masterTalk), and rewritten by Claude when an API key is set (masterAI). */
 const FRAMES=['idle','cheer','wince','talk','angry','amazed'];
 const MASTERS={
- rhythm:{n:'Bongi',spr:'rhythm',pos:[330,770],h:138,role:'Rhythm & Time',
+ rhythm:{n:'Bongi',spr:'rhythm',pos:[1010,540],h:138,   /* right of the second candelabrum, where Jimmi stood until 17 Nov 2026 */role:'Rhythm & Time',
   voice:'a playful street-percussionist monkey behind a pair of bongos. Short, punchy sentences with a beat to them; teases kindly; everything is about feel, the pocket, counting out loud, the body keeping time.',
   say:{ok:['In the pocket!','Tight!','That one sat right.','Groovin’.'],miss:['Ooh, that one fell off the beat.','Count it out loud.','Easy. Feel the one.'],streak:['Now you are cooking!','Do not stop, do not stop!'],unlock:['New level! Drum roll!'],start:['Count it in. One, two…'],end:['Good sweat.','We go again tomorrow.']}},
  neck:{n:'John',spr:'neck',pos:[452,612],h:186,role:'Fretboard',
@@ -6344,10 +6343,7 @@ const MASTERS={
   say:{ok:['There it is.','Nice grip.','Good. Now the next one.'],miss:['Find the root first.','One finger moved, that is all.','Slow. Which inversion is it?'],streak:['That is how the hands learn.','Smooth.'],unlock:['More grips. Good.'],start:['Root, then the rest.'],end:['Good work. Play them in a tune.','That is enough for the hands.']}},
  ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',
   voice:'a glamorous 1940s nightclub singer in a red sequin gown. Warm, theatrical, a little teasing; insists you sing everything before you play it; talks about where a note wants to go.',
-  say:{ok:['You heard it, darling.','Perfect pitch of mind.','Oh, lovely.'],miss:['Sing it first, darling.','Where does it want to go?','Listen for home.'],streak:['Now you are really listening.','Darling, you are on fire.'],unlock:['A new song for you.'],start:['Sing the tonic before you answer.'],end:['Your ears are tired. That is good.','Rest them, darling.']}},
- applied:{n:'Jimmi',spr:'applied',pos:[1010,540],h:192,flip:true,   /* by the moon window, turned to look out of it (hall only) */role:'Applied',
-  voice:'a psychedelic blues-rock showman from the sixties. Loose, vivid, generous; wants you to take risks, bend the note until it cries, play it like you mean it; technique is only there to say something.',
-  say:{ok:['Yeah, man!','That sang.','Right on.'],miss:['No sweat. Say it again, slower.','Hear it first, then let it out.','Aim for the chord tone, baby.'],streak:['You are flying now!','Keep that fire!'],unlock:['New ground, brother.'],start:['Play it like you mean it.'],end:['That had soul.','Come back and burn some more.']}}};
+  say:{ok:['You heard it, darling.','Perfect pitch of mind.','Oh, lovely.'],miss:['Sing it first, darling.','Where does it want to go?','Listen for home.'],streak:['Now you are really listening.','Darling, you are on fire.'],unlock:['A new song for you.'],start:['Sing the tonic before you answer.'],end:['Your ears are tired. That is good.','Rest them, darling.']}}};
 const PLAYER={n:'Emir',spr:'player',pos:[705,772],h:178};
 const artURL=id=>(window.ART_DATA&&window.ART_DATA['masters/'+id])||`art/masters/${id}.png`;
 const sprHTML=(id,frame,cls='')=>`<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;
@@ -6390,15 +6386,13 @@ const VOICE={
  neck:{hi:['Hey, Emir.','Good to see you, man.'],whole:(m,b)=>`You gave ${m} minutes this week, mostly to ${b}.`,mine0:'We have not looked at the neck together yet. Start on the two low strings; everything grows from there.',up:g=>`${g.game} is opening up for you, ${g.trend.before} to ${g.trend.last3} percent.`,weak:g=>`${g.game} at level ${g.level} is at ${g.frontier.clean} percent. You are still guessing there, and that is okay, but we stay until it is quiet in your head.`,slow:g=>`In ${g.game} you are right but it takes you ${g.speed.yours} seconds; under ${g.speed.target} is where you stop counting frets.`,mix:g=>`One thing keeps coming back: you ${g.repeatedMistakes[0]}. Put those two side by side and play them, slowly, ten times.`,timing:g=>`In time you land ${Math.abs(g.timing.leanMs)} ms ${g.timing.leanMs<0?'ahead':'behind'}. Relax the hand.`,stale:g=>`You have not touched ${g.game} in ${g.daysSince} days. The neck fades if you do not walk it.`,next:g=>`Go to ${g.game}, level ${g.level}. Say every note out loud before the finger lands.`,craft:'The point of knowing the neck is to forget it. When you stop looking for notes you start hearing them.'},
  theory:{hi:['Good evening, sir.','Ah, sir.'],whole:(m,b)=>`${m} minutes of study this week, sir, the greater part with ${b}.`,mine0:'We have yet to open the books together, sir. The major scales first; all else is an alteration of them.',up:g=>`${g.game} improves, sir: from ${g.trend.before} to ${g.trend.last3} percent. Most gratifying.`,weak:g=>`${g.game}, level ${g.level}, stands at ${g.frontier.clean} percent, sir. One does not proceed on that.`,slow:g=>`In ${g.game} you are correct but deliberate, sir: ${g.speed.yours} seconds against a target of ${g.speed.target}. You are calculating; a gentleman simply knows.`,mix:g=>`A recurring lapse, sir: you ${g.repeatedMistakes[0]}. Write both out by letters and the error will cure itself.`,timing:()=>'',stale:g=>`${g.game} has been closed for ${g.daysSince} days, sir. Knowledge unused goes off, like milk.`,next:g=>`If I may, sir: ${g.game}, level ${g.level}. Spell by letters first, then apply the accidentals.`,craft:'Theory is merely the names of sounds you already like, sir. Say the name as you play the sound and they become one thing.'},
  voicings:{hi:['Emir.','Sit down, Emir.'],whole:(m,b)=>`${m} minutes this week. Mostly ${b}.`,mine0:'No grips yet. Start with the shells: root, third, seventh. That is a whole rhythm section in three notes.',up:g=>`${g.game} is coming: ${g.trend.before} to ${g.trend.last3} percent.`,weak:g=>`${g.game}, level ${g.level}: ${g.frontier.clean} percent. The hand does not know it yet.`,slow:g=>`${g.game}: you find it, but in ${g.speed.yours} seconds. A tune will not wait; get it under ${g.speed.target}.`,mix:g=>`You keep doing one thing: you ${g.repeatedMistakes[0]}. Find the root in both and look at what one finger does.`,timing:()=>'',stale:g=>`${g.game}: ${g.daysSince} days. Grips leave the hand fast.`,next:g=>`Work ${g.game}, level ${g.level}. Name the inversion, find the root, then play it. Then play it in a tune.`,craft:'Do not collect chords. Learn tunes, and move as few fingers as you can from one chord to the next.'},
- ear:{hi:['Emir, darling.','Well, hello there.'],whole:(m,b)=>`${m} minutes this week, darling, and most of them went to ${b}.`,mine0:'You have not sung me a single note yet. Come: a cadence, one note, and you tell me where it lives.',up:g=>`${g.game} is blossoming, ${g.trend.before} to ${g.trend.last3} percent. I can hear you listening.`,weak:g=>`${g.game}, level ${g.level}, is at ${g.frontier.clean} percent. You are answering with your eyes, darling, not your ears.`,slow:g=>`${g.game} is right but slow.`,mix:g=>`And one habit: you ${g.repeatedMistakes[0]}. Sing both, one after the other, until you can feel the difference in your throat.`,timing:()=>'',stale:g=>`${g.game} has been silent for ${g.daysSince} days. Ears forget faster than fingers.`,next:g=>`Tonight: ${g.game}, level ${g.level}. Sing the tonic, then sing the answer, and only then touch anything.`,craft:'If you cannot sing it, you do not hear it; you are only recognising it. Sing everything, darling. Badly is fine.'},
- applied:{hi:['Emir, my man!','Hey, brother.'],whole:(m,b)=>`${m} minutes this week, most of it on ${b}.`,mine0:'You have not played me anything yet. Plug in; we start with one chord and four notes that are yours.',up:g=>`${g.game} is taking off, ${g.trend.before} to ${g.trend.last3} percent. I felt that.`,weak:g=>`${g.game}, level ${g.level}: ${g.frontier.clean} percent. The idea is there but it is not landing.`,slow:g=>`${g.game} is right but slow.`,mix:g=>`You keep doing this: you ${g.repeatedMistakes[0]}.`,timing:g=>`You are landing ${Math.abs(g.timing.leanMs)} ms ${g.timing.leanMs<0?'ahead of':'behind'} the click.`,stale:g=>`${g.game}: ${g.daysSince} days. Do not let it cool down.`,next:g=>`Go to ${g.game}, level ${g.level}. Hear the line in your head, sing it, then let the guitar say it.`,craft:'All the scales and grips are just so you can say something. Aim at a chord tone, mean it, and leave some air.'}};
+ ear:{hi:['Emir, darling.','Well, hello there.'],whole:(m,b)=>`${m} minutes this week, darling, and most of them went to ${b}.`,mine0:'You have not sung me a single note yet. Come: a cadence, one note, and you tell me where it lives.',up:g=>`${g.game} is blossoming, ${g.trend.before} to ${g.trend.last3} percent. I can hear you listening.`,weak:g=>`${g.game}, level ${g.level}, is at ${g.frontier.clean} percent. You are answering with your eyes, darling, not your ears.`,slow:g=>`${g.game} is right but slow.`,mix:g=>`And one habit: you ${g.repeatedMistakes[0]}. Sing both, one after the other, until you can feel the difference in your throat.`,timing:()=>'',stale:g=>`${g.game} has been silent for ${g.daysSince} days. Ears forget faster than fingers.`,next:g=>`Tonight: ${g.game}, level ${g.level}. Sing the tonic, then sing the answer, and only then touch anything.`,craft:'If you cannot sing it, you do not hear it; you are only recognising it. Sing everything, darling. Badly is fine.'}};
 const OWN={
  rhythm:{here:d=>`${d} on the drum with me this week.`,share:p=>`That is only ${p} percent of your practice. Time is in everything else you play.`,away:d=>`${d} days since you sat at the drum with me.`},
  neck:{here:d=>`You spent ${d} on the neck with me this week.`,share:p=>`${p} percent of your week. The neck wants a little every day.`,away:d=>`It has been ${d} days since we walked the neck together.`},
  theory:{here:d=>`${d} at the books with me this week, sir.`,share:p=>`A mere ${p} percent of your practice, sir.`,away:d=>`It is ${d} days since we last opened the books, sir.`},
  voicings:{here:d=>`${d} on grips with me this week.`,share:p=>`${p} percent of your time. Chords need the hours.`,away:d=>`${d} days since you played me a chord.`},
- ear:{here:d=>`${d} of listening with me this week, darling.`,share:p=>`Only ${p} percent of your practice went to your ears.`,away:d=>`${d} days since you last sang for me, darling.`},
- applied:{here:d=>`${d} of real playing with me this week.`,share:p=>`${p} percent of your week. Play more, drill less.`,away:d=>`${d} days since you played for me.`}};
+ ear:{here:d=>`${d} of listening with me this week, darling.`,share:p=>`Only ${p} percent of your practice went to your ears.`,away:d=>`${d} days since you last sang for me, darling.`}};
 function masterTalk(cat){const P=masterPoints(cat),V=VOICE[cat],W=P.F.whole,s=[R1(V.hi)];
   /* the master speaks about their own section; the rest of the week gets a clause at most */
   const mine=P.me.minutesThisWeek,all=W.minutesThisWeek,dur=m=>m>=120?`about ${Math.round(m/60)} hours`:`${m} minutes`,O=OWN[cat];
@@ -6458,7 +6452,7 @@ function chatPanel(x){const M=MASTERS[x.cat],C=chatOf(x.id),key=aiKey();
    ${key?`<div class="row"><input type="text" id="chatin" class="fixin2 chatin" placeholder="Ask ${M.n}…" value="${esc(C.draft)}" autocomplete="off" ${C.busy?'disabled':''}><button class="btn small primary" data-act="chatsend" ${C.busy?'disabled':''}>Send</button>${C.msgs.length?'<button class="btn small ghost" data-act="chatclear">Clear</button>':''}</div>`
      :`<p class="note">${M.n} answers as an AI agent, which needs your Anthropic API key (kept in this browser only). <button class="btn small" data-act="aigo">Set it under Masters’ voices</button></p>`}</section>`;}
 
-/* ---- the hall: six masters in a circle, the player in the middle ---- */
+/* ---- the hall: five masters in a circle, the player in the middle ---- */
 const hubOn=()=>!view.list&&innerWidth>=760;
 function aiCached(cat){if(!aiKey())return null;try{const c=JSON.parse(localStorage.getItem(AI.cache)||'{}')[cat];return c&&c.sig===K(JSON.stringify(masterFacts(cat)))+dayKey(Date.now())?c:null;}catch(e){return null;}}
 function hubFit(){const C=CASTLE,vw=innerWidth,vh=innerHeight,s=Math.max(vw/C.W,vh/C.H);return {s,ox:(vw-C.W*s)/2,oy:(vh-C.H*s)*0.3};}
@@ -7160,7 +7154,6 @@ const ADV={neck:'Say each note name out loud as you play it, one string at a tim
   theory:'Spell it out loud from the root before you answer: letters first, then accidentals.',
   voicings:'Play the grip, name the chord tone under each finger from low to high, then move it to the next string set.',
   ear:'Sing it before you answer: if you can sing it, you can name it. Anchor every answer to the tonic.',
-  applied:'Take it to the instrument: play the line or shape in two positions before you answer.',
   rhythm:'Count out loud and tap your foot on the beat; feel the subdivision before you play the first note.'};
 const isMarkTime=it=>!(it.pn&&it.pn===it.n);   // answer time means something only for marked/clicked answers
 /* guitar mic answers before the Basic Pitch detector (31 Oct 2026) were often graded wrong: the analysis leaves them out (they stay stored) */

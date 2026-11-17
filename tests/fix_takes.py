@@ -21,7 +21,7 @@ FEED = """async (b64)=>{const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).
 NM = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']; nm = lambda m: NM[m % 12] + str(m // 12 - 1) if m is not None else '—'
 passed = 0
 with sync_playwright() as pw:
-    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required'])
+    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required', '--mute-audio'])
     for r in reps:
         c = r['ctx']; pg = b.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.goto((root / 'dist' / 'fretwise.html').as_uri()); pg.evaluate('localStorage.clear()'); pg.reload()
@@ -30,7 +30,10 @@ with sync_playwright() as pw:
         pg.evaluate("g=>{view={name:'lobby',gid:g};render();}", c['game'])   # the home page is the hall now: open the lobby directly
         if c.get('mode') == 'play': pg.click('[data-act=mode][data-k=play]')
         # replay at the level the report came from if it can produce the take's target, else any untimed level (the takes were played without a click)
-        pg.evaluate("""([t,lv])=>{const o=pickQ;pickQ=(id,L)=>{for(let i=0;i<4000;i++){const L2=i<1500&&lv?lv:1+i%GBY[id].levels.length,q=o(id,L2);if(q.ui==='mic'&&q.target.join()===t&&(!q.metro||q.freeStart))return q;}return o(id,L);};}""", [','.join(map(str, c['mic']['target'])), c.get('qlv')])
+        pg.evaluate("""([t,lv,free,metro,grid,div])=>{const o=pickQ;pickQ=(id,L)=>{for(let i=0;i<4000;i++){const L2=i<1500&&lv?lv:1+i%GBY[id].levels.length,q=o(id,L2);if(q.ui==='mic'&&q.target.join()===t&&(!q.metro||q.freeStart)){if(q.metro&&free){q.grid=grid||q.target.map((_,j)=>j/div);if(metro)q.metro=metro;}return q;}}   /* the same notes may be found at another level's subdivision: the take is judged on its own grid */
+          /* the levels have changed since the report: rebuild its question on a clicked run of this game (target, grid and tempo from the report; the pass rule of the run) */
+          if(free&&metro){for(let i=0;i<4000;i++){const q=o(id,1+i%GBY[id].levels.length);if(q.ui==='mic'&&q.freeStart&&q.metro&&q.tol&&!q.own&&!q.road&&!q.msolo){const T=t.split(',').map(Number);q.target=T;q.targets=null;q.maxNotes=T.length;q.metro=metro;q.grid=grid||T.map((_,j)=>j/div);q.names=T.map(m=>NOTE_PC[mod(m,12)]);q.degs=T.map(()=>'·');q.vamp=null;window._rebuilt=1;return q;}}}
+          return o(id,L);};}""", [','.join(map(str, c['mic']['target'])), c.get('qlv'), bool(c['mic'].get('free')), c['mic'].get('metro'), c['mic'].get('grid'), 3 if 'triplets' in c.get('label','') else 2 if 'eighths' in c.get('label','') else 1])
         # the take starts at the instant listening starts, as it did when it was recorded (so 'already sounding' notes are treated alike)
         pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
         # a clicked take is replayed at the tempo it was played at: the report's own (newer reports), else inferred from the spacing of the heard notes and the level's notes per click

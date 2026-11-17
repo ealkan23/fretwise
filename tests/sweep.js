@@ -151,10 +151,11 @@ Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES 
  for(let t=0;t<120;t++){const q=gens[t%gens.length](),B=750,T=q.target,N=T.length,nt=(i,dt=0,m=T[i])=>({midi:m,mf:m,t:100+(3+q.grid[i])*B+dt}),all=()=>T.map((_,i)=>nt(i)),g=ns=>micGrade(q,{notes:ns,firstAt:3000,beat:B,beatStart:100}),a=3,b=N-3,c=5,LM=Math.max(2,Math.ceil(N*0.15-1e-9));
    if(!q.tol||q.tol.miss!==1||q.tol.late!==.15||q.tol.lateMin!==2){bad++;console.log('scales: no tolerance rule',q.label);continue;}
    let wm=T[c]+1;while(T.includes(wm))wm++;const lateSet=k=>{const idx=[];for(let i=1;idx.length<k;i+=2)idx.push(i);return all().map((n,i)=>idx.includes(i)?nt(i,B*0.4):n);};
-   const one=all().filter((_,i)=>i!==a),two=all().filter((_,i)=>i!==a&&i!==b),both=lateSet(LM).filter((_,i)=>i!==b),
+   const MM=Math.max(1,Math.floor(N/16)),drop=k=>{const ix=[a,b,8,12,16].slice(0,k);return all().filter((_,i)=>!ix.includes(i));},one=drop(MM),two=drop(MM+1),both=lateSet(LM).filter((_,i)=>i!==b),
+     op=[52,57,62,55,59,64,45,50].find(m=>m!==T[c]&&m!==T[c+1]),ring=all().map(n=>({...n,dur:600})).concat([{midi:op,mf:op,t:nt(c).t+60,dur:250}]).sort((x,y)=>x.t-y.t),alone=all().map(n=>({...n,dur:120})).concat([{midi:op,mf:op,t:nt(c).t+B*0.5,dur:250}]).sort((x,y)=>x.t-y.t),
      wrong=all().map((n,i)=>i===c?nt(i,0,wm):n),extra=all().concat([{midi:wm,mf:wm,t:nt(c).t+B*0.5,dur:300}]).sort((x,y)=>x.t-y.t);
-   const r={clean:g(all()).ok,one:g(one).ok,two:g(two).ok,lateOk:g(lateSet(LM)).ok,lateOver:g(lateSet(LM+1)).ok,both:g(both).ok,wrong:g(wrong).ok,extra:g(extra).ok};
-   if(!r.clean||!r.one||!r.lateOk||!r.both||r.two||r.lateOver||r.wrong||r.extra){bad++;console.log('scales tolerance rule broken',q.label,N,LM,JSON.stringify(r));}}
+   const r={ring:g(ring).ok,alone:g(alone).ok,clean:g(all()).ok,one:g(one).ok,two:g(two).ok,lateOk:g(lateSet(LM)).ok,lateOver:g(lateSet(LM+1)).ok,both:g(both).ok,wrong:g(wrong).ok,extra:g(extra).ok};
+   if(!r.clean||!r.one||!r.lateOk||!r.both||r.two||r.lateOver||r.wrong||r.extra||!r.ring||(r.alone&&q.grid[1]-q.grid[0]>=1)){   /* one: the allowed number not heard (1, or 1 in 16) passes; two: one more fails; ring: an open string sounding with a played note is not a wrong note; alone: the same pitch played on its own between two notes is (checked at one note a click: in eighths and triplets every sound is within 160 ms of a note) */bad++;console.log('scales tolerance rule broken',q.label,N,LM,JSON.stringify(r));}}
  const q2=alOneQ({pat:['up']})();if(q2.freeStart||q2.tol){bad++;console.log('along should not be free start or tolerant');}}
 /* Along the Neck: every line is in its scale, moves by scale step where it is a scale run, stays on the neck; shifts really leave the position; the rule grader rejects bad lines */
 {const contig=(sc,ms)=>ms.every((m,i)=>!i||(Math.abs(m-ms[i-1])<=2&&m!==ms[i-1])),inSc=(sc,ms)=>ms.every(m=>sc.pcs.includes(((m%12)+12)%12));

@@ -22,7 +22,7 @@ def score(exp, got):
     return D[A][B]
 
 with sync_playwright() as pw:
-    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required'])
+    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required', '--mute-audio'])
     pg = b.new_page(); pg.goto(url); takes = pg.evaluate('TAKES'); pg.close()
     modes = ['old', 'bp'] if mode == 'both' else [mode]; tot = {m: 0 for m in modes}; n = 0
     for t in takes:

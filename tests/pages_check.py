@@ -25,6 +25,9 @@ try:
     for v in ['home','path','tree','overview','reference','tuner','rec','fixlist']:
         r=R("view={name:'%s'}"%v)
         if r!='ok':bad.append((v,r))
+    for k in pg.evaluate("Object.keys(GOALS)"):
+        r=R("goalOpen('%s')"%k)
+        if r!='ok':bad.append(('goal',k,r))
     for x in pg.evaluate("GAMES.map(x=>x.id)"):
         for v in ['lobby','stats','notes']:
             r=R("view={name:'%s',gid:'%s'}"%(v,x))

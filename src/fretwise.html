@@ -6344,7 +6344,7 @@ const MASTERS={
  ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',
   voice:'a glamorous 1940s nightclub singer in a red sequin gown. Warm, theatrical, a little teasing; insists you sing everything before you play it; talks about where a note wants to go.',
   say:{ok:['You heard it, darling.','Perfect pitch of mind.','Oh, lovely.'],miss:['Sing it first, darling.','Where does it want to go?','Listen for home.'],streak:['Now you are really listening.','Darling, you are on fire.'],unlock:['A new song for you.'],start:['Sing the tonic before you answer.'],end:['Your ears are tired. That is good.','Rest them, darling.']}}};
-const PLAYER={n:'Emir',spr:'player',pos:[705,772],h:178};
+const PLAYER={n:'Emir',spr:'player',pos:[655,772],h:178};
 const artURL=id=>(window.ART_DATA&&window.ART_DATA['masters/'+id])||`art/masters/${id}.png`;
 const sprHTML=(id,frame,cls='')=>`<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;
 function sprFrame(el,frame){if(el)el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}

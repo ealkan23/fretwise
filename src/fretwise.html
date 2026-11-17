@@ -11190,6 +11190,9 @@ function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=leve
     const nn=both?(gm?gn:it.n-gn):gn,cc=both?(gm?gc:it.c-gc):gc;iN+=nn;iC+=cc;if(!gm&&(!both||!it.pn)&&nn){iMs+=it.ms||0;iMsN+=it.n;}});
   let win=both?((g.hm||{})[gm?'g':'s']||{})[L]||[]:(g.hist[L]||[]),fb='';
   if(both&&!win.length){if(gm&&pl.length){win=pl.map(e=>e.ok);fb='your last played answers';}}
+  /* a short window on one input while nearly everything at the level was answered on that input (Fretboard 11 after the Note Hunt merge: 11 answers in the guitar
+     window, 220 played): the level's own recent window says more. Under 12 answers the bar cannot turn green, which read as “100 % and yellow” (user, 17 Nov 2026) */
+  if(both&&win.length&&win.length<STD_N){const oth=gm?o.s:o.g,tot=o.s+o.g,h=g.hist[L]||[];if(tot&&oth/tot<0.1&&h.length>win.length){win=h;fb='your recent answers at this level';}}
   let rn=win.length,rc=win.reduce((p,q)=>p+q,0);
   if(!rn){const x=GBY[gid],rs=(g.sessions||[]).filter(r=>r.L===L&&(x.mic?gm:x.tap?!gm:!both?true:gm?(r.t>=ONE_INPUT_T&&r.mode==='play'):(r.t>=ONE_INPUT_T?r.mode!=='play':(r.mode!=='play'||!o.g)))).reverse();   /* before the one-input rule a “playing it” round was mostly screen answers unless the level was really played */let k=0;for(const r of rs){if(k>=20)break;rn+=r.n||0;rc+=r.c||0;k+=r.n||0;}if(rn)fb='your recent rounds on this input';}   // rounds carry level, input and score
   if(!rn&&iN){rn=iN;rc=iC;fb='all your answers on this input';}                       // older answers, split by input
@@ -11201,7 +11204,7 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
   const goods=[];const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>{goods.push(!!good);return bar0(lab,val,fill,ticks,good,tip,goal,dim);},bar0=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
   const an=M.rn,ac=M.rc,p=an?ac/an:0;
   const acc=bar('Accuracy',an?Math.round(p*100)+'%':'—',p,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],an>=STD_N&&p>=sd.acc,
-    an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet',`unlock ${PASS*100}% · master ${Math.round(sd.acc*100)}%`);
+    an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.${an<STD_N?` The bar turns green from ${STD_N} answers: ${STD_N-an} more.`:''}`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet',`unlock ${PASS*100}% · master ${Math.round(sd.acc*100)}%`);
   let sp='<div class="mb"></div>';
   if(kind==='time'){const n=M.flu.length,T=lvTargetEff(x.id,L),f=sd.flu||1,avg=!n&&M.avg?M.avg:null,t=n?med(M.flu)*T:avg,full=n>=FLU_N;
     sp=bar('Speed',t===null?'—':t.toFixed(1)+' s',t===null?0:1-t/(2*T),[[0.5,'',`unlock: ${T.toFixed(1)} s`],[1-f/2,'std',`master: ${(f*T).toFixed(1)} s`]],full&&t<=f*T,

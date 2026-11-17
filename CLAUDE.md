@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## “100 % and yellow” (17 Nov 2026, user)
+The accuracy bar is green only from `STD_N` (12) recent answers at the master standard. Fretboard 11 (the former Note Hunt) showed Guitar 100 % in yellow: the per-input window `g.hm.g[11]` held 11 answers (it started empty at the merge) though 220 had been played. `lvModeStats` now takes the level's own window `g.hist[L]` when an input's window is shorter than 12 and under a tenth of the level's answers came from the other input; the bar's tooltip says how many answers are still needed for green. A row with truly few answers (Screen: 1) stays yellow.
+
 ## Scale Runner level 1 removed (17 Nov 2026, user: “remove level 1 of scale runner”; 13 levels)
 “Tonics, then one octave” (`scQ` with `['scale','tonics']` and `['scale','oct']` in the five basic positions of C) is gone; the ladder starts with “The whole position”. `REORDERS21` (flag `r47`, handled like `r43`: the old levels 1 and 2 become the new level 1, which counts as passed when either was) shifts everything down by one; `GOALS` ranges and `LEVEL_NOTES.scales` moved with it (the new first note is a full note). Checked on the user's data: 702 answers kept, frontier 8 → 7, levels 1–3 passed and 4–6 open as before, second load a no-op. **What no level asks any more**: finding every tonic of a position as its own exercise. The one-octave run tonic to tonic is still asked from any root (level 4, the movable forms) and inside the pattern levels (`'oct'`); the `tonics` and `oct` run forms stay in the code. The full notes keep the chapter “Tonics, then one octave” as how to learn a position.
 

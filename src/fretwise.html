@@ -4319,6 +4319,11 @@ function daysFrom(P){const D={};P.forEach(p=>{const d=D[dKey(p.t)]||(D[dKey(p.t)
 function rlOlder(g){const rl=g.rl||(g.rl=[]),first=rl.length?Math.min(...rl.map(p=>p.t)):Infinity,add=(g.sessions||[]).filter(s=>s.groove&&s.n&&s.t<first).map(s=>({t:s.t,L:s.L,n:s.n,c:s.c,dur:s.dur||0}));if(add.length){g.rl=add.concat(rl).sort((a,b)=>a.t-b.t);if(g.rl.length>RL_MAX)g.rl.splice(0,g.rl.length-RL_MAX);}return add.length;}
 /* once: rebuild the days from what is still stored (rounds and the performance log) */
 function dayBackfill(g){const cut=Date.now()-DAYS_KEEP*864e5;g.days={};(g.sessions||[]).forEach(s=>{if(s.t>=cut&&s.n)dayAdd(g,{n:s.n,c:s.c,ms:(s.ms||0)*s.n,dur:s.dur||0},s.t);});(g.pl||[]).forEach(e=>{if(e.t>=cut)dayAdd(g,dayPerf(e),e.t);});}
+/* The log keeps 300 answers a game, and at least the last 20 of every level: without that, a long stay on one level pushed every other level's timing out
+   (Reading Rhythm, 17 Nov 2026: 300 blocks at level 15, “Timing —” on all the others). The oldest entry of a level that has more than 20 goes first. */
+function plTrim(g){while(g.pl.length>300){const c={};g.pl.forEach(e=>{c[e.lv]=(c[e.lv]||0)+1;});let i=g.pl.findIndex(e=>c[e.lv]>20);if(i<0)i=0;g.pl.splice(i,1);}}
+/* a level's timing when the log has no timed entry left for it: its history points (g.rl) still hold it. inp: 'g' / 's' to take one input only */
+const rlTiming=(g,L,inp)=>(g.rl||[]).filter(p=>p.L===L&&p.tn&&p.ab!=null&&(!inp||(p.m||'s')===inp)).slice(-12).map(p=>p.ab/p.tn);
 function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.ui==='mic'){it.qn=(it.qn||0)+1;if(clean)it.qc=(it.qc||0)+1;}
   const mean=a=>a.reduce((x,y)=>x+y,0)/a.length,med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];};let e=null;
   if(q.ui==='mic'&&S.micResult&&S.micResult.per){const per=S.micResult.per,first=per.find(x=>x.got!==null&&x.t!=null),gaps=[];
@@ -4327,7 +4332,7 @@ function perfLog(g,q,it,clean){it.r=((it.r||'')+(clean?'1':'0')).slice(-8);if(q.
     const offs=per.filter(x=>x.off!=null&&x.ok&&x.onTime).map(x=>x.off);   /* timing = how tight the notes that landed on their click were; a missed entry (a beat or more away) is an accuracy miss, not a timing value */
     e={rt:first?Math.round(first.t):null,gp:gaps.length?Math.round(med(gaps)):null,n:per.length};if(offs.length){e.dr=Math.round(mean(offs));e.ab=Math.round(mean(offs.map(Math.abs)));}}
   else if(q.ui==='tap'&&S.tapResult){const offs=S.tapResult.per.filter(x=>x.ok).map(x=>x.off);if(offs.length)e={n:offs.length,dr:Math.round(mean(offs)),ab:Math.round(mean(offs.map(Math.abs)))};}
-  if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0,m:isGuitarQ(q,S.gid)?1:0});(g.pl||(g.pl=[])).push(e);if(g.pl.length>300)g.pl.shift();
+  if(!e)return;Object.assign(e,{t:Date.now(),k:K(q.key),lv:q.lv,ok:clean?1:0,m:isGuitarQ(q,S.gid)?1:0});(g.pl||(g.pl=[])).push(e);plTrim(g);
   if(e.rt!=null&&e.rt<30000){it.rt=(it.rt||0)+e.rt;it.rn=(it.rn||0)+1;}if(e.gp!=null){it.gp=(it.gp||0)+e.gp;it.gn=(it.gn||0)+1;}return e;}
 function finish(){const g=G(S.gid),n=S.answers.length;if(n){const c=S.answers.filter(a=>a.ok).length,ms=Math.round(S.answers.reduce((a,b)=>a+b.ms,0)/n),wall=Date.now()-S.t0,dur=activeMs(wall,n);
   g.sessions.push({t:Date.now(),L:S.L,n,c,ms,dur,wall,sc:S.score,mode:G(S.gid).mode||'mark'});if(g.sessions.length>80)g.sessions.shift();g.time+=dur;saveGame(S.gid);}
@@ -4454,7 +4459,7 @@ function grooveRecord(o){const g=G(GR.gid),st=GR.stats;
   if(!o.hit||extraSince||(o.len&&o.len!=='ok'))grooveBreak(o.bar+1);   /* the run itself is counted in bars when each bar completes (grooveLoop) */
   GR.win.push(o.hit&&!extraSince?1:0);   /* history (accuracy): hit within tolerance, no extra hit; the standard is judged by the timing numbers and the hold */if(GR.win.length===8){const w=GR.win.every(Boolean)?1:0;GR.win=[];const h=g.hist[GR.L]||(g.hist[GR.L]=[]);h.push(w);if(h.length>20)h.shift();g.n++;if(w)g.c++;
     const md=GR.mic?'g':'s';g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][GR.L]||(g.hm[md][GR.L]=[]);hm.push(w);if(hm.length>20)hm.shift();g.lc=g.lc||{};const lc=g.lc[GR.L]||(g.lc[GR.L]={s:0,g:0});lc[md]++;
-    const hs8=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit),offs=hs8.map(x=>x.off);{const bo=Object.assign({n:1,c:w},offs.length?{tn:1,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff)))}:{});dayAdd(g,bo);const ck=GR.ck||(GR.ck={n:0,c:0,tn:0,dr:0,ab:0});for(const k in bo)ck[k]+=bo[k];if(ck.n>=4){rlAdd(g,Object.assign({t:Date.now(),L:GR.L,m:GR.mic?'g':'s'},ck));GR.rlN=(GR.rlN||0)+1;GR.ck=null;}}if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff))),m:GR.mic?1:0});if(g.pl.length>300)g.pl.shift();}}
+    const hs8=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit),offs=hs8.map(x=>x.off);{const bo=Object.assign({n:1,c:w},offs.length?{tn:1,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff)))}:{});dayAdd(g,bo);const ck=GR.ck||(GR.ck={n:0,c:0,tn:0,dr:0,ab:0});for(const k in bo)ck[k]+=bo[k];if(ck.n>=4){rlAdd(g,Object.assign({t:Date.now(),L:GR.L,m:GR.mic?'g':'s'},ck));GR.rlN=(GR.rlN||0)+1;GR.ck=null;}}if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff))),m:GR.mic?1:0});plTrim(g);}}
   grooveUnlock();}
 /* what the unlock needs now: 64 in a row, tightness over them within the standard; feel levels also every ahead/behind target placed */
 function grooveMeets(){const hs=GR.onsets.slice(0,GR.res).filter(o=>o.hit&&o.bar>=GR.holdFrom),t=hs.length>=4?spread(hs.map(adjOff)):null,h16=hs.slice(-GRV.win),t16=h16.length>=4?spread(h16.map(adjOff)):null;   /* the hits inside the current run of bars */
@@ -10875,7 +10880,7 @@ function lvStd(gid,L){const x=GBY[gid];if(!x||!x.levels[L-1])return {ok:false};l
 const stdOf=gids=>gids.reduce((a,g)=>{const s=STD[g]||{};return {acc:Math.max(a.acc,s.acc||0),flu:Math.min(a.flu,s.flu||9),ab:Math.min(a.ab,s.ab||1e9),gp:Math.min(a.gp,s.gp||1e9)};},{acc:0,flu:9,ab:1e9,gp:1e9});
 function lvMetrics(gid,L){const g=G(gid),its=Object.values(g.items).filter(i=>i.lv===L),n=its.reduce((a,i)=>a+i.n,0),m=mastery(g,L),pl=(g.pl||[]).filter(e=>e.lv===L).slice(-20),fl=levelFlu(gid,L);
   const T=fl?lvTargetEff(gid,L):0;
-  return {n,rn:m.n,rc:m.c,flu:((g.ht||{})[L]||[]).slice(),fs:(((g.ht||{})[L])||[]).map(r=>r*T),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),an:fl?n:0,ams:fl?its.reduce((a,i)=>a+(i.ms||0),0):0};}
+  return {n,rn:m.n,rc:m.c,flu:((g.ht||{})[L]||[]).slice(),fs:(((g.ht||{})[L])||[]).map(r=>r*T),ab:(A=>A.length?A:rlTiming(g,L))(pl.filter(e=>e.ab!=null).map(e=>e.ab)),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),an:fl?n:0,ams:fl?its.reduce((a,i)=>a+(i.ms||0),0):0};}
 function sumMetrics(ms){return ms.reduce((a,m)=>({n:a.n+m.n,rn:a.rn+m.rn,rc:a.rc+m.rc,flu:a.flu.concat(m.flu),fs:a.fs.concat(m.fs||[]),ab:a.ab.concat(m.ab),gp:a.gp.concat(m.gp),an:a.an+m.an,ams:a.ams+m.ams}),{n:0,rn:0,rc:0,flu:[],fs:[],ab:[],gp:[],an:0,ams:0});}
 function metricBits(m,sd){sd=sd||{acc:PASS,flu:1,ab:35,gp:1.5};const med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];},out=[];if(!m.n&&!m.rn)return [{t:'not played yet',c:'muted'}];
   if(m.rn){const p=m.rc/m.rn;out.push({t:Math.round(p*100)+'%',c:m.rn<5?'muted':p>=sd.acc?'good':p<sd.acc-.15?'bad':'',tip:`${m.rc} of your last ${m.rn} answers clean (standard ${Math.round(sd.acc*100)}%)`});}
@@ -11171,7 +11176,7 @@ function lvModeStats(gid,L,gm){const g=G(gid),aS=levelAvail(gid,L,false),aG=leve
   if(!rn&&(g.hist[L]||[]).length&&(!both||(!gm&&!o.g))){const h=g.hist[L];rn=h.length;rc=h.reduce((p,q)=>p+q,0);fb='recent answers, both inputs';}
   if(!n)n=fb==='all your answers on this input'?iN:rn&&!fb?rn:n;if(!n&&rn)n=rn;
   if(n&&!rn){let tn=0,tc=0;Object.values(g.items).forEach(it=>{const gn=both?(it.pn||0):it.n,gc=both?Math.min(it.c,it.pc||0):it.c;tn+=gm?gn:it.n-gn;tc+=gm?gc:it.c-gc;});if(tn){rn=n;rc=Math.round(n*tc/tn);fb='estimated from all your answers on this input in this game';}}
-  return {n,rn,rc,fb,avg:iMsN?iMs/iMsN/1000:null,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
+  return {n,rn,rc,fb,avg:iMsN?iMs/iMsN/1000:null,flu:gm?[]:(((g.ht||{})[L])||[]).slice(),ab:(A=>A.length?A:rlTiming(g,L,both?(gm?'g':'s'):null))(pl.filter(e=>e.ab!=null).map(e=>e.ab)),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),rt:pl.filter(e=>e.rt!=null&&e.rt<30000&&e.ok).map(e=>e.rt)};}
 function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L,gm),kind=lvKind(x.id,L,gm),med=a=>{const b=a.slice().sort((p,q)=>p-q);return b[b.length>>1];};
   const goods=[];const bar=(lab,val,fill,ticks,good,tip,goal,dim)=>{goods.push(!!good);return bar0(lab,val,fill,ticks,good,tip,goal,dim);},bar0=(lab,val,fill,ticks,good,tip,goal,dim)=>`<div class="mb${dim?' dim':''}" title="${tip}"><span class="ml">${lab} <b>${val}</b></span><span class="bar2"><i class="${good?'good':''}" style="width:${Math.round(Math.max(0,Math.min(1,fill))*100)}%"></i>${ticks.map(([v,c,t])=>`<u class="${c||''}" style="left:${(Math.max(0,Math.min(1,v))*100).toFixed(1)}%" title="${t}"></u>`).join('')}</span></div>`;
   const an=M.rn,ac=M.rc,p=an?ac/an:0;

@@ -3991,7 +3991,13 @@ const roundMax=n=>Math.max(60000,n*120000),activeMs=(wall,n)=>Math.min(wall,roun
 const FLU_GAMES=['spelling','intervals','analysis','chordscale','fretboard','sight','triads','drop2','shells','neckiv','rhytheory'],FLU_N=6;
 function fluTarget(gid,q){if(!FLU_GAMES.includes(gid)||!q||q.audio||q.play||['mic','tap','multi'].includes(q.ui))return 0;
   if(q.ui==='spell')return q.tokens?1.5+1.2*q.need:1.5+1.0*(q.need-(q.given?q.given.length:0));   /* letters: 1.5 s + 1 s a note you enter (9 Nov 2026: 1 + 0.7 measured the mouse, not the recall) */if(q.ui==='pc'||q.ui==='letters')return 3;if(q.ui==='fret')return 4;return Math.min(12,4.8*(q.factor||1));}
-const LVT={};function lvTargetSec(gid,L){const k=gid+'|'+L;if(LVT[k]!==undefined)return LVT[k];const ts=[],lv=GBY[gid].levels[L-1];if(lv)lv.g.forEach(gen=>{for(let t=0;t<6;t++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const v=fluTarget(gid,q);if(v)ts.push(v);}catch(e){}}});ts.sort((a,b)=>a-b);return LVT[k]=ts.length?ts[ts.length>>1]:0;}
+const LVT={},LVR={};function lvTargetSec(gid,L){const k=gid+'|'+L;if(LVT[k]!==undefined)return LVT[k];const ts=[],lv=GBY[gid].levels[L-1];if(lv)lv.g.forEach(gen=>{for(let t=0;t<6;t++){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;const v=fluTarget(gid,q);if(v)ts.push(v);}catch(e){}}});ts.sort((a,b)=>a-b);LVR[k]=ts.length?[ts[0],ts.at(-1)]:null;return LVT[k]=ts.length?ts[ts.length>>1]:0;}
+/* A level whose questions have very different targets (Intervals & Keys 1: one note 2.5 s, a whole scale 8.5 s): the stored speed is a ratio to each question's own target,
+   so “ratio × the level's median target” showed a time nobody had played (19 s for answers of about 7; user, 17 Nov 2026). The seconds shown are now the real ones
+   (g.hs, the clean timed answers; until those exist, the level's average answer time), and the unlock speed is that time divided by the ratio: the target of the mix really answered. */
+const lvMixed=(gid,L)=>{lvTargetSec(gid,L);const R=LVR[gid+'|'+L];return !!R&&R[1]/R[0]>1.5;};
+function lvTargetEff(gid,L){const T=lvTargetSec(gid,L),g=G(gid),h=(g.ht||{})[L]||[];if(!T||!lvMixed(gid,L)||!h.length)return T;const md=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];},hs=(g.hs||{})[L]||[];let sec=hs.length>=3?md(hs):null;
+  if(sec===null){let ms=0,n=0;Object.values(g.items).forEach(it=>{if(it.lv===L&&!(it.pn&&it.pn===it.n)){ms+=it.ms||0;n+=it.n||0;}});sec=n?ms/n/1000:null;}const r=md(h);return sec&&r?sec/r:T;}
 const FLU_LV={};/* does this level ask timed recall questions at all? (sampled once) */
 function levelFlu(gid,L){const k=gid+'|'+L;if(FLU_LV[k]!==undefined)return FLU_LV[k];let y=false;if(FLU_GAMES.includes(gid)){const lv=GBY[gid].levels[L-1];if(lv)for(const gen of lv.g){try{const keep=LAST_ROOT,q=gen();LAST_ROOT=keep;if(fluTarget(gid,q)){y=true;break;}}catch(e){}}}return FLU_LV[k]=y;}
 function fluency(g,gid,L){if(!levelFlu(gid,L))return {need:false,ok:true,n:0};const h=(g.ht||{})[L]||[],b=h.slice().sort((x,y)=>x-y),med=b.length?b[b.length>>1]:null;return {need:true,n:h.length,med,ok:h.length>=FLU_N&&med<=1};}
@@ -4052,7 +4058,7 @@ function migrateReorder(id,g,R=REORDERS[id],flag='r26'){const mp=L=>R.m[L]||L,n=
   for(let L=1;L<=Math.min(g.lvl||1,R.n);L++)open.add(mp(L));(g.unl||[]).forEach(L=>{if(L<=R.n)open.add(mp(L));});
   const img=new Set();for(let L=1;L<=R.n;L++)img.add(mp(L));const top=Math.max(...open);for(let L=2;L<top;L++)if(!img.has(L))open.add(L);
   const remap=o=>{const h={};Object.entries(o||{}).forEach(([L,v])=>{const N=mp(+L);h[N]=(h[N]||[]).concat(v).slice(-20);});return h;};
-  g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
+  g.hist=remap(g.hist);if(g.ht)g.ht=remap(g.ht);if(g.hs)g.hs=remap(g.hs);Object.values(g.items||{}).forEach(it=>{if(it.lv)it.lv=mp(it.lv);});(g.sessions||[]).forEach(ss=>{if(ss.L)ss.L=mp(ss.L);});(g.pl||[]).forEach(e=>{if(e.lv)e.lv=mp(e.lv);});
   /* the per-input records and the history points are keyed by level too (added after the first reorders; missed by r31, found 13 Nov 2026) */
   if(g.lc){const lc={};Object.entries(g.lc).forEach(([L,v])=>{const o=lc[mp(+L)]||(lc[mp(+L)]={s:0,g:0});o.s+=v.s||0;o.g+=v.g||0;});g.lc=lc;}
   if(g.hm)for(const k of Object.keys(g.hm))g.hm[k]=remap(g.hm[k]);(g.rl||[]).forEach(p=>{if(p.L)p.L=mp(p.L);});
@@ -4272,7 +4278,7 @@ function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame
   if(q.rootKey){const rk=g.rk[q.rootKey]||(g.rk[q.rootKey]={n:0,c:0});rk.n++;if(ok&&!S.hinted)rk.c++;}
   const h=g.hist[q.lv]||(g.hist[q.lv]=[]);h.push(ok&&!S.hinted?1:0);if(h.length>20)h.shift();
   {const md=isGuitarQ(q,S.gid)?'g':'s';g.lc=g.lc||{};const lc=g.lc[q.lv]||(g.lc[q.lv]={s:0,g:0});lc[md]++;g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][q.lv]||(g.hm[md][q.lv]=[]);hm.push(ok&&!S.hinted?1:0);if(hm.length>20)hm.shift();}   /* the same window per input, for the lobby's two rows */
-  const ft=fluTarget(S.gid,q);if(ft&&ok&&!S.hinted&&given!==null){g.ht=g.ht||{};const a=g.ht[q.lv]||(g.ht[q.lv]=[]);a.push(Math.round(ms/ft/10)/100);if(a.length>12)a.shift();}
+  const ft=fluTarget(S.gid,q);if(ft&&ok&&!S.hinted&&given!==null){g.ht=g.ht||{};const a=g.ht[q.lv]||(g.ht[q.lv]=[]);a.push(Math.round(ms/ft/10)/100);if(a.length>12)a.shift();g.hs=g.hs||{};const b=g.hs[q.lv]||(g.hs[q.lv]=[]);b.push(Math.round(ms/100)/10);if(b.length>12)b.shift();}   /* hs: the same answers in seconds */
   g.n++;if(ok)g.c++;g.ms+=Math.min(ms,S.untimed?60000:S.limit);
   if(ok){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);const frac=S.untimed?0:Math.max(0,1-ms/S.limit);S.score+=Math.round((100+50*frac)*(S.hinted?.5:1));}else S.streak=0;
   g.best=Math.max(g.best||0,S.bestStreak);
@@ -10967,7 +10973,7 @@ function gameFacts(x){const g=G(x.id),o={game:x.name,levels:x.levels.length,leve
   o.played=true;o.levelName=lv.n;o.daysSince=last?Math.floor((Date.now()-last.t)/86400000):null;o.minutes=Math.round(g.time/60000);
   o.frontier={answers:m.n,clean:Math.round(m.p*100)};
   if(ss.length>=6){const A=ss.slice(-3),B=ss.slice(-6,-3),cnt=a=>a.reduce((s,v)=>s+v.n,0),a=acc(A),b=acc(B);if(cnt(A)>=12&&cnt(B)>=12&&b>=0.2)o.trend={last3:Math.round(a*100),before:Math.round(b*100)};}   /* only when both windows hold enough answers to mean something */
-  const fl=fluency(g,x.id,o.level);if(fl.need&&fl.n>=FLU_N){const T=lvTargetSec(x.id,o.level);if(T)o.speed={yours:+(fl.med*T).toFixed(1),target:+T.toFixed(1)};}
+  const fl=fluency(g,x.id,o.level);if(fl.need&&fl.n>=FLU_N){const T=lvTargetEff(x.id,o.level);if(T)o.speed={yours:+(fl.med*T).toFixed(1),target:+T.toFixed(1)};}
   const F=focusItems(g,x.id,3).slice(0,3);if(F.length)o.weakItems=F.map(f=>`${stripHTML(f.l)} (${f.why[0]})`);
   const cf=(g.cf||[]).filter(e=>e.n>=3).sort((a,b)=>b.n-a.n).slice(0,2);if(cf.length)o.repeatedMistakes=cf.map(e=>{const [right,said]=e.k.split(' → ');return `answered “${stripHTML(said)}” for “${stripHTML(right)}” ${e.n} times`;});
   const tm=(g.pl||[]).filter(e=>e.dr!=null).slice(-20);if(tm.length>=4)o.timing={leanMs:Math.round(sMed(tm.map(e=>e.dr))),spreadMs:Math.round(sMed(tm.map(e=>e.ab)))};
@@ -11257,7 +11263,7 @@ function lvStd(gid,L){const s=STD[gid],m=lvMetrics(gid,L),med=a=>{const b=a.slic
 /* the strictest standard among a skill's games, for colouring its combined numbers */
 const stdOf=gids=>gids.reduce((a,g)=>{const s=STD[g]||{};return {acc:Math.max(a.acc,s.acc||0),flu:Math.min(a.flu,s.flu||9),ab:Math.min(a.ab,s.ab||1e9),gp:Math.min(a.gp,s.gp||1e9)};},{acc:0,flu:9,ab:1e9,gp:1e9});
 function lvMetrics(gid,L){const g=G(gid),its=Object.values(g.items).filter(i=>i.lv===L),n=its.reduce((a,i)=>a+i.n,0),m=mastery(g,L),pl=(g.pl||[]).filter(e=>e.lv===L).slice(-20),fl=levelFlu(gid,L);
-  const T=fl?lvTargetSec(gid,L):0;
+  const T=fl?lvTargetEff(gid,L):0;
   return {n,rn:m.n,rc:m.c,flu:((g.ht||{})[L]||[]).slice(),fs:(((g.ht||{})[L])||[]).map(r=>r*T),ab:pl.filter(e=>e.ab!=null).map(e=>e.ab),gp:pl.filter(e=>e.gp!=null).map(e=>e.gp),an:fl?n:0,ams:fl?its.reduce((a,i)=>a+(i.ms||0),0):0};}
 function sumMetrics(ms){return ms.reduce((a,m)=>({n:a.n+m.n,rn:a.rn+m.rn,rc:a.rc+m.rc,flu:a.flu.concat(m.flu),fs:a.fs.concat(m.fs||[]),ab:a.ab.concat(m.ab),gp:a.gp.concat(m.gp),an:a.an+m.an,ams:a.ams+m.ams}),{n:0,rn:0,rc:0,flu:[],fs:[],ab:[],gp:[],an:0,ams:0});}
 function metricBits(m,sd){sd=sd||{acc:PASS,flu:1,ab:35,gp:1.5};const med=a=>{const b=a.slice().sort((x,y)=>x-y);return b[b.length>>1];},out=[];if(!m.n&&!m.rn)return [{t:'not played yet',c:'muted'}];
@@ -11561,9 +11567,9 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
   const acc=bar('Accuracy',an?Math.round(p*100)+'%':'—',p,[[PASS,'','unlock '+PASS*100+'%'],[sd.acc,'std','master standard '+Math.round(sd.acc*100)+'%']],an>=STD_N&&p>=sd.acc,
     an?`${ac} of your last ${an} answers clean${M.fb?' ('+M.fb+')':''}. Unlock at ${PASS*100}%; master standard ${Math.round(sd.acc*100)}%.`:M.n?'Recent accuracy for this input starts with your next round (older answers were not logged by input).':'Not played yet',`unlock ${PASS*100}% · master ${Math.round(sd.acc*100)}%`);
   let sp='<div class="mb"></div>';
-  if(kind==='time'){const n=M.flu.length,T=lvTargetSec(x.id,L),f=sd.flu||1,avg=!n&&M.avg?M.avg:null,t=n?med(M.flu)*T:avg,full=n>=FLU_N;
+  if(kind==='time'){const n=M.flu.length,T=lvTargetEff(x.id,L),f=sd.flu||1,avg=!n&&M.avg?M.avg:null,t=n?med(M.flu)*T:avg,full=n>=FLU_N;
     sp=bar('Speed',t===null?'—':t.toFixed(1)+' s',t===null?0:1-t/(2*T),[[0.5,'',`unlock: ${T.toFixed(1)} s`],[1-f/2,'std',`master: ${(f*T).toFixed(1)} s`]],full&&t<=f*T,
-      t===null?`Your typical time for a clean answer at this level shows after your first timed answers. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:avg!==null?`Your average answer time so far: ${t.toFixed(1)} s (all answers; clean answers are timed from your next round on). Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:`Your typical clean answer takes ${t.toFixed(1)} s${full?'':` (only ${n} timed so far; ${FLU_N} are needed before speed counts)`}. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s. The bar fills as you get faster.`,
+      t===null?`Your typical time for a clean answer at this level shows after your first timed answers. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:avg!==null?`Your average answer time so far: ${t.toFixed(1)} s (all answers; clean answers are timed from your next round on). Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s.`:`Your typical clean answer takes ${t.toFixed(1)} s${full?'':` (only ${n} timed so far; ${FLU_N} are needed before speed counts)`}. Unlock speed ${T.toFixed(1)} s, master ${(f*T).toFixed(1)} s. The bar fills as you get faster.${lvMixed(x.id,L)?' This level mixes questions with targets from '+LVR[x.id+'|'+L][0].toFixed(1)+' to '+LVR[x.id+'|'+L][1].toFixed(1)+' s; every answer is measured against its own target, and the unlock speed shown is the one for the questions you answered.':''}`,
       `unlock ${T.toFixed(1)} s · master ${(f*T).toFixed(1)} s`,t!==null&&!full);}
   else if(kind==='timing'){const a=M.ab.length?Math.round(M.ab.reduce((p,q)=>p+q,0)/M.ab.length):null,S0=Math.max(100,(sd.ab||35)*3);
     sp=bar('Timing',a===null?'—':`±${a} ms`,a===null?0:1-a/S0,[[1-(sd.ab||35)/S0,'std',`master standard ±${sd.ab||35} ms`]],a!==null&&a<=(sd.ab||35),a===null?'How far your notes or taps land from the click: shows after your first timed round.':`On average your notes or taps land ${a} ms from the click${x.levels.some(l=>l.c)?' (continuous games: from your own lean, which is shown, not judged)':''}; master standard ${sd.ab||35} ms. The bar fills as you get tighter.`,`master ±${sd.ab||35} ms`);}
@@ -11872,7 +11878,7 @@ function vStats(){const x=GBY[view.gid],g=G(x.id),kind=x.levels.some(l=>l.c)?'rh
   const items=Object.entries(gi.items).map(([k,v])=>({k,...v,acc:v.n?v.c/v.n:0})),days=statDays(gd),D=days.filter(z=>z.d).map(z=>z.d),sum=(a,f)=>a.reduce((t,d)=>t+(d[f]||0),0);
   const wk=days.slice(-7).filter(z=>z.d).map(z=>z.d),pw=days.slice(-14,-7).filter(z=>z.d).map(z=>z.d),acc=a=>sum(a,'n')?sum(a,'c')/sum(a,'n'):null,a7=acc(wk),a14=acc(pw),daysOn=days.slice(-14).filter(z=>z.d&&z.d.n).length;
   const delta=(now,was,unit,lowGood)=>now==null||was==null?'':` <small class="${(now-was)*(lowGood?-1:1)>=0?'good':'bad'}">${now-was>=0?'+':'−'}${Math.abs(Math.round(now-was))}${unit} vs the week before</small>`;
-  const played=sum(D,'gn')+sum(D,'rn')>0,timed=sum(D,'tn')>0,std=STD[x.id]||{},L0=Math.min(g.lvl,x.levels.length),m=mastery(g,L0),fl=fluency(g,x.id,L0),T=lvTargetSec(x.id,L0);
+  const played=sum(D,'gn')+sum(D,'rn')>0,timed=sum(D,'tn')>0,std=STD[x.id]||{},L0=Math.min(g.lvl,x.levels.length),m=mastery(g,L0),fl=fluency(g,x.id,L0),T=lvTargetEff(x.id,L0);
   const tiles=[`<div class="tile"><span>Level</span><b>${L0}/${x.levels.length}</b><small class="muted">${x.levels[L0-1].n}${m.n?' · '+Math.round(m.p*100)+'% of last '+m.n:''}</small></div>`,
     `<div class="tile"><span>${kind==='rhythm'?'Clean blocks, 7 days':'Accuracy, 7 days'}</span><b>${a7==null?'—':Math.round(a7*100)+'%'}</b>${delta(a7==null?null:a7*100,a14==null?null:a14*100,' pts')||`<small class="muted">${sum(wk,'n')} ${kind==='rhythm'?'blocks of 8 hits':'answers'}</small>`}</div>`];
   if(kind==='rhythm'||timed){const t7=sum(wk,'tn')?sum(wk,'ab')/sum(wk,'tn'):null,t14=sum(pw,'tn')?sum(pw,'ab')/sum(pw,'tn'):null,l7=sum(wk,'tn')?sum(wk,'dr')/sum(wk,'tn'):null;

@@ -10870,7 +10870,7 @@ function vPlan(){const GS={};GOAL_KEYS.forEach(k=>GS[k]=goalState(k));
    ${runButton()}<div class="plangrid">${cells}</div></section>`;}
 /* what success means in each game, per level: clean answers (recent window), speed vs the fluency target (recall games),
    distance from the click (tapped and strummed games), time to find each next note (played games), and how much was played */
-/* at the master standard = what the level page shows: every input the level has been played with is green on every bar (lvMeter). One definition for the level page, the skill tree and “Learned” (17 Nov 2026). */
+/* at the master standard = what the level page shows: one input (the better of screen and guitar) is green on every bar (lvMeter). One definition for the level page, the skill tree and “Learned” (17 Nov 2026). */
 function lvStd(gid,L){const x=GBY[gid];if(!x||!x.levels[L-1])return {ok:false};lvMeter(x,G(gid),L,false,false);return {ok:lvMeter.met};}
 const stdOf=gids=>gids.reduce((a,g)=>{const s=STD[g]||{};return {acc:Math.max(a.acc,s.acc||0),flu:Math.min(a.flu,s.flu||9),ab:Math.min(a.ab,s.ab||1e9),gp:Math.min(a.gp,s.gp||1e9)};},{acc:0,flu:9,ab:1e9,gp:1e9});
 function lvMetrics(gid,L){const g=G(gid),its=Object.values(g.items).filter(i=>i.lv===L),n=its.reduce((a,i)=>a+i.n,0),m=mastery(g,L),pl=(g.pl||[]).filter(e=>e.lv===L).slice(-20),fl=levelFlu(gid,L);
@@ -11193,7 +11193,7 @@ function lvRow(x,L,gm,label){const sd=STD[x.id]||{acc:PASS},M=lvModeStats(x.id,L
 /* lobby rung: one row per input the game is answered with (accuracy, the level's speed or timing, answers played), and one caption on the frontier level */
 function lvMeter(x,g,L,locked,other){lvMeter.met=false;const ladder=L>g.lvl&&!x.levels[L-1].open&&!(g.unl||[]).includes(L);if(ladder)return `<div class="meter2"><span class="mcap">Opens after level ${L-1}</span></div>`;
   const mets=[],row=(gm,lab)=>{const h=lvRow(x,L,gm,lab);if(lvRow.last.n)mets.push(lvRow.last.met);return h;},dual=dualMode(x.id),rows=dual?[[false,'Screen'],[true,'Guitar']].filter(([gm])=>levelAvail(x.id,L,gm)).map(([gm,lab])=>row(gm,lab)).join(''):row(guitarMode(x.id),'');
-  lvMeter.met=mets.length>0&&mets.every(Boolean);   /* the level is at the master standard: every input it has been played with is green on every bar (17 Nov 2026, user: a green outline) */   /* only the inputs the level has */
+  lvMeter.met=mets.some(Boolean);   /* the level is at the master standard: one of its inputs is green on every bar; the better of screen and guitar counts (17 Nov 2026, user: a green outline, “best of the two”) */   /* only the inputs the level has */
   let cap='';if(L===g.lvl&&L<x.levels.length&&!other){const m=mastery(g,L),fl=fluency(g,x.id,L);cap=m.n<NEED?`${NEED-m.n} more answers to unlock`:m.p<PASS?`Unlocks at ${PASS*100}%`:!fl.ok?(fl.n<FLU_N?`${FLU_N-fl.n} more timed answers to unlock`:'Faster to unlock'):'';}
   return `<div class="meter2">${rows}${cap?`<span class="mcap">${cap}</span>`:''}</div>`;}
 function vLobby(){const x=GBY[view.gid],g=G(x.id);modeSkip(x.id);let sel=view.sel||Math.min(g.last||g.lvl,g.lvl);if(!levelAvail(x.id,sel)){let k=Math.min(g.lvl,x.levels.length);while(k>1&&!levelAvail(x.id,k))k--;sel=k;}view.sel=sel;if(x.cat==='ear'||x.mic||x.tap)Piano.load();

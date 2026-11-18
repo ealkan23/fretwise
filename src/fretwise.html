@@ -458,6 +458,21 @@ svg.rhy{width:100%;max-width:640px;display:block}.rh-line,.rh-bar{stroke:var(--f
 .qgtag{display:inline-block;margin-left:8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border-radius:999px;padding:1px 8px;vertical-align:middle}.qgtag.nx{background:var(--brass);color:#17131f}.qgtag.ok{border:1px solid var(--good);color:var(--good)}
 .goalrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px;font-size:13px}.goalrow .btn{display:inline-flex;align-items:center;gap:7px}.goalrow .btn i{width:9px;height:9px;border-radius:50%;background:var(--gc);display:inline-block}
 .goalbar{border-left:5px solid var(--gc)}.qgsum{margin-bottom:14px}
+/* the side panel is 350 px wide: every option is a label with its control under it, full width (18 Nov 2026, user: the two-column rows overflowed) */
+.sidecol .setup>div{min-width:0}.sidecol .setup .eyebrow{margin-top:14px}.sidecol .setup>div>.eyebrow:first-child{margin-top:0}
+.sidecol .seg{display:flex;width:100%;margin-top:5px}.sidecol .seg button{flex:1 1 auto;white-space:normal;line-height:1.25;text-align:center}
+.sidecol .optlist{max-width:none;margin-top:0;border:0;background:none;border-radius:0}
+.sidecol .optrow{grid-template-columns:minmax(0,1fr);gap:6px;padding:11px 0;min-height:0;align-items:start}.sidecol .optrow:first-child{padding-top:0}
+.sidecol .optrow>span:first-child{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700}
+.sidecol select,.sidecol .optrow select{width:100%;justify-self:stretch;box-sizing:border-box;min-width:0}
+.sidecol .tpadv{max-width:none;justify-items:stretch}.sidecol .tpadv small{font-size:12.5px}
+.sidecol .check{align-items:flex-start;font-size:13.5px;line-height:1.35}.sidecol .check input{flex:0 0 16px;margin:2px 0 0}
+.sidecol .micopts{grid-template-columns:minmax(0,1fr);margin-top:8px}.sidecol .micopts label.field{min-width:0}
+.sidecol .howlevel{max-width:none;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.sidecol .note{margin:8px 0 0;max-width:none}
+.sidecol .mixrow{margin-top:4px;gap:8px}
+.sidecol .micopts .field>span:first-child,.sidecol .micopts .field>.muted:first-child{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.sidecol .micopts .field{gap:6px;padding-top:10px;border-top:1px solid var(--line)}.sidecol .micopts .field .check{margin:1px 0}
+.sidecol .note{font-size:12px;line-height:1.45;color:var(--muted)}
 </style>
 
 <header class="top"><div class="wrap">

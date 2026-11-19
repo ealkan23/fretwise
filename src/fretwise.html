@@ -1214,7 +1214,7 @@ function earInterval(set,mode){return ()=>{const iv=R(set.map(k=>IVL.find(x=>x[0
 
 /* ============ HEAR THE CHORD ============ */
 const EARQ={'':'major triad',m:'minor triad',dim:'diminished triad',aug:'augmented triad',maj7:'major 7th','7':'dominant 7th',m7:'minor 7th','m7♭5':'half-diminished','dim7':'diminished 7th','m(maj7)':'minor-major 7th','6':'major 6th',m6:'minor 6th',sus2:'sus2',sus4:'sus4',add9:'add9','9':'dominant 9th',maj9:'major 9th',m9:'minor 9th','7♭9':'7♭9','7♯9':'7♯9','13':'dominant 13th'};
-function earChord(qs,withArp){return ()=>{const q=R(qs),root=P(rootPick(['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'])),rm=48+pc(root),semis=CH[q].map(k=>IV[k][1]),mids=semis.map(s=>rm+s);
+function earChord(qs,withArp){return ()=>{const q=R(qs),root=P(rootPick(['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'])),rm=48+pc(root),semis=CH[q].filter(k=>!(q==='13'&&k==='11')).map(k=>IV[k][1]),mids=semis.map(s=>rm+s);
   const ans=EARQ[q],choices=qs.length<=8?qs.map(x=>EARQ[x]):mc(ans,shuffle(qs.map(x=>EARQ[x]).filter(x=>x!==ans)),6);
   return A({key:`ec-${q}`,label:EARQ[q],answer:ans,choices,
     prompt:`Listen to the chord${withArp?' (played, then broken)':''}. What quality is it?`,visual:listenCard('One chord',withArp?'block, then note by note':'block'),
@@ -1393,7 +1393,7 @@ function d2vsd3Q(){return ()=>{for(let t=0;t<80;t++){const q=R(['maj7','m7','7']
 /* ascending midis for a list of spelled notes, starting at or above `lo` */
 function ascMidis(ns,lo=57){let prev=lo-1;return ns.map(n=>{let m=lo+mod(pc(n)-lo,12);while(m<=prev)m+=12;prev=m;return m;});}
 const gripMidis=a=>a.map((f,i)=>f===null?null:OPEN[6-i]+f).filter(x=>x!==null);
-const chordMidis=(root,q,lo=48)=>{const r=lo+mod(pc(root)-lo,12);return CH[q].map(k=>r+IV[k][1]);};
+const chordMidis=(root,q,lo=48)=>{const r=lo+mod(pc(root)-lo,12);return CH[q].filter(k=>!(q==='13'&&k==='11')).map(k=>r+IV[k][1]);};   /* a 13 chord is played without its 11, which clashes with the 3rd (19 Nov 2026) */
 /* d: {note}, {seq}, {chord}, {grip}, {scale}, {prog:[ms,...]}, {chordseq:{ms,seq}}; returns seconds */
 function playSnd(q,g){const d=q&&q.snd;if(!d||(g&&g.sound===false)||q.audio)return 0;const go=()=>{let t=0.05;
   if(d.note!==undefined){Piano.note(d.note,t,1.4,0.8);return 1.5;}
@@ -2182,7 +2182,8 @@ function rhySVG(ev,bars=1,o={}){if(o.groups)return rhySVG8(ev,bars,o);const M=o.
   const X=t=>X0+t*BW;const heads=[];
   /* split notes that cross a beat boundary into tied pieces, except halves and whole notes on the beat */
   const pieces=[];ev.forEach(e=>{if(e.rest||e.tup){pieces.push({...e});return;}let t=e.t,d=e.d,first=true;while(d>1e-6){const inBeat=Math.floor(t+1e-6),room=inBeat+1-t;let take;
-      if(Math.abs(t-Math.round(t))<1e-6&&(d===2||d===4||(d===3&&t%4<=1)))take=d;else if(d===1.5&&Math.abs(t-Math.round(t))<1e-6)take=1.5;else take=Math.min(d,room);
+      const inBar=t-Math.floor((t+1e-6)/M)*M;   /* where the note starts inside its bar: a long value is kept whole only when it ends inside the bar (19 Nov 2026: a dotted half in 3/4 was split from the second bar on, and a dotted quarter on the last beat ran over the bar line) */
+      if(Math.abs(t-Math.round(t))<1e-6&&(d===2||d===4||d===3)&&inBar+d<=M+1e-6)take=d;else if(d===1.5&&Math.abs(t-Math.round(t))<1e-6&&inBar+1.5<=M+1e-6)take=1.5;else take=Math.min(d,room);
       pieces.push({t,d:take,tup:e.tup,tieTo:d-take>1e-6,tieFrom:!first,acc:first&&e.acc,p:first?e.p:undefined});t+=take;d-=take;first=false;}});
   const stems=[],tupX={};
   pieces.forEach(p=>{const x=X(p.t);if(p.tup){const u=tupX[p.tup]||(tupX[p.tup]={a:x,b:x,n:0,s:0});u.a=Math.min(u.a,x);u.b=Math.max(u.b,x);u.n++;if(p.d<0.2)u.s++;if(p.rest||p.d>=0.5)u.br=1;}
@@ -7309,7 +7310,7 @@ LESSON_NOTES.earchord=[
      ['Triads','<b>major</b> 1 3 5; <b>minor</b> 1 ♭3 5; <b>diminished</b> 1 ♭3 ♭5; <b>augmented</b> 1 3 ♯5'],
      ['Sevenths','<b>Maj7</b> 1 3 5 7; <b>7</b> 1 3 5 ♭7; <b>m7</b> 1 ♭3 5 ♭7; <b>m7♭5</b> 1 ♭3 ♭5 ♭7; <b>°7</b> 1 ♭3 ♭5 °7 (the °7 sounds as a 6); <b>m(Maj7)</b> 1 ♭3 5 7'],
      ['Sixths, sus, add9','<b>6</b> 1 3 5 6; <b>m6</b> 1 ♭3 5 6; <b>sus2</b> 1 2 5; <b>sus4</b> 1 4 5; <b>add9</b> 1 3 5 9'],
-     ['Extensions','<b>9</b> 1 3 5 ♭7 9; <b>Maj9</b> 1 3 5 7 9; <b>m9</b> 1 ♭3 5 ♭7 9; <b>7♭9</b> 1 3 5 ♭7 ♭9; <b>7♯9</b> 1 3 5 ♭7 ♯9; <b>13</b> 1 3 5 ♭7 9 13 (the game’s chord sounds the 11 as well)']]],cap:'Every quality the game asks, with its formula. How chords are built and spelled is taught in the notes of Chord Spelling.'}]},
+     ['Extensions','<b>9</b> 1 3 5 ♭7 9; <b>Maj9</b> 1 3 5 7 9; <b>m9</b> 1 ♭3 5 ♭7 9; <b>7♭9</b> 1 3 5 ♭7 ♭9; <b>7♯9</b> 1 3 5 ♭7 ♯9; <b>13</b> 1 3 5 ♭7 9 13']]],cap:'Every quality the game asks, with its formula. How chords are built and spelled is taught in the notes of Chord Spelling.'}]},
  {h:'The order of questions to ask',p:[
    'A chord is too much to take in as one impression at first. Ask the same questions in the same order every time. Each one halves the field.',
    ['<b>1. The 3rd.</b> Major, minor, or missing. This is the brightest signal in any chord. Sing the root, then sing the next note up. A chord with no 3rd at all (hollow, neither happy nor sad) is a sus chord.','<b>2. The 5th.</b> Perfect in most chords, and then you do not notice it. A lowered 5th makes the chord tense and compressed (diminished, m7♭5). A raised 5th makes it float (augmented).','<b>3. Is there a fourth note, and which.</b> A major 7th sits a half step under the root’s octave and rubs against it. A ♭7 sits a whole step under and gives the dominant or minor 7th softness. A 6th is a step above the 5th and adds sweetness with no rub.','<b>4. Anything above the 7th.</b> A 9, a ♭9, a ♯9 or a 13 on top. Sing the top note of the chord and place it against the root.'],
@@ -7360,7 +7361,7 @@ LESSON_NOTES.earchord=[
    'In level 5 these chords are mixed with Maj7, 7 and m7. The useful first question is whether the chord has a rub or a tritone in it. Maj7 has the rub, 7 has the tritone, m6 has a tritone; 6, sus2, sus4, add9 and m7 have neither.']},
  {h:'Extensions',p:[
    'An extended chord is a seventh chord with one or more tensions stacked on top. Hear it in two layers: the seventh chord underneath, which you already know, then the note added at the top.',
-   {fig:()=>NF.staff('C4+E4+G4+Bb4+D5=C9 C4+E4+G4+B4+D5=Cmaj9 C4+Eb4+G4+Bb4+D5=Cm9 C4+E4+G4+Bb4+Db5=C7♭9 C4+E4+G4+Bb4+D#5=C7♯9 C4+E4+G4+Bb4+D5+A5=C13',{gap:78}),cap:'The six extended chords of level 6 on C, in close position. The game’s 13 also sounds the 11 (F) between the 9 and the 13.'},
+   {fig:()=>NF.staff('C4+E4+G4+Bb4+D5=C9 C4+E4+G4+B4+D5=Cmaj9 C4+Eb4+G4+Bb4+D5=Cm9 C4+E4+G4+Bb4+Db5=C7♭9 C4+E4+G4+Bb4+D#5=C7♯9 C4+E4+G4+Bb4+D5+A5=C13',{gap:78}),cap:'The six extended chords of level 6 on C, in close position.'},
    {fig:()=>NF.grips([['C9','x-3-2-3-3-x','C','R 3 b7 9'],['Cmaj9','x-3-2-4-3-x','C','R 3 7 9'],['Cm9','x-3-1-3-3-x','C','R b3 b7 9'],['C7♭9','x-3-2-3-2-x','C','R 3 b7 b9'],['C7♯9','x-3-2-3-4-x','C','R 3 b7 #9'],['C13','x-3-x-3-5-5','C','R b7 3 13']]),cap:'Guitar grips for the same chords, root on string 5. The 5th is left out, as is usual on the guitar: the tension is on string 2 (the 13 on string 1).'},
    {tbl:[['Chord','Layer underneath','Top note','Sound'],[
      ['9','7','9','A dominant made fuller and warmer. Funky, broad.'],

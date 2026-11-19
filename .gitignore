@@ -8,3 +8,4 @@ recordings/
 tools/node_modules/
 fixlist/
 backups/
+.claude/

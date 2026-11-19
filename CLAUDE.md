@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Overview: time practised per day (19 Nov 2026, user request)
+`timeChart()` above “Answers per day”: green bars, minutes per day for the last 14 days with the number over each bar, and one line under it (total, days practised, average on a practising day). It reads the per-day totals `g.days[day].dur` of every game. **`activityChart` now reads `g.days` too** (`n`, `c`): it summed `g.sessions`, which keeps only the last 80 rounds a game and undercounted busy days (9 Nov: 190 of 235 minutes by rounds).
+
 ## Fix list #67–86: sounds that are not notes, the other run form, the allowance (18 Nov 2026)
 Twenty reports, nineteen Scale Runner and one Fretboard in time (#76). Four causes, all in `micGradeOne` / `scQ`:
 - **Sounds that are not the player's notes** (`ghost(x,i)` in `micGradeOne`, for clicked exact-pitch questions): (1) free start: a sound more than a beat and a half before the run begins (#68, 69, 73, 74, 79: a string touched while getting ready); (2) after the last note: an open-string pitch (the hand letting go, #75); (3) inside the run, while a played note is still sounding or within 160 ms of the next: an open string's pitch in any octave (E A D G B: the mic often hears the octave of a low string ringing in sympathy; #76, 77, 78, 83, 86) or the octave of the note beside it (#67). **Trade-off: in eighths and triplets every sound is within 160 ms of a note, so an open string really hit by mistake between two notes is forgiven there**; at one note a click it still fails (sweep: `ring` passes, `alone` fails).

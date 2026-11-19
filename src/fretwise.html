@@ -2344,7 +2344,7 @@ function parseRhy(text){const M=/\b3\/4\b/.test(text)?3:/\b5\/4\b/.test(text)?5:
 function tuneQ(){return ()=>{const list=(STORE.tunes||[]).filter(t=>t.ok);if(!list.length){const q=tapReadQ(['charl','push1','dots3','phrA','bop','eqe','qe','q','ee'],8,true,{})();q.prompt='No tunes added yet: this is a jazz etude instead. Add the rhythm of a standard you play in the lobby (“Your tunes”) and it is asked here.';return q;}
   const tn=R(list),p=parseRhy(tn.rhy),bpm=tn.bpm||rbpm(),M=p.meter,on=p.ev.filter(e=>!e.rest).map(e=>tn.swing?(Math.abs(e.t%1-0.5)<1e-6?Math.floor(e.t)+0.67:e.t):e.t);
   return T({key:`tune-${tn.n}`,label:`${tn.n}`,bpm,meter:M,len:p.bars*M,onsets:on,prompt:`<b>${esc(tn.n)}</b>, your transcription: ${p.bars} bars${tn.swing?', swing':''}. Tap (or strum) the rhythm of the melody with the click.`,visual:rhyLines(p.ev,p.bars,{meter:M,swing:tn.swing}),answerText:countStr(on,M),explain:`${esc(tn.n)}: ${countStr(on,M)}.`,hint:'Sing the head in your mind over the count-in.'});};}
-function tunesBox(){const list=STORE.tunes||[];return `<div class="section"><h3>Your tunes</h3><div class="panel"><p class="note">Add the rhythm of a standard's melody (your own transcription, 1–16 bars) and level 12 asks it. Notation: <b>w h q e s</b> = whole, half, quarter, eighth, sixteenth; <b>.</b> dotted; <b>r</b> before a value = rest (r q or rq); <b>_</b> after a value = tied to the previous note; bars with <b>|</b>; start with <b>3/4</b> or <b>5/4</b> for other meters. Example: <code>q. e q q | e e q r q q | h q. e |</code></p>
+function tunesBox(){const list=STORE.tunes||[];return `<div class="section"><h3>Your tunes</h3><div class="panel"><p class="note">Add the rhythm of a standard's melody (your own transcription, 1–16 bars) and level 11 asks it. Notation: <b>w h q e s</b> = whole, half, quarter, eighth, sixteenth; <b>.</b> dotted; <b>r</b> before a value = rest (r q or rq); <b>_</b> after a value = tied to the previous note; bars with <b>|</b>; start with <b>3/4</b> or <b>5/4</b> for other meters (level 11 plays only the tunes in 4/4). Example: <code>q. e q q | e e q r q q | h q. e |</code></p>
   ${list.length?`<table><thead><tr><th>Tune</th><th>Rhythm</th><th></th></tr></thead><tbody>${list.map((t,i)=>`<tr><td><b>${esc(t.n)}</b>${t.swing?' <span class="muted">swing</span>':''}</td><td class="mono" style="font-size:12px">${esc(t.rhy)}</td><td><button class="btn small ghost" data-act="deltune" data-i="${i}">Remove</button></td></tr>`).join('')}</tbody></table>`:''}
   <div class="tools" style="margin-top:10px;flex-wrap:wrap"><input id="tunename" class="exportta" style="height:auto;min-height:0;width:200px" placeholder="Tune (first 8 bars)"><input id="tunerhy" class="exportta" style="height:auto;min-height:0;flex:1;min-width:260px" placeholder="q. e q q | e e q r q q | …"><label class="check"><input type="checkbox" id="tuneswing" checked> swing</label><button class="btn small primary" data-act="addtune">Add</button><span class="muted" id="tunemsg"></span></div></div></div>`;}
 /* Flow: endless rounds for the rhythm games; the tempo follows you */
@@ -2382,7 +2382,7 @@ const COMP={charleston:{on:[0,1.5],ev:[{t:0,d:1.5},{t:1.5,d:.5},{t:2,d:2,rest:1}
  ant:{on:[0,2,3.5],ev:[{t:0,d:2},{t:2,d:1.5},{t:3.5,d:.5}],n:'Anticipated 1',d:'1, 3, and the and of 4 pushing into the next bar'},
  ant2:{on:[0,1.5,3.5],ev:[{t:0,d:1.5},{t:1.5,d:2},{t:3.5,d:.5}],n:'Charleston with a push',d:'1, the and of 2, and the and of 4'},
  push3:{on:[0,1,1.5],ev:[{t:0,d:1},{t:1,d:.5},{t:1.5,d:2.5}],n:'Anticipated 3',d:'1, 2, and the and of 2 held through 3'},
- bossa:{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],n:'Bossa nova',d:'1, the and of 2, and 3 (bar one of the pattern)'},
+ bossa:{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],n:'Bossa nova',d:'1, the and of 2, and 4 (bar one of the pattern)'},
  bossa2:{on:[0.5,2,3.5],ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],n:'Bossa nova, bar two',d:'the and of 1, 3, and the and of 4'},
  samba:{on:[0,.75,1.5,2,2.75,3.5],ev:[{t:0,d:.75},{t:.75,d:.75},{t:1.5,d:.5},{t:2,d:.75},{t:2.75,d:.75},{t:3.5,d:.5}],n:'Samba',d:'dotted eighths and eighths: 1, the a of 1, the and of 2, 3, the a of 3, the and of 4'},
  ballad:{on:[0,2],ev:[{t:0,d:2},{t:2,d:2}],n:'Ballad, half time',d:'1 and 3, let each chord ring'},
@@ -2942,10 +2942,11 @@ const G8P={2:[[1,1],[2],[1,1],[.5,.5,1],[1,.5,.5],[-1,1]],3:[[1,1,1],[3],[2,1],[
 function bar8(groups,lv=2){const ev=[],on=[];let t=0;groups.forEach(n=>{const p=R(G8P[n].filter(z=>lv>=2||!z.some(d=>d===.5||d<0)));p.forEach(d=>{if(d<0)ev.push({t,d:-d,rest:1});else{ev.push({t,d});on.push(t);}t+=Math.abs(d);});});if(!on.length){ev[0]={t:0,d:ev[0].d};on.push(0);}return {on,ev};}
 const c8=(groups,x)=>{const M=groups.reduce((a,b)=>a+b,0),st=[];let c=0;groups.forEach(n=>{st.push(c);c+=n;});return Object.assign({meter:M,groups,ts:M+'/8',bw:40,click:(bar,b)=>st.includes(b),cinClick:i=>st.includes(i),accBeat:b=>b===0,bar:()=>bar8(groups,2)},x||{});};
 const swingBar=()=>({on:[0,.67,1,1.67,2,2.67,3,3.67],ev:Array.from({length:8},(_,i)=>({t:i/2,d:.5})),label:'swing eighths'}),offBar=()=>({on:[.5,1.5,2.5,3.5],ev:[0,1,2,3].flatMap(b=>[{t:b,d:.5,rest:1},{t:b+.5,d:.5}]),label:'off-beats only'});
-const hemiBar=k=>k%2===0?{on:[0,1.5,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1}],label:'hemiola, bar 1'}:{on:[.5,2,3.5],ev:[{t:0,d:.5,rest:1},{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],label:'hemiola, bar 2'};
+/* 19 Nov 2026: the third dotted quarter is one note across the bar line (a hair over 1.5 beats, so rhySVG writes it as a quarter tied to an eighth and not as a dotted quarter through the bar line; bar 2 then has no rest at its start), and the “ands” are swung like every other bar of the level */
+const hemiBar=k=>k%2===0?{on:[0,1.67,3],ev:[{t:0,d:1.5},{t:1.5,d:1.5},{t:3,d:1.5+1e-7}],label:'hemiola, bar 1'}:{on:[.67,2,3.67],ev:[{t:.5,d:1.5},{t:2,d:1.5},{t:3.5,d:.5}],label:'hemiola, bar 2'};
 const BLUES_F=['F7','B♭7','F7','F7','B♭7','B♭7','F7','F7','C7','B♭7','F7','C7'];
-const compBar=(p,chord)=>({on:COMP[p].on.slice(),ev:COMP[p].ev.map(e=>({...e})),label:COMP[p].n,chord});
-const cComp=(pick,x)=>Object.assign({bar:k=>compBar(pick(k),BLUES_F[k%12])},x||{});
+const compBar=(p,chord,swing)=>({on:COMP[p].on.map(o=>swing&&Math.abs(o%1-.5)<1e-6?Math.floor(o)+.67:o),ev:COMP[p].ev.map(e=>({...e})),label:COMP[p].n,chord});   /* swing (19 Nov 2026): the “and” is expected where Jazz Rhythm puts it, at .67 of the beat; the bar is still written in plain eighths */
+const cComp=(pick,x)=>Object.assign({bar:k=>compBar(pick(k),BLUES_F[k%12],!!(x&&x.swing))},x||{});
 const tuneBar=k=>{const list=(STORE.tunes||[]).filter(t=>t.ok&&parseRhy(t.rhy).bars&&parseRhy(t.rhy).meter===4);if(!list.length)return null;const tn=list[Math.floor(k/16)%list.length],p=parseRhy(tn.rhy),b=k%p.bars,ev=p.ev.filter(e=>e.t>=b*4&&e.t<(b+1)*4).map(e=>({...e,t:e.t-b*4}));return {on:ev.filter(e=>!e.rest).map(e=>tn.swing&&Math.abs(e.t%1-.5)<1e-6?Math.floor(e.t)+.67:e.t),ev,label:`${tn.n}, bar ${b+1}`};};
 /* ============ EAR AND SOLFÈGE ADDITIONS (16 Nov 2026, user: the three ear-training books' contents against the games) ============
    Sight singing (Sing the Page), melodic dictation with rhythm, arpeggios sung through the changes, diatonic chords one at a time, the diatonic cycle,
@@ -4006,27 +4007,27 @@ const GAMES=[
   {n:'Repeats and endings',d:'Repeat signs, 1st and 2nd endings, one-bar and two-bar repeats: which bar comes next?',g:[chartNextQ(['rep','rep2','end1','end2']),chartNextQ(['end1','end2']),chartCountQ(['rep','rep2','end1','end2']),mrQ(),roadFactQ('rep')]},
   {n:'The road map',d:'D.C., D.S., Fine, To Coda and the coda; the fermata',g:[chartNextQ(['dcfine','dsfine','dscoda','dccoda','full']),chartNextQ(['dscoda','dccoda','full']),chartCountQ(['dcfine','dsfine','dscoda','dccoda','full']),roadFactQ('jump')]},
   {n:'Accents, dynamics, articulation',d:'Accent and marcato, staccato and tenuto, pp to ff, hairpins, sfz and fp',g:[artQ()]}]},
- {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing, tapped or strummed: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, jazz waltz and 5/4, eight-bar etudes, and the rhythms of the standards you transcribe yourself.',levels:[
+ {id:'jazzrhy',cat:'rhythm',tap:true,name:'Jazz Rhythm',area:'The figures of the music',desc:'The rhythms jazz is made of, in swing, tapped or strummed: the Charleston and its displacements, pushes, dotted-quarter chains, quarter-note triplets, phrase placement, hemiola, bebop cells, the jazz waltz, all the figures mixed, and the rhythms of the standards you transcribe yourself.',levels:[
   {n:'Charleston',d:'1 and the and of 2, swung; against a click on 2 and 4',g:[tapReadQ(['charl'],2,true),twoFourQ('charl')],c:cCells(['charl'],true,4,{click:(bar,b)=>b===1||b===3})},
   {n:'Displaced Charleston',d:'The same two hits moved: and of 2 → and of 3; and of 1 → 3',g:[tapReadQ(['charl','charl2','charl3'],2,true)],c:cCells(['charl','charl2','charl3'],true)},
   {n:'Pushes',d:'Anticipate 1 and 3: the chord arrives half a beat early',g:[tapReadQ(['push1','push3','charl'],2,true),tapBackQ(['qt','eqe','q','ee','re'],true)],c:cCells(['push1','push3','charl'],true)},
   {n:'Dotted-quarter chains',d:'q. q. q: three against four inside the bar',g:[tapReadQ(['dots3','qe','charl'],2,true)],c:cCells(['dots3','qe','charl'],true)},
   {n:'Quarter-note triplets',d:'Three even notes over two beats',g:[tapReadQ(['qtrip','q','h','ee'],2,true)],c:cCells(['qtrip','q','h','ee'],true)},
   {n:'Phrase placement',d:'Lines that start on the and of 1 and end on the and of 4',g:[tapReadQ(['phrA','phrB','bop','re'],2,true)],c:cCells(['phrA','phrB','bop','re'],true)},
-  {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)],c:{swing:true,bar:k=>k%4<2?hemiBar(k):(r=>({on:r.on,ev:r.ev}))(rhyBar(['dots3','charl','q'],1,true,4)),note:'Two bars of hemiola, two bars of dotted chains.'}},
+  {n:'Hemiola',d:'Dotted quarters across the bar line: 3 over 4 for two bars',g:[tapReadQ(['hemi','dots3','q'],2,true)],c:{swing:true,bar:k=>k%4<2?hemiBar(k):(r=>({on:r.on,ev:r.ev}))(rhyBar(['dots3','charl','q'],1,true,4)),note:'Two bars of hemiola, then two bars drawn from the dotted chain inside the bar, the Charleston and plain quarters.'}},
   {n:'Bebop cells',d:'Running eighths, triplet pick-ups, the pushed last note',g:[tapReadQ(['bop','eqe','pick','teq','qt','re'],2,true)],c:cCells(['bop','eqe','pick','teq','qt','re'],true)},
   {n:'Jazz waltz',d:'Swing in 3/4',g:[tapReadQ(['q','ee','qe','eqe','h','re'],2,true,{meter:3}),tapReadQ(['q','ee','qe','h','r','eqe'],2,true,{meter:5})],c:cCells(['q','ee','qe','eqe','h','re'],true,3,{note:'Jazz waltz: swing in 3/4.'})},
   {n:'All the figures',d:'The figures mixed, swung, bar after bar',g:[tapReadQ(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],8,true)],c:cCells(['charl','push1','dots3','phrA','phrB','bop','eqe','qe','q','ee','re'],true)},
   {n:'Your standards',d:'The melody rhythms you transcribed (add them below)',g:[tuneQ()],c:{swing:true,bar:k=>tuneBar(k)||(r=>({on:r.on,ev:r.ev,label:'etude (add a tune below for your own)'}))(rhyBar(['charl','push1','dots3','phrA','bop','eqe','qe','q','ee'],1,true,4))}}]},
- {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping',area:'Strum it · microphone',desc:'Strum the comping rhythms into the mic: Freddie Green four, the Charleston and its displacements, pushes, strum-back, bossa and samba, ballads, a whole chorus over a walking bass, trading fours. This game trains the strumming hand’s time with muted strums: the chord is not checked here. Chord and rhythm together are in Shell Voicings (the comping-rhythm levels) and Drop-2.',levels:[
-  {n:'Freddie Green',d:'Four even quarters, two bars',g:[compQ(['freddie'],2)],c:cComp(()=>'freddie',{click:(bar,b)=>b===1||b===3})},
-  {n:'Charleston',d:'Plain and displaced',g:[compQ(['charleston','charl2'],2)],c:cComp(k=>(k>>1)%2?'charl2':'charleston',{click:(bar,b)=>b===1||b===3})},
-  {n:'Pushes',d:'Anticipate 1 and 3',g:[compQ(['ant','ant2','push3'],2)],c:cComp(k=>['ant','ant2','push3'][(k>>1)%3],{click:(bar,b)=>b===1||b===3})},
-  {n:'Mixed patterns',d:'The pattern changes every two bars',g:[compQ(['freddie','charleston','charl2','ant','ant2','push3'],2),compCallQ(['charleston','charl2','ant','ant2','freddie','push3'])],c:cComp(k=>['freddie','charleston','charl2','ant','ant2','push3'][(k>>1)%6],{click:(bar,b)=>b===1||b===3,note:'The pattern changes every two bars; read the next bar.'})},
+ {id:'comping',cat:'rhythm',tap:true,mic:true,name:'Comping',area:'Strum it · microphone',desc:'Strum the comping rhythms into the mic: Freddie Green four, the Charleston and its displacements, pushes, strum-back, bossa and samba, ballads, whole choruses of a blues in F, trading fours. This game trains the strumming hand’s time with muted strums: the chord is not checked here. Chord and rhythm together are in Shell Voicings (the comping-rhythm levels) and Drop-2.',levels:[
+  {n:'Freddie Green',d:'Four even quarters, two bars',g:[compQ(['freddie'],2)],c:cComp(()=>'freddie',{swing:true,click:(bar,b)=>b===1||b===3})},
+  {n:'Charleston',d:'Plain and displaced',g:[compQ(['charleston','charl2'],2)],c:cComp(k=>(k>>1)%2?'charl2':'charleston',{swing:true,click:(bar,b)=>b===1||b===3})},
+  {n:'Pushes',d:'Anticipate 1 and 3',g:[compQ(['ant','ant2','push3'],2)],c:cComp(k=>['ant','ant2','push3'][(k>>1)%3],{swing:true,click:(bar,b)=>b===1||b===3})},
+  {n:'Mixed patterns',d:'The pattern changes every two bars',g:[compQ(['freddie','charleston','charl2','ant','ant2','push3'],2),compCallQ(['charleston','charl2','ant','ant2','freddie','push3'])],c:cComp(k=>['freddie','charleston','charl2','ant','ant2','push3'][(k>>1)%6],{swing:true,click:(bar,b)=>b===1||b===3,note:'The pattern changes every two bars; read the next bar.'})},
   {n:'Bossa nova and samba',d:'Two-bar bossa pattern; samba in dotted eighths, straight',g:[compPairQ('bossa','bossa2',2),compQ(['samba'],2,{clicks:[0,1,2,3]})],c:cComp(k=>k%16<8?(k%2?'bossa2':'bossa'):'samba',{note:'Eight bars of bossa nova (two-bar pattern), eight of samba, straight eighths.'})},
   {n:'Ballad',d:'Half-time at 60: 1 and 3, with a push',g:[compQ(['ballad','ballad2'],2,{bpm:60})],c:cComp(k=>(k>>2)%2?'ballad2':'ballad',{bpm:()=>60,click:(bar,b)=>b===1||b===3})},
-  {n:'Chorus after chorus',d:'Blues in F; the pattern changes each chorus',g:[compChorusQ(['freddie','charleston','ant2'])],c:cComp(k=>['freddie','charleston','ant2'][Math.floor(k/12)%3],{click:(bar,b)=>b===1||b===3,note:'Blues in F, chorus after chorus; the pattern changes each chorus.'})},
-  {n:'Trading fours',d:'Four bars in, four bars out',g:[compTradeQ(['charleston','ant2','freddie'])],c:{bar:k=>k%8<4?compBar(['charleston','ant2','freddie'][Math.floor(k/8)%3],BLUES_F[k%12]):{on:[],ev:[{t:0,d:4,rest:1}],label:'lay out',chord:BLUES_F[k%12]},click:(bar,b)=>b===1||b===3,note:'Four bars in, four bars out: an attack in the silent bars is a miss.'}}]},
+  {n:'Chorus after chorus',d:'Blues in F with the quick change (B♭7 in bar 2); the pattern changes each chorus',g:[compChorusQ(['freddie','charleston','ant2'])],c:cComp(k=>['freddie','charleston','ant2'][Math.floor(k/12)%3],{swing:true,click:(bar,b)=>b===1||b===3,note:'Twelve bars a chorus: four to the bar, then the Charleston, then the Charleston with a push. Only the click on 2 and 4 plays with you.'})},
+  {n:'Trading fours',d:'Four bars in, four bars out',g:[compTradeQ(['charleston','ant2','freddie'])],c:{swing:true,bar:k=>k%8<4?compBar(['charleston','ant2','freddie'][Math.floor(k/8)%3],BLUES_F[k%12],true):{on:[],ev:[{t:0,d:4,rest:1}],label:'lay out',chord:BLUES_F[k%12]},click:(bar,b)=>b===1||b===3,note:'Four bars in, four bars out: an attack in the silent bars is a miss.'}}]},
 ];
 const GBY=Object.fromEntries(GAMES.map(g=>[g.id,g]));
 const CATS=[
@@ -5063,7 +5064,7 @@ twohands:[
  s:'A four-beat uneven meter with two long beats.',
  t:['In Turkish music a 10/8 grouped this way is called curcuna.']},
 {a:'Reading in 10/8, the click on beat 1 only.',
- w:['Ten eighths is a long bar to hold with one click. Feel the middle of the bar: the second short beat ends at the half-way point.']},
+ w:['Ten eighths is a long bar to hold with one click. Feel the middle of the bar: the first short beat ends at the half-way point.']},
 {k:['11/8 here is 2 + 2 + 3 + 2 + 2: five beats with the long one in the middle.','First the beats, then every eighth, then reading: one session each.'],
  w:['Count beats, never eighths: “short, short, long, short, short”.','After the long beat there are two more short beats. The bar does not end where a 7/8 would.'],
  s:'Holding a five-beat uneven bar.',
@@ -5218,7 +5219,7 @@ jazzrhy:[
  s:'The first comping rhythm, and the habit of hearing 2 and 4 as the reference.',
  t:['Written: dotted quarter, eighth tied or followed by rests. Played: “DAH … dit”.','Named after the 1920s dance. Every later comping figure can be heard as this one moved or cut.']},
 {a:'The same two hits, shifted in the bar: starting on the “and” of 2, or on the “and” of 1.',
- w:['The distance between the two hits stays the same; only the starting point moves.','Know where beat 1 is while you play nothing on it.'],
+ w:['From the “and” of 1 to beat 3 the two hits are as far apart as in the Charleston; only the starting point moves. The other form is the two off-beats either side of beat 3, one beat apart.','Know where beat 1 is while you play nothing on it.'],
  t:['Displacement is the main way jazz musicians get variety from one idea. A comping player moves the Charleston around the bar to answer the soloist.']},
 {a:'Pushes: the hit that belongs to beat 1 or beat 3 is played an eighth early and held over.',
  w:['Do not also play the beat you anticipated.','A push into beat 1 is on the “and” of 4 of the bar before. Keep the bar line clear in your head.'],
@@ -5269,11 +5270,11 @@ comping:[
 {a:'Half-time ballad at 60: long chords on 1 and 3, with an occasional push.',
  w:['Let chords ring their full length. In a ballad the release matters as much as the attack.','Subdivide in your head. At this tempo the space between strums is long.'],
  t:['On ballads, less is correct. One well-placed chord a bar is often all a singer wants.']},
-{a:'Whole choruses of a blues in F, with a different pattern each chorus, over a bass line.',
+{a:'Whole choruses of a blues in F, with a different pattern each chorus. Nothing plays with you but the click on 2 and 4.',
  w:['Keep the 12-bar form. Know which bar you are in at all times.','Change pattern exactly at the top of the chorus.'],
- t:['Building intensity chorus by chorus is the comping player’s job behind a soloist: sparse first, busier later.','Use headphones: the bass line comes from the computer.']},
+ t:['Building intensity chorus by chorus is the comping player’s job behind a soloist: sparse first, busier later.','The form is the one with the quick change: B♭7 already in bar 2, back to F7 in bars 3 and 4.']},
 {a:'Four bars of comping, four bars of silence, repeated.',
- w:['Count the four silent bars exactly. Anything you play in them counts against you.','Come back in on beat 1 of bar 5 with the pattern, not a beat late.'],
+ w:['Count the four silent bars exactly. Anything you play in them counts against you.','Come back in on beat 1 after the fourth silent bar with the pattern, not a beat late.'],
  t:['Trading fours with the drummer is a standard part of a jazz performance. The form keeps going in everyone’s head through the drum breaks.']}],
 fretboard:[
 {k:['The two low strings are the address book of the guitar: every chord root and every position is named from a note on string 6 or 5.','Naturals first. The only places with no fret between two naturals are E–F and B–C.'],
@@ -8313,7 +8314,7 @@ LESSON_NOTES.jazzrhy=[
      ['rq re or r q','A rest of that value'],
      ['e_ q_ h_','Tied to the note before it (the underscore follows the value)'],
      ['|','Bar line: every bar must add up'],
-     ['3/4 or 5/4 at the start','The meter, when it is not 4/4']]],cap:'The notation of the tune box. One to sixteen bars. Example: h q. e | h_ h is a push tied over the bar line.'},
+     ['3/4 or 5/4 at the start','The meter, when it is not 4/4 (the level plays only the tunes in 4/4)']]],cap:'The notation of the tune box. One to sixteen bars. Example: h q. e | h_ h is a push tied over the bar line.'},
    {sub:'How to take a rhythm off a record'},
    ['Find beat 1 first, and count the bars of the whole phrase before writing anything.','Tap quarters with one hand and mark, bar by bar, which beats carry a note. Then listen again for the off-beats between them.','Decide long or short for each note last. The attacks are what matter.','Write swing eighths as plain eighths and switch swing on for the tune.'],
    {tip:'Play each transcribed rhythm on one note on the guitar, then on a scale, then over the chord changes of the tune with your own notes. That is the shortest way from a melody you know to a solo that sounds like the tune.'}]},
@@ -11280,7 +11281,7 @@ const LOBBY_NOTES={
  pulse:'Continuous: the click never stops. Strumming muted strings into the mic is the default: a keyboard has no dynamics and adds its own delay; the mic hears how hard you play, which the accent levels (12–14) need. The hold bar counts clean bars in a row (every written hit on time, nothing extra); the level unlocks at 24 when your tightness over the hits in that run, and over the last 16, is within the standard (the average spread around your own placement: a moving average, not hit by hit). The fire shows the run. Lean (where you sit against the click) is shown, not judged: tapping to a click, most people land 20–60 ms before it while feeling dead on; strumming into the mic you hear your own hit and that mostly disappears. Taps are corrected by the latency your audio device reports (shown below).',
  rhyread:'Tap only: read levels show the bar before the count-in; tap-back levels play it once. Flow mode for endless reading.',
  rhytheory:'Screen only, no tapping: counting, values, meter and dictation. Dictation plays the bar with the click, every note for its written length; you write the bar value by value (w h q e s, dot, rest, triplet, tie) and it is drawn as you go. Graded on the sound: where the notes start and where the silences are, so a tie and a longer value both count.',
- jazzrhy:'Everything here is swung. Level 12 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
+ jazzrhy:'Everything here is swung. Level 11 asks the rhythms of standards you transcribe yourself (Your tunes, below).'};
 /* the level's own success measure, sampled once per mode: time against the fluency target (recall), timing against the click
    (tapped, strummed and in-time played levels), seconds per note (played levels out of time), or none (ear: accuracy is the measure) */
 const LVK={};function lvKind(gid,L,gm=guitarMode(gid)){const k=gid+'|'+L+'|'+gm;if(LVK[k]!==undefined)return LVK[k];let kind='';const lv=GBY[gid].levels[L-1];

@@ -1868,7 +1868,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
       const pv=d[i-1],nx=d[i+1],over=(pv&&pv.t+(pv.dur||0)>=x.t-40)||(nx&&nx.t-x.t<=160);
       return !!over&&(op||[pv,nx].some(y=>y&&octOf(x.midi,y.midi)));},
     extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!noise(x,i)&&!ghost(x,i));
-  const graded=per.filter(x=>x.onTime!==null);let notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);
+  const graded=per.filter(x=>x.onTime!==null);let notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);   /* a tune in time (q.rhyStrict, 20 Nov 2026): the rhythm is the answer, so a note half a beat or more away from its place fails, whatever the others do */if(q.rhyStrict&&graded.some(x=>x.off!==null&&Math.abs(x.off)>=res.beat*0.5))timeOk=false;
   /* q.tol (Scale Runner, 14 Nov 2026, user rule): a run counts as clean with at most tol.miss notes not heard and at most tol.late notes off the beat;
      any wrong note played (a wrong pitch in a slot, or a note that is not in the run) fails it. The timing share rule above does not apply. */
   const missN=per.filter(x=>x.got===null).length,wrongN=per.filter(x=>x.got!==null&&!x.ok).length+extra.length,lateN=graded.filter(x=>x.onTime===false).length;
@@ -2819,8 +2819,9 @@ const TUNES=[
  {id:'riff',n:'Riff Blues (written for Fretwise)',m:'blues',ph:['5, b7, 1 b3 1 b7, 1:2','5, b7, 1 b3 4 b3 1:2','5 4 b3 1 b7, 1:3']}];
 function tuneNotes(str){return str.split(/\s+/).filter(Boolean).map(tok=>{const m=tok.match(/^(b|#)?([1-7])([,']*)(?::([\d.]+))?$/);if(!m)throw new Error('tune token '+tok);const deg=(m[1]==='b'?'♭':m[1]==='#'?'♯':'')+m[2],oct=(m[3].match(/'/g)||[]).length-(m[3].match(/,/g)||[]).length;if(DEG_SEMI[deg]===undefined)throw new Error('tune degree '+tok);return {deg,semi:DEG_SEMI[deg]+12*oct,d:m[4]?+m[4]:1};});}
 const tuneSlots=p=>tuneNotes(p).filter((x,i,a)=>!i||x.semi!==a[i-1].semi).length;   /* a repeated note is one slot for the grader */
-/* o: mode (list), min/max notes in the phrase (repeats counted once), pair (two phrases in a row), anyKey (a new key each time), memory (named, not played) */
-function tunePhraseQ(o={}){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.includes(t.m))return;t.ph.forEach((p,i)=>{const len=tuneSlots(p);if(o.pair||o.memory){if(i+1<t.ph.length&&(o.pair||i===0))pool.push([t,i,2]);}else if(len>=4&&(!o.max||len<=o.max)&&(!o.min||len>=o.min))pool.push([t,i,1]);   /* a phrase of fewer than four moves is only asked together with its neighbour */});});
+/* o: mode (list), min/max notes in the phrase (repeats counted once), pair (two phrases in a row), anyKey (a new key each time), memory (named, not played),
+   time (20 Nov 2026, build brief item 5): heard with the click, played back with the click, notes and rhythm graded; half / all: the first half of the tune's phrases, or every phrase, chained */
+function tunePhraseQ(o={}){if(o.time)return tuneTimeQ(o);const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.includes(t.m))return;t.ph.forEach((p,i)=>{const len=tuneSlots(p);if(o.pair||o.memory){if(i+1<t.ph.length&&(o.pair||i===0))pool.push([t,i,2]);}else if(len>=4&&(!o.max||len<=o.max)&&(!o.min||len>=o.min))pool.push([t,i,1]);   /* a phrase of fewer than four moves is only asked together with its neighbour */});});
   return ()=>{const mo=micOpt(),[t,i,n]=R(pool),k=o.anyKey||o.memory?rootPick(MKEYLIST):(MKEYS[mo.key]!==undefined?mo.key:'C'),root=P(k);let ns=[];for(let j=i;j<i+n;j++)ns=ns.concat(tuneNotes(t.ph[j]));
     const lo=Math.min(...ns.map(x=>x.semi)),hi=Math.max(...ns.map(x=>x.semi)),base=[MKEYS[k]+12,MKEYS[k],MKEYS[k]+24].find(b=>b+lo>=40&&b+hi<=77)||MKEYS[k]+12;
     const mids=ns.map(x=>base+x.semi),names=ns.map(x=>nm(tr(root,DEG_STEP[x.deg]+1,DEG_SEMI[x.deg]))),degs=ns.map(x=>x.deg),beat=60/Math.max(mo.bpm,90),kt=`${nm(root)} ${t.m}`;
@@ -2831,6 +2832,23 @@ function tunePhraseQ(o={}){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.in
       audio:()=>{const d=cad();if(o.memory)return d+0.2;let at=d+0.2;ns.forEach((x,j)=>{Piano.note(mids[j],at,Math.max(0.15,x.d*beat*0.95),0.85);at+=x.d*beat;});return at+0.3;},
       explain:`<b>${t.n}</b>${n>1?`, phrases ${i+1}–${i+2}`:`, phrase ${i+1} of ${t.ph.length}`}, in ${kt}: degrees <b>${degs.join(' ')}</b> (${names.join(' ')}). Tunes are made of the same few moves: steps along the scale, leaps between 1, 3 and 5, and a return home.`,
       after:()=>fretPhrase(mids,base),hint:'Sing it once. Find the first note against the key chord, then follow the shape: step, leap, or repeat.'});};}
+
+/* a tune in time: consecutive equal pitches (any octave when octave-free) are one slot on the beat of the first; grid = each slot's start in beats */
+function tuneTimeSlots(ns,octFree){const sl=[];let t=0;ns.forEach(x=>{const p=sl.at(-1);if(p&&(octFree?mod(x.semi-p.semi,12)===0:x.semi===p.semi))p.rep=(p.rep||1)+1;else sl.push({...x,b:t});t+=x.d;});return {sl,total:t};}
+function tuneTimeQ(o){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.includes(t.m)||o.only&&t.id!==o.only)return;   /* only: one tune (the sweep) */if(o.half||o.all){pool.push([t,0,o.all?t.ph.length:Math.ceil(t.ph.length/2)]);return;}
+    t.ph.forEach((p,i)=>{const len=tuneSlots(p);if(len>=4&&(!o.max||len<=o.max)&&(!o.min||len>=o.min))pool.push([t,i,1]);});});
+  return ()=>{const mo=micOpt(),[t,i,n]=R(pool),k=MKEYS[mo.key]!==undefined?mo.key:'C',root=P(k);let ns=[];for(let j=i;j<i+n;j++)ns=ns.concat(tuneNotes(t.ph[j]));ns=ns.map(x=>({...x,d:Math.abs(x.d*3-Math.round(x.d*3))<0.05?Math.round(x.d*3)/3:x.d}));   /* .33 and .67 are thirds of a beat */
+    const oct=!mo.octave,{sl,total}=tuneTimeSlots(ns,oct),lo=Math.min(...ns.map(x=>x.semi)),hi=Math.max(...ns.map(x=>x.semi)),base=[MKEYS[k]+12,MKEYS[k],MKEYS[k]+24].find(b=>b+lo>=40&&b+hi<=77)||MKEYS[k]+12;
+    const mids=sl.map(x=>base+x.semi),names=sl.map(x=>nm(tr(root,DEG_STEP[x.deg]+1,DEG_SEMI[x.deg]))),degs=sl.map(x=>x.deg),bpm=Math.min(Math.max(mo.bpm||80,60),84),beat=60/bpm,kt=`${nm(root)} ${t.m}`,reps=sl.some(x=>x.rep);
+    const cad=()=>mo.cadence===false?0:t.m==='blues'?playBluesCadence(root):playCadence(root,t.m==='minor');
+    const what=o.all?`the whole of <b>${t.n}</b>, every phrase in order`:o.half?(n===t.ph.length?`<b>${t.n}</b> (the tune is one phrase: all of it)`:`the first half of <b>${t.n}</b> (${n} phrase${n>1?'s':''} of ${t.ph.length})`):`a phrase of a tune`;
+    return M({key:o.all?`tu-${t.id}-all`:o.half?`tu-${t.id}-half`:`tu-${t.id}-${i}t`,label:o.all?`${t.n}, the whole tune in time`:o.half?`${t.n}, the first half in time`:`${t.n}, phrase ${i+1} in time`,
+      target:mids,octaveFree:oct,hideTarget:true,maxNotes:mids.length,degs,names,answerText:names.join(' '),metro:bpm,grid:sl.map(x=>x.b),rhyStrict:true,tune:{total,ns:ns.map(x=>({semi:x.semi,d:x.d}))},
+      prompt:`${o.half||o.all?'From memory, in time: ':''}${what} in <b>${kt}</b>. Hear it with the click, then <b>play it back in time</b> after the count-in: the notes and the rhythm are both checked (a note half a beat or more from its place fails).${reps?' <span class="muted">A note struck twice in a row is one note here, on the beat of the first: the microphone cannot reliably hear the same pitch picked again, so the repeat is not checked.</span>':''}`,
+      visual:listenCard(o.half||o.all?`${t.n} in ${kt}`:'Key chord, then the phrase with the click',`${bpm} bpm · ${mids.length} notes to play${o.half||o.all?' · replay it as often as you need':''}`),
+      audio:()=>{const d=cad(),t0=d+0.3,lead=4*beat;for(let b=0;b<4+Math.ceil(total);b++)Piano.tick(t0+b*beat,b%4===0);let at=t0+lead;ns.forEach(x=>{Piano.note(base+x.semi,at,Math.max(0.15,x.d*beat*0.95),0.85);at+=x.d*beat;});return at+0.3;},
+      explain:`<b>${t.n}</b>${o.all?', the whole tune':o.half?', the first half':`, phrase ${i+1} of ${t.ph.length}`}, in ${kt}: degrees <b>${ns.map(x=>x.deg).join(' ')}</b>, lengths in beats ${ns.map(x=>x.d).join(' ')}. The rhythm is part of the tune: the same notes in another rhythm are another tune.`,
+      after:()=>fretPhrase(mids,base),hint:'Sing it with the click before you play: the long notes are where the tune breathes. Count the beats of a long note, do not guess them.'});};}
 
 /* ============ IMPROVISE (9 Nov 2026): your own line over the changes, checked by rules, not against one answer (as Walking Line L5) ============
    spec: bars(k) → [[root,quality],…]; pool 'ct' (chord tones only) or 'scale'; strong = slots in a bar that must be chord tones; guide = beat 1 must be the 3rd or 7th;
@@ -3803,13 +3821,17 @@ const GAMES=[
   {n:'Suspension, passing 7th, line cliché',d:'Three small devices inside a phrase: which one do you hear?',g:[earDeviceQ()]},
   {n:'Harmonise a melody: I, IV, V',d:'A melody alone, one chord to a bar: which chords fit?',g:[harmQ(P_145)]},
   {n:'Harmonise a melody: the whole key',d:'The same with IIm, IIIm and VIm to choose from',g:[harmQ(P_DIA6)]}]},
- {id:'tunes',cat:'ear',mic:true,name:'Tunes by Ear',area:'Melodies · guitar',desc:'A book of twenty-four traditional tunes, phrase by phrase: hear it, play it back; then two phrases, then any key, then from memory with only the key given. The same tunes come round until they are yours.',levels:[
+ {id:'tunes',cat:'ear',mic:true,name:'Tunes by Ear',area:'Melodies · guitar',desc:'A book of twenty-four traditional tunes, phrase by phrase: hear it, play it back; then two phrases, then any key, then from memory with only the key given; then in time with the click, phrase by phrase, half a tune and the whole tune. The same tunes come round until they are yours.',levels:[
   {n:'Short phrases',d:'Up to seven notes, major tunes, your key',g:[tunePhraseQ({mode:['major'],max:7})]},
   {n:'Longer phrases',d:'Eight notes and more',g:[tunePhraseQ({mode:['major'],min:8}),tunePhraseQ({mode:['major'],max:7})]},
   {n:'Minor, modal and blues tunes',d:'Greensleeves, Scarborough Fair, a riff blues…',g:[tunePhraseQ({mode:['minor','blues']})]},
   {n:'Two phrases',d:'Hold eight bars in your ear',g:[tunePhraseQ({pair:true})]},
   {n:'Any key',d:'The same phrases, a new key every time',g:[tunePhraseQ({anyKey:true}),tunePhraseQ({anyKey:true,pair:true})]},
-  {n:'From memory',d:'Only the name and the key: play the opening',g:[tunePhraseQ({memory:true})]}]},
+  {n:'From memory',d:'Only the name and the key: play the opening',g:[tunePhraseQ({memory:true})]},
+  {n:'In time: short phrases',d:'Up to seven notes, major tunes, heard with the click and played back with it: notes and rhythm',g:[tunePhraseQ({mode:['major'],max:7,time:true})]},
+  {n:'In time: longer, minor and blues tunes',d:'Eight notes and more, and the minor and blues tunes, in time',g:[tunePhraseQ({mode:['major'],min:8,time:true}),tunePhraseQ({mode:['minor','blues'],time:true})]},
+  {n:'Half a tune',d:'The first half of a tune’s phrases in one go, in time, from memory: heard in full, replay it as often as you need',g:[tunePhraseQ({half:true,time:true})]},
+  {n:'The whole tune',d:'Every phrase in order, in time, from memory',g:[tunePhraseQ({all:true,time:true})]}]},
  {id:'outer',cat:'ear',name:'Bass & Top',area:'Outer voices',desc:'Chords with a clear bass and a melody note on top. Hear the bass line as degrees, the top voice as degrees, then the top note as a chord tone or tension of its chord (soprano–bass polarity). Then play both lines on the guitar.',levels:[
   {n:'Bass line, triads',d:'Four chords from the pop set: write the bass as scale degrees',g:[outerQ('bass',POP_PROGS)]},
   {n:'Bass line, sevenths & minor',d:'II–V–I, secondary dominants, backdoor, tritone sub, minor keys',g:[outerQ('bass',SEV_PROGS),outerQ('bass',MIN_PROGS)]},
@@ -4816,8 +4838,8 @@ const GOALS={
   {n:'Hear the key',why:'Everything in a tune is heard against its tonic. First: the tonic triad and the steps around it, singing a degree, the first intervals, a steady beat, and what a key is on paper.',steps:[['eardeg',1,3],['sing',1,2],['eariv',1,3],['intervals',1,2],['pulse',1,3]]},
   {n:'Melodies back',why:'Hear a phrase, hold it, play it: degrees in major and minor, short phrases of real tunes, every interval up and down, the scale under the hand, and the rhythm of what you hear written down.',steps:[['eardeg',4,7],['tunes',1,2],['cr',1,4],['eariv',4,6],['scales',1,2],['rhytheory',1,4],['sing',3,5]]},
   {n:'The bass and the chords',why:'Under the melody: the bass line, whether a chord is major, minor or dominant, the common progressions by number, and the chords of a key so the numbers mean something.',steps:[['outer',1,2],['earchord',1,3],['earprog',1,8],['analysis',1,4],['intervals',3,4],['rhytheory',5,6],['sing',6,9]]},
-  {n:'Whole tunes',why:'Longer and stranger melodies (minor, modal, blues, in any key, from memory), melodic dictation with its rhythm, the top and the bass together, every seventh chord, and minor-key progressions.',steps:[['tunes',3,6],['eardeg',8,11],['outer',3,8],['earchord',4,4],['earprog',9,10],['analysis',5,7],['sing',10,12]]},
-  {n:'The harmony of standards',why:'What jazz and pop tunes are made of: II–V–I and its substitutes, turnarounds, the blues and rhythm changes, the usual song progressions, and the dominant that points at a chord of the key.',steps:[['earprog',11,16],['analysis',8,8]]}],
+  {n:'Whole tunes',why:'Longer and stranger melodies (minor, modal, blues, in any key, from memory), melodic dictation with its rhythm, the top and the bass together, every seventh chord, and minor-key progressions.',steps:[['tunes',3,8],['eardeg',8,11],['outer',3,8],['earchord',4,4],['earprog',9,10],['analysis',5,7],['sing',10,12]]},
+  {n:'The harmony of standards',why:'What jazz and pop tunes are made of: II–V–I and its substitutes, turnarounds, the blues and rhythm changes, the usual song progressions, and the dominant that points at a chord of the key.',steps:[['earprog',11,16],['analysis',8,8],['tunes',9,10]]}],
   more:[['eariv',7,11,'harmonic intervals, and tensions heard above a root'],['earchord',5,9,'sixths, sus chords, extensions, inversions and voicings'],['earprog',17,19,'suspensions and line clichés; choosing chords for a melody'],['earmode',1,8,'the modes by ear, for modal tunes and borrowed chords'],['cr',5,12,'blues phrases and licks by ear, in time'],['sightsing',1,9,'the same ear from the other side: singing what is written'],['analysis',9,17,'the full harmony of standards on paper'],['fretboard',1,6,'note names on the neck, for writing a melody down'],['repertoire',1,6,'the standard forms, so you know what to expect']]},
  C:{n:'Play chord melody',short:'Chord melody',col:'#f2c230',end:'Put a melody on top and the right chord under each note.',stages:[
   {n:'Triads, and the notes on top',why:'A chord melody is a melody note with a chord hung under it. First: the notes of the top strings, the triads and their inversions on each string set, and a steady beat.',steps:[['fretboard',1,6],['intervals',1,1],['spelling',1,5],['triads',1,5],['pulse',1,2]]},
@@ -4916,7 +4938,7 @@ const GOAL_WHY={
   'analysis:1':['theory','The numerals mean nothing until you know the chords of a key and what each one does. These levels give the vocabulary for writing a progression down: degree, quality, seventh chord and function.'],
   'intervals:3':['theory','Interval names built from the major scale, and the minor keys: relative, parallel, natural minor. You need the names to describe what you hear, and the minor keys because a large part of the tunes you will learn are in them.'],
   'rhytheory:5':['rhy','Dotted quarters, eighth–quarter–eighth, and then syncopation and triplets taken down by ear. Real melodies are syncopated. This is the rhythmic half of transcribing them.'],
-  'tunes:3':['mel','Minor, modal and blues tunes, two phrases at a time, in any key, and finally from memory with only the name given. Here the skill becomes what the goal asks: a whole tune carried in the head and found on the guitar, wherever it is pitched.'],
+  'tunes:3':['mel','Minor, modal and blues tunes, two phrases at a time, in any key, from memory with only the name given, and then phrases played back in time with the click, the rhythm checked with the notes. Here the skill becomes what the goal asks: a tune carried in the head and found on the guitar, wherever it is pitched and at the speed it goes.'],
   'eardeg:8':['key','Tunes use notes outside the scale: the blue ♭3 and ♭7, the ♯4. Then longer lines, and melodic dictation with the rhythm written too. This is full transcription of a melody, at the length of one and two bars.'],
   'outer:3':['chords','The top voice and the bass together are the frame of any piece of music. You hear which degree is on top, write the top line, say what that note is to its chord, write both voices, and finally play each on the guitar. A musician who hears the two outer voices can rebuild what lies between.'],
   'earchord:4':['chords','The remaining seventh chords: m7♭5, dim7 and m(maj7). They are rarer, but they are exactly the chords that mark a minor II–V or a passing chord in a standard, so missing them means missing the turn in the harmony.'],
@@ -4924,6 +4946,7 @@ const GOAL_WHY={
   'analysis:5':['theory','The chords of the minor key on paper, finding the key a chord belongs to, and harmonic minor with its V7. It gives names to what the minor-key ear levels of this stage make you hear.'],
   'earprog:11':['chords','The harmony standards are built from: II–V–I and its substitutes, turnarounds, the blues forms and rhythm changes, the common pop progressions, and whole eight-chord examples with a melody on top. When these are known by sound, learning a new standard is mostly noticing which familiar blocks it uses.'],
   'analysis:8':['theory','Secondary dominants: the V7 of a chord other than I. They are the most common chords from outside the key in any standard. You have to know them on paper to name them when you hear a dominant chord that does not belong to the key.'],
+  'tunes:9':['mel','Half a tune and then the whole tune, every phrase in order, in time with the click and from memory. This is the goal itself in small: a melody heard, held as a whole, and played on the guitar from the first note to the last at its own tempo, with its rhythm, with nothing to read.'],
   'sing:3':['iv','Sing an interval above a given note, the 3rd, 5th or 7th of a chord you hear, and any degree after a minor cadence. A tune is heard as intervals and degrees; singing them proves you have the sound inside and not only its name on a button. What you can sing, you can find on the guitar.'],
   'sing:6':['mel','The chromatic degrees, short lines from the cadence alone, the bass line and the guide tones of a II–V–I, and then a degree sung and found on the guitar. This is the path a melody takes when you learn it by ear: heard, held in the voice, then played. The bass and guide-tone lines are the first step towards hearing the chords under the tune.'],
   'sing:10':['key','Arpeggios sung through a progression, in triads and then in sevenths and minor, and at the end the tonic found with no key named, from a phrase that does not resolve. A real recording does not tell you its key: this last level is the first thing you do with any tune you lift.']}},
@@ -6304,7 +6327,20 @@ tunes:[
  t:['If you know a tune as numbers you know it in twelve keys.']},
 {a:'Only the name and the key are given.',
  w:['Hear the tune in your head first, all the way through the phrase.'],
- t:['This is what it means to know a tune: no recording, no page.']}],
+ t:['This is what it means to know a tune: no recording, no page.']},
+{k:['The phrase is played with the click; after the count-in you play it back with the click. The notes and the rhythm are both checked.','A note half a beat or more from its place fails the take, even if every pitch is right.','A note struck twice in a row counts once, on the beat of the first: the microphone cannot reliably hear the same pitch picked again.'],
+ w:['The long notes. Count their beats with the click instead of guessing them.','Where the phrase starts: the first note comes on beat 1 after the count-in.'],
+ s:'Hearing and keeping the rhythm of a melody, not only its pitches. A tune played with the right notes in the wrong rhythm is a different tune.',
+ t:['Sing the phrase with the click before you play it, tapping the beat with your foot.','If the rhythm is unclear, play it once on one note: only the rhythm. Then add the pitches.']},
+{a:'Longer major phrases, and the minor and blues tunes, in time.',
+ w:['Longer phrases have long notes in the middle: keep counting through them.','Dotted rhythms: the long note before the short one is held for its full length.'],
+ t:['A phrase usually ends on a long note; landing it on the right beat is half of playing it in time.']},
+{a:'The first half of a tune, its phrases one after another, in one take. It is played to you in full; replay it as often as you need, then play it from memory.',
+ w:['The joins between phrases: the next phrase starts on its beat, not when you are ready.','The repeated phrases: notice which phrase comes back, it is one less thing to remember.'],
+ t:['Learn it in pieces: one phrase, then two, then the half. Then play it without listening again.']},
+{a:'The whole tune in one take, every phrase in order, in time.',
+ w:['Know the form: which phrases repeat and where the new one comes.','Keep going through a slip; a found place is worth more than a stopped take.'],
+ t:['Play it for someone, or record yourself: a whole tune in time is something you can perform.']}],
 outer:[
 {k:['The bass and the top voice are the frame of any harmony. The ear follows them first.','Here: four chords, and you write the bass line as scale degrees.'],
  w:['Sing the lowest note of each chord.','The bass of a root-position chord is the chord’s root, so the bass line is the progression.'],
@@ -10580,6 +10616,12 @@ LESSON_NOTES.tunes=[
    {sub:'How a tune gets into memory'},
    ['Sing it on numbers until you can do so without hearing it first.','Play it in three keys.','Start from the second phrase. If you can only begin at the beginning, you have a chain, not a tune.','Leave it for a day and play it cold. What survives a night is learned.'],
    {tip:'Players who know hundreds of tunes do not have better memories. They have each tune stored in several ways at once: as a sound they can sing, as degrees, as a shape on the instrument, and as a form (which phrase repeats). When one fails, another carries on.'}]},
+ {h:'In time',p:[
+   'Levels 7 to 10 add the click. The phrase is played to you with the click; after a count-in you play it back with the click, and the notes and the rhythm are both checked. Level 7 is short major phrases, level 8 longer phrases and the minor and blues tunes, level 9 the first half of a tune in one take, level 10 the whole tune.',
+   ['Each note is judged against its place in the bar. A note half a beat or more from its place fails the take, even with every pitch right; a smaller slip is forgiven in one note in four.',
+    'A note struck twice in a row counts once, on the beat of the first. The microphone cannot reliably hear the same pitch picked again, so those repeats are not checked: play them, but know they are not graded.',
+    'Levels 9 and 10 are from memory: the tune is played to you in full, you may hear it again as often as you like, and then you play it without help.'],
+   {tip:'Learn the rhythm on its own first: play the phrase on one note with the click. When the rhythm is right on one note, put the pitches back.'}]},
  {h:'Lifting a melody from a recording',p:[
    'The melodies of jazz standards are under copyright and are not in the book. They are learned from recordings, and the skill this game builds is exactly the one that needs. The procedure with a real record is the same as in the game, with three extra jobs: nobody names the key, nobody cuts the tune into phrases, and nobody plays it slowly.',
    ['<b>Listen through, several times, away from the guitar.</b> Until you can sing along with the melody.','<b>Find the tonic.</b> Hum the note the tune comes home to, usually its last note. Find it on the guitar. That is 1, and it gives you the key.','<b>Major or minor.</b> Sing the third above the tonic as the tune has it.','<b>Find the form.</b> Count the phrases and mark which ones repeat. Many standards are four eight-bar sections, AABA or ABAC. You only have to work out each different section once.','<b>Take one phrase.</b> Loop it. Sing it. Find its first note as a degree. Play it.','<b>Write the degrees down</b>, phrase by phrase, with bar lines. Rhythm can be rough at first.','<b>Check against the bass.</b> The note under the melody at the start of each section confirms the key and the chords.','<b>Play along with the record</b>, then without it, then in a second key.'],

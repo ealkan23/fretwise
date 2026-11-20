@@ -80,6 +80,17 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
    run=on=>{GR={onsets:on,res:on.length,holdFrom:0,c:{},std:25,hold:30,feelSet:[],met:{},accOn:false};return grooveMeets();};
   if(!run(mk(n=>n===4?-28:n===16?27:0,18)).ok)gb('runSpread: lean by subdivision must pass');if(run(mk(n=>0,60)).ok)gb('runSpread: loose must fail');
   const u=[];for(let b=0;b<30;b++)for(let k=0;k<4;k++)u.push({bar:b,hit:1,off:-20+Math.sin(b*4+k)*20});if(Math.abs(run(u).t-spread(u.map(o=>o.off)))>1e-9)gb('runSpread: alike bars changed');}
+ /* outlines (Arpeggio Runner 6–8): in the key (V from harmonic minor), II ends on its 7th, V starts on its 3rd a step under it, I is reached on its 3rd; own grader passes, one wrong note fails */
+ {const ob=m=>{bad++;console.log('OUTLINE',m);};S.gid='arp';
+  for(const minor of [0,1])for(const k of (minor?OL_MIN:OL_MAJ))for(const sh of Object.keys(OL_SH)){const q=outlineQ({keys:[k],shape:sh,minor})(),id=(minor?'m':'')+k+' '+sh;if(!q.ol){ob('no position '+id);continue;}
+   const T=q.target,r=q.ol.root,C=q.ol.chs,nat=(minor?SC.natural:SC.major).map(x=>(x+r)%12),har=(minor?SC.harmonic:SC.major).map(x=>(x+r)%12);
+   if(T.length!==9||q.grid.some((x,i)=>x!==i*0.5))ob('shape '+id);
+   T.forEach((m,i)=>{if(!(i>=4&&i<8?har:nat).includes(m%12))ob('out of key '+id+' '+i);});
+   const ct=(c,iv)=>(c.r+IV[iv][1])%12,t3=c=>ct(c,CH[c.q].find(x=>x==='M3'||x==='m3')),t7=c=>ct(c,CH[c.q].find(x=>x==='m7'||x==='M7'||x==='d7'));
+   if(T[3]%12!==t7(C[0]))ob('II does not end on its 7th '+id);if(T[4]%12!==t3(C[1])||!(T[3]-T[4]>=1&&T[3]-T[4]<=2))ob('V does not start on its 3rd a step under '+id);
+   if(T[8]%12!==t3(C[2])||!(T[7]-T[8]>=1&&T[7]-T[8]<=2))ob('no landing on the 3rd of I '+id);
+   const res=n=>({notes:n.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000})),firstAt:3000,beat:750,beatStart:3000});
+   if(!micGrade(q,res(T)).ok)ob('self '+id);const w=T.slice();w[5]+=1;if(micGrade(q,res(w)).ok)ob('one wrong note passes '+id);}}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

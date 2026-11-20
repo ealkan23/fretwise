@@ -9,7 +9,7 @@ if (prof/'Local Storage').exists():
     tmp=pathlib.Path(tempfile.mkdtemp());(tmp/'Default').mkdir(parents=True)
     shutil.copytree(prof/'Local Storage',tmp/'Default'/'Local Storage',ignore=shutil.ignore_patterns('LOCK'))
     with sync_playwright() as pw:
-        ctx=pw.chromium.launch_persistent_context(str(tmp),channel='chrome',headless=True);ctx.add_init_script("try{window.__raw=localStorage.getItem('fretwise-v1');}catch(e){}");pg=ctx.new_page()
+        ctx=pw.chromium.launch_persistent_context(str(tmp),channel='chrome',headless=True,args=['--mute-audio']);ctx.add_init_script("try{window.__raw=localStorage.getItem('fretwise-v1');}catch(e){}");pg=ctx.new_page()
         pg.goto('https://ealkan23.github.io/fretwise/');raw=pg.evaluate('window.__raw');ctx.close()
     shutil.rmtree(tmp,ignore_errors=True)
 print('store:','user data (%d chars)'%len(raw) if raw else 'blank')

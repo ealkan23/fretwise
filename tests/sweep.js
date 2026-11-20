@@ -59,34 +59,23 @@ let conv=0;for(const id of PLAY_GAMES){G(id).mode='play';S.gid=id;GBY[id].levels
 /* prerequisites: a level's own generators must not ask what the ladder has not taught yet */
 const LEAKS={spelling:{6:/m7♭5|dim7|m[(]maj7[)]|sus|add9|half-diminished|diminished 7/},chordscale:{1:/characteristic|separates/}};
 for(const [id,lvs] of Object.entries(LEAKS))for(const [L,re] of Object.entries(lvs))GBY[id].levels[L-1].g.forEach(gen=>{for(let i=0;i<150;i++){const q=gen(),t=[q.prompt,JSON.stringify(q.answer),q.label].join(' ');if(re.test(t)){bad++;console.log('LEAK',id,L,t.slice(0,120));break;}}});
-/* the path: every level of every game in exactly one stage step */
-{const seen={};PATH.forEach((st,si)=>st.steps.forEach(([id,a,b])=>{if(!GBY[id]){bad++;console.log('PATH unknown game',id);return;}if(b>GBY[id].levels.length||a<1||a>b){bad++;console.log('PATH bad range',id,a,b);}for(let L=a;L<=b;L++){const k=id+' '+L;if(seen[k]!==undefined){bad++;console.log('PATH twice',k);}seen[k]=si;}}));
- GAMES.filter(x=>!x.retired).forEach(x=>x.levels.forEach((_,i)=>{if(seen[x.id+' '+(i+1)]===undefined){bad++;console.log('PATH missing',x.id,i+1);}}));
- /* within a game the stages never go backwards */
- GAMES.forEach(x=>{let p=0;x.levels.forEach((_,i)=>{const s2=seen[x.id+' '+(i+1)];if(s2<p){bad++;console.log('PATH order',x.id,i+1);}p=Math.max(p,s2);});});}
-/* the skill tree: every level in exactly one skill, a skill's levels all in its column's stage, earlier levels of a game in ancestor skills, no cycles */
-{const own={},sb=m=>{bad++;console.log('SKILL',m);};const anc=id=>{const out=new Set(),st=[...SKBY[id].pre];while(st.length){const p=st.pop();if(p===id){sb('cycle at '+id);return out;}if(!SKBY[p]){sb('unknown pre '+p);continue;}if(!out.has(p)){out.add(p);st.push(...SKBY[p].pre);}}return out;};
- SKILLS.forEach(n=>{if(!SK_TRACKS.some(t=>t[0]===n.tr))sb('track '+n.id);if(n.goal)return;const c=skCol(n);n.req.forEach(([g,a,b])=>{for(let L=a;L<=b;L++){const k=g+' '+L;if(own[k])sb('twice '+k);own[k]=n.id;if(stageOf(g,L)!==c)sb(n.id+' '+k+' stage '+stageOf(g,L)+' != column '+c);}});
-  n.pre.forEach(p=>{if(SKBY[p]&&!SKBY[p].goal&&skCol(SKBY[p])>c)sb(n.id+' builds on a later skill '+p);});});
- GAMES.filter(x=>!x.retired).forEach(x=>{let prev=null;x.levels.forEach((_,i)=>{const k=x.id+' '+(i+1),id=own[k];if(!id){sb('missing '+k);return;}if(prev&&prev!==id&&!anc(id).has(prev))sb(k+': skill '+id+' does not build on '+prev);prev=id;});});
- SKILLS.forEach(n=>anc(n.id));GAMES.forEach(x=>{const s=STD[x.id];if(!s||!(s.acc>=PASS&&s.acc<=1))sb('no master standard for '+x.id);else if(s.flu&&!FLU_GAMES.includes(x.id))sb('time standard on an untimed game '+x.id);});console.log('skills',SKILLS.length);}
+/* the skill tree (derived from GOALS): a box builds on a box of its own goal in the same or an earlier stage, no cycles; every game has a master standard */
+{const sb=m=>{bad++;console.log('SKILL',m);};const anc=id=>{const out=new Set(),st=[...SKBY[id].pre];while(st.length){const p=st.pop();if(p===id){sb('cycle at '+id);return out;}if(!SKBY[p]){sb('unknown pre '+p);continue;}if(!out.has(p)){out.add(p);st.push(...SKBY[p].pre);}}return out;};
+ SKILLS.forEach(n=>{if(!SK_TRACKS.some(t=>t[0]===n.tr))sb('track '+n.id);if(n.goal)return;n.pre.forEach(p=>{const q=SKBY[p];if(!q)return sb('unknown pre '+p);if(q.tr!==n.tr)sb(n.id+' builds on another goal’s box '+p);if(!q.goal&&skCol(q)>skCol(n))sb(n.id+' builds on a later box '+p);});anc(n.id);});
+ GAMES.forEach(x=>{const s=STD[x.id];if(!s||!(s.acc>=PASS&&s.acc<=1))sb('no master standard for '+x.id);else if(s.flu&&!FLU_GAMES.includes(x.id))sb('time standard on an untimed game '+x.id);});console.log('skills',SKILLS.length);}
 /* interval shapes: every shape the text gives lands on its interval from every start string; jazz voicings hold only chord tones */
 for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const m=part.match(/^(same string|next string up|([0-9]) strings up), (same fret|([0-9]+) frets? (up|back))(?: [(](same fret|([0-9]+) frets? (up|back)) when it crosses G–B[)])?$/);
   if(!m){bad++;console.log('SHAPE unparsed',k,part);continue;}const n=m[1]==='same string'?0:m[1]==='next string up'?1:+m[2],off=m[3]==='same fret'?0:(+m[4])*(m[5]==='up'?1:-1),offB=m[6]===undefined?off:m[6]==='same fret'?0:(+m[7])*(m[8]==='up'?1:-1);
   for(let s=6;s-n>=1;s--){const tt=s-n,o=(s>=3&&tt<=2&&n>0)?offB:off;if(OPEN[tt]-OPEN[s]+o!==semi){bad++;console.log('SHAPE wrong',k,part,'from string',s);}}}}
 {const r0=OPEN[IVMAP_ROOT.s]+IVMAP_ROOT.f;for(const [d,s2,f,semi] of IVMAP){if(OPEN[s2]+f-r0!==semi||(semi%12)!==({R:0,'3':4,'5':7,'6':9,'7':11,'9':2,'11':5,'13':9})[d]){bad++;console.log('IVMAP wrong',d,s2,f);}if(s2===IVMAP_ROOT.s&&semi>0){bad++;console.log('IVMAP on the root string',d);}}}
-/* the plan: 28 days of three existing games, every game at least once, no game twice in a day */
-/* the goals plan: 28 sessions of three goal bubbles (18 per goal, 12 foundations); every level of every game in exactly one step; a game's ranges rise through a goal's stages */
-{if(PLAN.length!==28){bad++;console.log('PLAN sessions',PLAN.length);}const cnt={};PLAN.forEach(([th,ks],i)=>{if(ks.length!==3||new Set(ks).size!==3||ks.some(k=>!GOALS[k])){bad++;console.log('PLAN session',i,ks);}ks.forEach(k=>cnt[k]=(cnt[k]||0)+1);});
- if(['A','B','C','D'].some(k=>cnt[k]!==18)||cnt.F!==12){bad++;console.log('PLAN goal counts',JSON.stringify(cnt));}
- const own={};GOAL_KEYS.forEach(k=>{const Gl=GOALS[k];if(!Gl.n||!Gl.end||!Gl.col||Gl.stages.length<4){bad++;console.log('GOALS shape',k);}const last={};
-   Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length){bad++;console.log('GOALS stage',k,n);}sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||from<1||to<from||to>x.levels.length){bad++;console.log('GOALS step range',k,n,gid,from,to);return;}
-     if(last[gid]!==undefined&&from<=last[gid]){bad++;console.log('GOALS: a game goes backwards inside a goal',k,gid,from);}last[gid]=to;for(let L=from;L<=to;L++){const id=gid+':'+L;if(own[id]){bad++;console.log('GOALS: level in two steps',id,own[id],k+(n+1));}own[id]=k+(n+1);}});});});
- GAMES.filter(x=>!x.retired).forEach(x=>x.levels.forEach((_,i)=>{if(!own[x.id+':'+(i+1)]){bad++;console.log('GOALS: level in no step',x.id,i+1);}}));
- for(const k of ['A','B','C','D'])if(GOALS[k].stages.length!==5){bad++;console.log('GOALS: five stages',k);}
- /* stacking: the levels below a step's range belong to steps of the same or an earlier stage number, so no stage waits on a later one */
- const stageOfLv={};GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach((sg,n)=>sg.steps.forEach(([gid,from,to])=>{for(let L=from;L<=to;L++)stageOfLv[gid+':'+L]=n;})));
- GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach((sg,n)=>sg.steps.forEach(([gid,from])=>{for(let L=1;L<from;L++)if(stageOfLv[gid+':'+L]>n){bad++;console.log('GOALS: stage',k+(n+1),gid,'from',from,'waits on a later stage (level',L,'is in stage',stageOfLv[gid+':'+L]+1+')');break;}})));}
+/* the goals (20 Nov 2026): five goals of five stages; inside a goal a game's required levels run on from level 1 without a gap (a ladder opens in order), so no
+   stage waits on a later one; a level may be in several goals; the appendix (more) names valid ranges that are not already required by that goal */
+{const gb=m=>{bad++;console.log('GOALS',m);};if(GOAL_KEYS.length!==5)gb('five goals');
+ GOAL_KEYS.forEach(k=>{const Gl=GOALS[k];if(!Gl||!Gl.n||!Gl.end||!Gl.col||!Gl.short||Gl.stages.length!==5)return gb('shape '+k);const last={},core=new Set();
+   Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length)gb('stage '+k+(n+1));const inStage=new Set();sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('step range '+k+(n+1)+' '+gid+' '+from+'–'+to);
+     if(inStage.has(gid))gb('a game twice in one stage '+k+(n+1)+' '+gid);inStage.add(gid);if(from!==(last[gid]||0)+1)gb(k+(n+1)+' '+gid+' starts at '+from+', the goal has it up to '+(last[gid]||0)+': a gap or a step back');last[gid]=to;for(let L=from;L<=to;L++)core.add(gid+':'+L);});});
+   if(!Array.isArray(Gl.more)||!Gl.more.length)gb('no appendix '+k);(Gl.more||[]).forEach(([gid,from,to,why])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('appendix range '+k+' '+gid);if(!why||why.length<12)gb('appendix reason '+k+' '+gid);for(let L=from;L<=to;L++)if(core.has(gid+':'+L))gb('appendix repeats a required level '+k+' '+gid+' '+L);});});
+ const used=new Set();GOAL_KEYS.forEach(k=>{GOALS[k].stages.forEach(sg=>sg.steps.forEach(([g,a,b])=>{for(let L=a;L<=b;L++)used.add(g+':'+L);}));});console.log('levels required by a goal',used.size);}
 /* every generator of every level must produce questions when called directly: pickQ swallows throwing generators (a level would silently lose a question type) */
 GAMES.forEach(x=>{S.gid=x.id;x.levels.forEach((lv,li)=>lv.g.forEach((gen,gi)=>{let ok=0,err='';for(let t=0;t<30;t++){try{gen();ok++;}catch(e){err=e.message;}}if(!ok){bad++;console.log('GENERATOR THROWS',x.id,'L'+(li+1),'g'+gi,err);}}));});
 /* tunes: every phrase parses and fits the guitar; improvise: a line on one note, and a line a half step off the example, must fail */

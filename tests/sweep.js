@@ -385,6 +385,12 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
    const off=ns.find(n=>scInt(n.t)&&Math.round(n.t)%2===0&&!chAt(n.t).pcs.includes(mod(n.m,12)));if(off){sb(fn+' a strong beat not a chord tone at '+off.t);break;}
    if(!noDup(ns.map(n=>n.m))){sb(fn+' a pitch twice in a row');break;}
    if(ns.some(n=>!posOf(n.m).some(p=>p.f>=4&&p.f<=11))){sb(fn+' a note outside positions IV to VII');break;}
+   /* review, 20 Nov 2026: every note belongs to the scale of the chord it is heard against (a pushed note: the chord it is pushed into), the melody lies on the staff (sounding E3 and up),
+      and a written spelling is the pitch it stands for, taken from the chord where the chord or the note is outside the key (B♭ under Gm7, C♭ under A♭m7, never A♯ or G♯ there) */
+   {const sI=(tt,d)=>{for(let q=Math.ceil(tt-1e-6);q<tt+d-1e-6;q++)if(q%2===0)return q;return null;},cOf=n=>{const s0=sI(n.t,n.d);return chAt(s0!==null?s0:n.t);};let bd=null;
+    pg.notes.forEach((n,i)=>{if(n.rest||bd)return;const c=cOf(n),p=mod(n.m,12),w=pg.line.notes[i].w;if(!c.sc.includes(p)&&!c.pcs.includes(p))bd='a note outside the scale of '+c.sym;
+      else if(n.m<52)bd='a note under the staff range ('+n.m+')';else if(w&&mod(NAT[w.l]+w.a,12)!==p)bd='a spelling that is another pitch under '+c.sym;
+      else if(w&&/♭/.test(c.sym.slice(0,2))&&w.a>0)bd='a sharp written under '+c.sym;});if(bd){sb(fn+' '+bd);break;}}
    if(nb===32){const avg=(x,y)=>{const z=ns.filter(n=>n.t>=x*4&&n.t<y*4);return z.reduce((a2,n)=>a2+n.m,0)/z.length;};if(!(avg(16,24)>avg(0,8)+1)){sb(fn+' the bridge is not higher than the A');break;}}
    const ln=ns.at(-1),lc=chAt(ln.t);if(![0,IV[CH[lc.q][1]][1],IV[CH[lc.q][2]][1]].map(v=>mod(lc.r+v,12)).includes(mod(ln.m,12))){sb(fn+' the last note is not 1, 3 or 5');break;}
    for(let b=8;b<nb;b+=8)for(let a0=0;a0<b;a0+=8){if(f.bars.slice(a0,a0+8).join('|')!==f.bars.slice(b,b+8).join('|'))continue;const sec=x=>pg.notes.filter(n=>n.t>=x*4-1e-6&&n.t<(x+8)*4-1e-6).map(n=>(n.rest?'r':n.m)+':'+n.d+'@'+(n.t-x*4)).join(' ');if(sec(a0)!==sec(b)){sb(fn+' the A section at bar '+(b+1)+' is not the one at bar '+(a0+1));break;}}}}

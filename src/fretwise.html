@@ -4092,7 +4092,7 @@ const GAMES=[
   {n:'Sixteen bars',d:'A sixteen-bar reading piece written on the changes of a standard, chord symbols above: a lead sheet to read, not the tune',tp:[60,110,80,'Sixteen bars of eighths and syncopations: the tempo where every bar is read, not guessed.'],g:[srFormQ({forms:SR_FORMS16,bars:16})]},
   {n:'The road map',d:'A page with repeats, two endings, the sign and the coda: the notes in the order the signs say',tp:[50,90,66,'A jump needs a glance ahead: keep the tempo where you can look for the next sign.'],g:[srRoadQ({charts:['rep','rep2','end1','end2','dcfine','dsfine','dscoda','dccoda','full']})]},
   {n:'A 32-bar page',d:'A whole chorus written on the changes of a standard, AABA or AABC, swing: the A section returns, the bridge goes higher',tp:[80,120,100,'Swing at a walking tempo: under 80 the eighths stop swinging; over 120 the swung eighths come closer together than the microphone separates reliably (tested). The page is 32 bars: choose a tempo you can hold to the end.'],g:[srFormQ({forms:SR_FORMS32,bars:32,swing:true})]}]},
- {id:'triads',cat:'neck',name:'Triad Shapes',area:'Triads on the neck',desc:'Close-position triads on three strings: name the chord and its inversion on all four string sets and find the grip; inversions and slash chords on paper; voice leading, diminished and augmented, spread triads, and the three inversions played up the neck.',levels:[
+ {id:'triads',cat:'voicings',name:'Triad Shapes',area:'Triads on the neck',desc:'Close-position triads on three strings: name the chord and its inversion on all four string sets and find the grip; inversions and slash chords on paper; voice leading, diminished and augmented, spread triads, and the three inversions played up the neck.',levels:[
   {n:'Major and minor, root position',d:'Top two string sets, common keys: name it, then mark it. Minor = the 3rd one fret lower',g:[triadShapeQ([''],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E']),triadShapeQ([''],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E']),triadShapeQ([''],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E'],'find'),triadShapeQ(['m'],[0],['4-3-2','3-2-1'],['A','D','E','G','C','F','B']),triadShapeQ(['','m'],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E']),triadShapeQ(['','m'],[0],['4-3-2','3-2-1'],['C','F','G','D','A','E'],'find')]},
   {n:'Major and minor, all sets',d:'Root position on all four string sets; name and mark',g:[triadShapeQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb']),triadShapeQ(['','m'],[0],['6-5-4','5-4-3','4-3-2','3-2-1'],['C','F','G','D','A','E','Bb','Eb'],'find')]},
   {n:'Inversions and slash chords, on paper',d:'Name the chord and inversion from its notes; the bass of an inversion; read C/E as an inversion',g:[G_in.idTri,G_in.bassTri,G_in.spellInv,G_in.slashInv,G_in.spellInv]},
@@ -4407,7 +4407,7 @@ const GAMES=[
   {n:'Constant structure and Coltrane changes',d:'One chord type moved by an interval; three key centres a major third apart',g:[constQ(),coltraneQ('fill'),coltraneQ('keys')]},
   {n:'Full analysis',d:'Write a progression in numerals; name the device, major and minor',g:[anProgNumQ(),anDeviceQ(['tt','bd','sd','mi','dp','pl','mn']),anNumeralQ([[0,'maj7'],[2,'m7'],[7,'7'],[9,'7'],[1,'7'],[10,'7'],[5,'m7'],[1,'dim7'],[11,'m7♭5']])]},
   {n:'Write the numerals',d:'Enter a progression in Berklee numerals yourself',g:[anWriteQ()]}]},
- {id:'repertoire',cat:'neck',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Know them on paper, then play them chord by chord on the guitar.',levels:[
+ {id:'repertoire',cat:'voicings',name:'Repertoire',area:'Standard changes',desc:'The chord changes jazz players share: blues in F and B♭, minor and Bird blues, rhythm changes, and the first eights of six standards. Know them on paper, then play them chord by chord on the guitar.',levels:[
   {n:'Blues in F and B♭',d:'Basic and jazz blues, bar by bar',g:[repBarQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F']),repNextQ(['Jazz blues in F','Jazz blues in B♭','Basic blues in F'])]},
   {n:'Minor & Bird blues',d:'Cm blues and Parker’s descending II–Vs',g:[repBarQ(['Minor blues in C','Bird blues in F']),repNextQ(['Minor blues in C','Bird blues in F','Jazz blues in F'])]},
   {n:'Rhythm changes',d:'A section in B♭ and the bridge',g:[repBarQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNextQ(['Rhythm changes A (B♭)','Rhythm changes bridge']),repNumQ(['Rhythm changes A (B♭)','Rhythm changes bridge'])]},
@@ -4426,7 +4426,7 @@ const GAMES=[
   {n:'Call and answer',d:'A phrase that stays open, and one that ends on a note of the chord',g:[phraseQ('answer')]},
   {n:'Into the IV chord',d:'Play through bars 3 and 4 and land on beat 1 of bar 5 on a note of the new chord',g:[phraseQ('toIV')]},
   {n:'A chorus from one idea',d:'Twelve bars: your idea, the idea again over the IV chord, then something new, with empty bars between',g:[phraseQ('chorus')]}]},
- {id:'walking',cat:'neck',name:'Walking Line',area:'Bass lines over II–V',desc:'Root on 1, chord tones, and an approach note into the next root: name it, pick the bar that works, then place it on the bass strings.',levels:[
+ {id:'walking',cat:'voicings',name:'Walking Line',area:'Bass lines over II–V',desc:'Root on 1, chord tones, and an approach note into the next root: name it, pick the bar that works, then place it on the bass strings.',levels:[
   {n:'Approach notes',d:'Chromatic from below or above, scale step, dominant approach',g:[walkQ('approach')]},
   {n:'Pick the bar',d:'Which four notes walk from II to V and from V to I?',g:[walkQ('pick'),walkQ('approach')]},
   {n:'On the bass strings',d:'Click the approach note on strings 6–3',g:[walkQ('neck')]},
@@ -4561,9 +4561,9 @@ const GAMES=[
 const GBY=Object.fromEntries(GAMES.map(g=>[g.id,g]));
 GBY.sightread.levels.forEach((lv,i)=>lv.g.forEach(f=>{if(f.o)f.o.lv=i+1;}));   /* Sight Reading: each generator knows its level, for the level's tempo */
 const CATS=[
- {id:'neck',name:'Fretboard',desc:'Where every note lives, reading it off the staff, scales, triads and arpeggios under the hand, and putting it together: improvising, phrasing, bends, walking lines, repertoire.'},
+ {id:'neck',name:'The Neck & Lines',desc:'Single notes: where every note lives and how it is read, scales and arpeggios under the hand, and making them into lines: improvising, phrasing, bends.'},
  {id:'theory',name:'Theory',desc:'Intervals, keys, diatonic harmony, chord construction and scale choice.'},
- {id:'voicings',name:'Voicings & Grips',desc:'Inversions, drop-2, drop-3 and shells: reading them, naming them, finding them.'},
+ {id:'voicings',name:'Chords & Comping',desc:'Chords: triads, shells, drop-2 and tension grips, moving from one to the next, and playing behind a tune: walking lines and the forms of standards.'},
  {id:'ear',name:'Ear & Solfège',desc:'Hearing degrees, intervals, chord qualities and progressions; singing and playing back through the microphone.'},
  {id:'rhythm',name:'Rhythm & Time',desc:'Tapping with and against the click, reading rhythm, subdivisions, swing and comping rhythms.'}];
 const gamesIn=c=>GAMES.filter(g=>g.cat===c&&!g.retired)   /* a retired game keeps its data and its statistics; it is no longer offered */
@@ -11581,13 +11581,13 @@ const MASTERS={
  rhythm:{n:'Bongi',spr:'rhythm',pos:[1010,545],h:160,   /* right of the second candelabrum, where Jimmi stood until 17 Nov 2026 */role:'Rhythm & Time',
   voice:'a playful street-percussionist monkey behind a pair of bongos. Short, punchy sentences with a beat to them; teases kindly; everything is about feel, the pocket, counting out loud, the body keeping time.',
   say:{ok:['In the pocket!','Tight!','That one sat right.','Groovin’.'],miss:['Ooh, that one fell off the beat.','Count it out loud.','Easy. Feel the one.'],streak:['Now you are cooking!','Do not stop, do not stop!'],unlock:['New level! Drum roll!'],start:['Count it in. One, two…'],end:['Good sweat.','We go again tomorrow.']}},
- neck:{n:'John',spr:'neck',pos:[452,612],h:186,role:'Fretboard',
+ neck:{n:'John',spr:'neck',pos:[452,612],h:186,role:'The Neck & Lines',
   voice:'a gentle, barefoot, spiritual rock guitarist. Soft-spoken and sincere; talks about knowing the neck so completely that you can forget it and just listen; simplicity, touch, patience.',
   say:{ok:['Yeah. You saw it before you played it.','Beautiful.','That is it.'],miss:['No hurry. Look for the octave.','Breathe. Say the name first.','It is right next to one you know.'],streak:['You are not counting any more. Feel that?','It is opening up.'],unlock:['A new part of the neck. Go slowly.'],start:['Say each note before your hand moves.'],end:['That was real practice.','Let it settle.']}},
  theory:{n:'Alfred',spr:'theory',pos:[1168,645],h:190,role:'Theory',
   voice:'an elderly English butler who is also a fine pianist. Formal, exact, dry wit, calls the student “sir”; treats harmony as good manners: everything spelled correctly, nothing calculated at the table.',
   say:{ok:['Quite right, sir.','Correct.','Precisely.'],miss:['Not quite, sir. Spell it by letters.','A moment’s thought, sir.','The third, sir. Mind the third.'],streak:['Admirable, sir.','One begins to suspect you have been studying.'],unlock:['The next chapter, sir.'],start:['When you are ready, sir.'],end:['A profitable session, sir.','That will do for today.']}},
- voicings:{n:'Joe',spr:'voicings',pos:[905,805],h:178,role:'Voicings & Grips',
+ voicings:{n:'Joe',spr:'voicings',pos:[905,805],h:178,role:'Chords & Comping',
   voice:'a calm, bald jazz guitar master of chord melody, seated with an archtop. Economical and practical, a quiet smile; says things like learn tunes, move one finger, keep the common tone; no fuss.',
   say:{ok:['There it is.','Nice grip.','Good. Now the next one.'],miss:['Find the root first.','One finger moved, that is all.','Slow. Which inversion is it?'],streak:['That is how the hands learn.','Smooth.'],unlock:['More grips. Good.'],start:['Root, then the rest.'],end:['Good work. Play them in a tune.','That is enough for the hands.']}},
  ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',

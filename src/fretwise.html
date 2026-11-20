@@ -334,7 +334,7 @@ html.hubon{overflow:hidden}#hub{position:fixed;inset:0;z-index:1;pointer-events:
 .mview{display:grid;grid-template-columns:290px minmax(0,1fr);gap:26px;align-items:start;margin-top:18px}.mside{position:sticky;top:74px;display:grid;gap:8px;justify-items:center}.mside .btn{justify-self:start}.spr.big{width:256px}.mname{text-align:center;line-height:1.2}.mname b{display:block;font-family:var(--f-display);font-size:26px;letter-spacing:.08em;text-transform:uppercase}.mname span{color:var(--muted);font-size:13px}
 .mbubble{position:relative;background:#f4efe2;color:#17131f;border:2px solid #17131f;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.5;width:100%;min-height:120px}.mbubble:before{content:'';position:absolute;left:50%;top:-10px;transform:translateX(-50%) rotate(45deg);width:16px;height:16px;background:#f4efe2;border-left:2px solid #17131f;border-top:2px solid #17131f}.mbubble p{margin:0 0 8px}.mfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}.mfoot .muted{font-size:11px;color:#5b5366}.mfoot .btn{color:#17131f;border-color:#17131f}
 @media (max-width:860px){.mview{grid-template-columns:1fr}.mside{position:static}.spr.big{width:170px}}
-#buddy{position:fixed;bottom:34px;z-index:4;pointer-events:none}#buddy .hubname{position:static;display:block;transform:none;width:max-content;margin:2px auto 0}.budsay{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);width:max-content;max-width:200px;background:#f4efe2;color:#17131f;border:2px solid #17131f;border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.3;text-align:center}
+#buddy{position:fixed;bottom:34px;z-index:4;pointer-events:none}#buddy .hubname{position:static;display:block;transform:none;width:max-content;margin:2px auto 0}.budsay{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);width:max-content;max-width:214px;background:#f4efe2;color:#17131f;border:2px solid #17131f;border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.3;text-align:center}
 .metwrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}.metleft{position:sticky;top:74px;display:grid;gap:12px;justify-items:center}.metcv{width:300px;height:400px;display:block}.metright{display:grid;gap:12px}.metright .panel{margin:0}
 .mettempo{display:flex;align-items:center;gap:8px;justify-content:center}.metbig{text-align:center;min-width:230px}.metbig b{display:block;font-family:var(--f-display);font-size:64px;line-height:1;letter-spacing:.02em}.metbig span{font-size:12px;color:var(--muted)}.metrange{width:100%;accent-color:var(--brass);margin:8px 0}
 .metbeats{position:relative;display:flex;gap:8px;flex-wrap:wrap;padding-top:8px}#methead{position:absolute;top:0;width:2px;height:6px;background:var(--brass);left:0}.metbeat{flex:1;min-width:42px;height:56px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--muted);font-size:18px;display:grid;place-items:center;line-height:1}.metbeat small{font-size:11px}.metbeat.a2{color:var(--brass);border-color:var(--brass)}.metbeat.a0{opacity:.55}.metbeat.lit{background:var(--brass);color:#17131f;border-color:var(--brass);opacity:1}
@@ -4935,11 +4935,11 @@ function answer(given){if(!S||S.locked)return;S.locked=true;cancelAnimationFrame
   {const md=isGuitarQ(q,S.gid)?'g':'s';g.lc=g.lc||{};const lc=g.lc[q.lv]||(g.lc[q.lv]={s:0,g:0});lc[md]++;g.hm=g.hm||{g:{},s:{}};const hm=g.hm[md][q.lv]||(g.hm[md][q.lv]=[]);hm.push(ok&&!S.hinted?1:0);if(hm.length>20)hm.shift();}   /* the same window per input, for the lobby's two rows */
   const ft=fluTarget(S.gid,q);if(ft&&ok&&!S.hinted&&given!==null){g.ht=g.ht||{};const a=g.ht[q.lv]||(g.ht[q.lv]=[]);a.push(Math.round(ms/ft/10)/100);if(a.length>12)a.shift();g.hs=g.hs||{};const b=g.hs[q.lv]||(g.hs[q.lv]=[]);b.push(Math.round(ms/100)/10);if(b.length>12)b.shift();}   /* hs: the same answers in seconds */
   g.n++;if(ok)g.c++;g.ms+=Math.min(ms,S.untimed?60000:S.limit);
-  if(ok){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);const frac=S.untimed?0:Math.max(0,1-ms/S.limit);S.score+=Math.round((100+50*frac)*(S.hinted?.5:1));}else S.streak=0;
+  S.prevStreak=S.streak;if(ok){S.streak++;S.bestStreak=Math.max(S.bestStreak,S.streak);const frac=S.untimed?0:Math.max(0,1-ms/S.limit);S.score+=Math.round((100+50*frac)*(S.hinted?.5:1));}else S.streak=0;
   g.best=Math.max(g.best||0,S.bestStreak);
   if(g.lvl<GBY[S.gid].levels.length){const hh=g.hist[g.lvl]||[];if(hh.length>=NEED&&hh.reduce((a,b)=>a+b,0)/hh.length>=PASS&&fluency(g,S.gid,g.lvl).ok){g.lvl++;S.unlocked=g.lvl;while(g.unl&&g.unl.includes(g.lvl+1))g.lvl++;if(g.unl)g.unl=g.unl.filter(L=>L>g.lvl);modeSkip(S.gid);S.unlocked=g.lvl;}}
   S.answers.push({q,given,ok,ms,hinted:S.hinted,timeout:given===null,mode:q.play?'play':'mark'});S.i++;
-  render();if(typeof buddyReact==='function'){if(S.unlocked&&S.unlocked===g.lvl&&ok&&!S.unlockSaid){S.unlockSaid=true;buddyReact('unlock');}else buddyReact(ok?'ok':'miss',ok?S.streak:!!S.diag);}const dur=playSnd(q,g);if(ok&&!S.hinted)autoT=setTimeout(nextQ,Math.max(900,dur*1000+300));else if(S.flow)autoT=setTimeout(nextQ,2800);}
+  render();if(typeof buddyReact==='function'){if(S.unlocked&&S.unlocked===g.lvl&&ok&&!S.unlockSaid){S.unlockSaid=true;buddyReact('unlock');}else if(typeof buddyAnswer==='function')buddyAnswer(q,it,ok,S.hinted);}const dur=playSnd(q,g);if(ok&&!S.hinted)autoT=setTimeout(nextQ,Math.max(900,dur*1000+300));else if(S.flow)autoT=setTimeout(nextQ,2800);}
 /* practice data for the stats page (fields added Oct 2026; older answers have none):
    it.r last 8 results ('1' clean), it.rt/rn time to first played note, it.gp/gn time to find each next note,
    g.pl log of played/tapped answers {t,lv,k,ok,rt,gp,n,dr (mean signed offset to the click, ms; + = late),ab (mean |offset|)},
@@ -5099,7 +5099,7 @@ function grooveMatch(t,lv,press,hand){if(!GR||!GR.started||GR.done)return;const 
   for(let i=Math.max(0,GR.res-6);i<GR.onsets.length&&!best;i++){const o=GR.onsets[i];if(o.t>t+tol)break;if(mine(o)&&o.hit===null&&Math.abs(t-o.t)<=tol){best=o;break;}}
   if(best){best.hit=true;best.off=Math.round(t-best.t);best.tap=t;best.lv=lv==null?null:lv;if(press&&GR.holdLen&&best.dur!=null&&best.dur>=GR_LEN.from)GR.heldOn=best;}else{GR.extras.push(t);grooveBreak(GR.bi+1);}}
 /* the run of clean bars breaks: the next bar starts a new one */
-function grooveBreak(fromBar){if(GR.hold>=2&&typeof buddyReact==='function')buddyReact('miss');GR.hold=0;GR.holdFrom=Math.max(GR.holdFrom,fromBar);}
+function grooveBreak(fromBar){if(GR.hold>=2&&typeof buddyGroove==='function')buddyGroove('break',GR.hold);GR.hold=0;GR.holdFrom=Math.max(GR.holdFrom,fromBar);}
 /* lengths (keyboard only): a note of a dotted quarter or longer must be held for at least 60 % of its length and let go before the next hit or rest */
 const GR_LEN={min:.6,late:.35,from:1.5};   /* from: lengths are judged from this many beats (dotted quarters and longer); quarters and shorter stay press-only (9 Nov 2026, ergonomics) */
 function grooveReleaseAt(t){const o=GR&&GR.heldOn;if(!o)return;GR.heldOn=null;const beat=60000/GR.bpm,held=(t-o.tap)/beat;grooveJudgeLen(o,held<GR_LEN.min*o.dur?'short':held>o.dur+GR_LEN.late?'long':'ok');}
@@ -5116,7 +5116,7 @@ function grooveLoop(){if(!GR||!GR.started||GR.done)return;GR.raf=requestAnimatio
   /* a bar is complete once its end (plus the tolerance) has passed: clean when every written hit landed, nothing extra, every length right */
   while(true){const k=GR.barDone,b0=GR.beats[k*GR.M],b1=GR.beats[(k+1)*GR.M];if(!b0||!b1||b1.t+tol>=now)break;const os=GR.onsets.filter(o=>o.bar===k);
     const ok=os.every(o=>o.hit&&(!o.len||o.len==='ok'))&&!GR.extras.some(x=>x>=b0.t-tol&&x<b1.t-tol);
-    if(ok&&k>=GR.holdFrom){if(GR.hold===0)GR.holdFrom=k;const inc=GR.c.sub?GR.c.sub.length:1,was=GR.hold;GR.hold+=inc;   /* a bar that holds several written bars (changing meters) counts as that many */GR.best=Math.max(GR.best,GR.hold);if(Math.floor(GR.hold/4)>Math.floor(was/4)&&typeof buddyReact==='function')buddyReact('ok',GR.hold%8===0?5:0);grooveUnlock();}else grooveBreak(k+1);GR.barDone++;}
+    if(ok&&k>=GR.holdFrom){if(GR.hold===0)GR.holdFrom=k;const inc=GR.c.sub?GR.c.sub.length:1,was=GR.hold;GR.hold+=inc;   /* a bar that holds several written bars (changing meters) counts as that many */GR.best=Math.max(GR.best,GR.hold);if(Math.floor(GR.hold/4)>Math.floor(was/4)&&typeof buddyGroove==='function')buddyGroove('hold',GR.hold);grooveUnlock();}else grooveBreak(k+1);GR.barDone++;}
   if(GR.c.feel){const f=GR.c.feel(GR.bi);if(f!==GR.feel){const l=grooveLean(16);if(GR.feel===0){if(l!==null)GR.base=l;}else GR.met[GR.feel]=l!==null&&GR.base!=null&&Math.abs(l-GR.base-GR.feel)<=GRV.lean;GR.feel=f;GR.feelAt=GR.res;grooveUnlock();}}   /* leaving the centre bars: remember where you sat; leaving ahead/behind bars: did the lean move as asked */   /* leaving the centre bars: remember where you sat */
   grooveStats();grooveDraw(now);if(now>GRV.max*1000)grooveEnd();}
 /* one resolved hit: hold bar, 8-hit windows into the game's history */
@@ -11449,6 +11449,40 @@ LESSON_NOTES.walking=(()=>{
      ['No note in time','A beat passed with no note, or a note came late','Slower tempo. Keep the quarter notes going even when unsure of a pitch']]],cap:'Reading the reasons after a walked bar on level 5.'},
    {tip:['On the screen levels, work out the answer from the target: name the next root, then compare beat 4 with it.','The microphone hears the lowest notes of the guitar poorly on a laptop. Pick firmly and let each note ring its full beat.']}]}
  ];})();
+/* ============ THE MASTERS' VOICES IN PLAY (21 Nov 2026, user: “very smart placement of these lines… admiring on a win streak, fed up when you make the same mistake many times,
+   crying when you lose a streak, improving when you stop making a mistake you've done many times”) ============
+   Five emotions over a base look: admire · fedup · cry · improve · random (talking). A master speaks only when one of them has really happened, so a line means something:
+     cry      a miss that ends a streak of 5 or more ({n} = the streak that was lost)
+     fedup    a miss that is a repeated mistake: the same mix-up for the 3rd time or more, or an item missed 3+ times in all and twice in its last four tries ({mistake})
+     improve  a clean answer on an item that was a repeated mistake (missed 3+ times), the third clean one in a row since its last miss ({mistake}): the moment it stops being a mistake
+     admire   a clean answer that brings the streak to 5, 10, 15, 20, 30, 40 or 50 ({n})
+     random   now and then on a clean answer when nothing else happened and she has been quiet for six answers
+   A plain right or wrong answer gets no line and no pose. When a miss is both, a long streak (10+) makes it cry, else the repeated mistake wins (it is the more useful thing to hear).
+   `buddyJudge(c)` is pure (the sweep tests it); `budPick(cat,mood,slots)` draws a line without repeating until the mood's lines are used up, and only a line whose slots can be filled.
+   MASTER_LINES[cat] holds the lines; a master without them falls back to the old short `say` lists. **A new master's lines go here, in these five moods, slots {n} and {mistake} only.** */
+const MASTER_LINES={
+ ear:{   /* Jessica: a femme fatale out of an old picture. Cool, cocky, a flirt, and a little corny. The film lines are riffs in her own words, never quotes. */
+  admire:['Well, well. Somebody’s been listening.','{n} in a row. Careful, darling, I could get used to you.','Of all the ears in all the towns in all the world, yours walked into my hall.','Do that again, slowly. I want to enjoy it.','You heard that like you wrote it.','That’s the stuff dreams are made of. And it was in tune.','{n}. Now you’re just showing off. Don’t stop.','I’ve known men who couldn’t find a 5th with a map. You don’t need the map.'],
+  cry:['{n} in a row, gone. Hand me a handkerchief, darling.','Don’t look at me. My mascara is running.','We had something, you and me and that streak. Had.','It ends like all my pictures end: in the rain, with a wrong note.','I’m not crying. Somebody is chopping onions in the brass section.','{n} beautiful answers, and then that. I need a moment.','Tell them I went quietly. Tell them the streak was {n}.','Tomorrow is another day. Tonight I weep.'],
+  fedup:['You and that {mistake} again. It’s like watching the same bad picture twice.','The {mistake}. Again. I’m running out of ways to be charming about it.','Round up the usual suspects: you and the {mistake}.','Play it again, Sam. No, really. Play it until you hear it.','I told you once, I told you twice. The third time I only sigh. That was the sigh.','We’ll always have the {mistake}. I’d rather we didn’t.','Darling. Sing it first. I am begging you, and I do not beg.','Same alley, same wrong turn. Listen for home before you answer.'],
+  improve:['The {mistake}. You used to trip on it. Look at you walking.','Three times clean on the {mistake}. Somebody’s been practising behind my back.','You and the {mistake} finally made peace. I love a happy ending.','You used to guess. Now you know. It’s a good look on you.','That one used to own you. Now you own it. I do like a reversal.','This is the beginning of a beautiful friendship. You and the {mistake}, I mean.','I noticed. I notice everything. You stopped missing it.','Last week that note had you fooled. Tonight you saw right through it.'],
+  random:['Close your eyes. The ear works better in the dark. Most things do.','Sing it first. If you can’t sing it, you’re only guessing.','The tonic is home. Everything else is just a night out.','A leading tone is a promise. I like a note that keeps its promises.','I heard a tritone in a dark alley once. Never trusted anything since.','Nobody ever got hurt listening. Talking, now, that’s another picture.','Hum the 1 before you answer. Everything is measured from home.','The 4 leans down to 3, the 7 leans up to 1. Listen for the lean.','You know how to listen, don’t you? Just stop thinking and put your ears together.','Bass first, darling. The lowest note tells you who’s in charge.']}};
+const BUD_MILE=[5,10,15,20,30,40,50];
+/* c: {ok (clean: right, no hint), prev (streak before this answer), streak (after), w (times this item was missed), r (its last results, this one included, '1' clean), mix (the same mix-up 3+ times), since (answers since she spoke), rnd (0–1)} */
+function buddyJudge(c){const r=c.r||'',rep=!c.ok&&(!!c.mix||((c.w||0)>=3&&r.slice(-4).split('0').length-1>=2));
+  if(!c.ok){if(c.prev>=10||(c.prev>=5&&!rep))return 'cry';return rep?'fedup':null;}
+  if((c.w||0)>=3&&/0111$/.test(r))return 'improve';if(BUD_MILE.includes(c.streak))return 'admire';
+  return (c.since||0)>=6&&c.rnd<0.2?'random':null;}
+const BUDBAG={};
+function budPick(lines,key,slots){const has=k=>slots&&slots[k]!=null&&slots[k]!=='',fits=(lines||[]).filter(l=>(l.match(/\{(\w+)\}/g)||[]).every(k=>has(k.slice(1,-1))));if(!fits.length)return '';
+  /* when the app knows the thing (the count, the mistake), a line that names it is drawn more often than not */
+  const named=fits.filter(l=>/\{/.test(l)),pool=named.length&&Math.random()<0.65?named:fits,used=BUDBAG[key]||(BUDBAG[key]=[]);let cand=pool.filter(l=>!used.includes(l));
+  if(!cand.length){const last=used.at(-1);BUDBAG[key]=used.filter(l=>!pool.includes(l));cand=pool.filter(l=>pool.length<2||l!==last);}   /* every line used: start again, but not with the one just said */
+  const l=R(cand);BUDBAG[key].push(l);
+  return l.replace(/\{(\w+)\}/g,(_,k)=>slots[k]);}
+/* what she calls the mistake: the right answer's own short name (“minor 6th”, “5”, “Dorian”); nothing when it would not read as a name */
+function budMistake(q){const t=String(q.answerText||(typeof q.answer==='string'||typeof q.answer==='number'?q.answer:'')).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();return t&&t.length<=22&&!/[.:;!?]/.test(t)?t:'';}
+
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============
    The user's own image (art/castle-hall.webp, made with ChatGPT; the second one, 1527×1030, since 19 Nov 2026) brought to life, classy and slow: the candles breathe and glow,
@@ -11591,12 +11625,22 @@ const MASTERS={
   voice:'a calm, bald jazz guitar master of chord melody, seated with an archtop. Economical and practical, a quiet smile; says things like learn tunes, move one finger, keep the common tone; no fuss.',
   say:{ok:['There it is.','Nice grip.','Good. Now the next one.'],miss:['Find the root first.','One finger moved, that is all.','Slow. Which inversion is it?'],streak:['That is how the hands learn.','Smooth.'],unlock:['More grips. Good.'],start:['Root, then the rest.'],end:['Good work. Play them in a tune.','That is enough for the hands.']}},
  ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',
-  voice:'a glamorous 1940s nightclub singer in a red sequin gown. Warm, theatrical, a little teasing; insists you sing everything before you play it; talks about where a note wants to go.',
-  say:{ok:['You heard it, darling.','Perfect pitch of mind.','Oh, lovely.'],miss:['Sing it first, darling.','Where does it want to go?','Listen for home.'],streak:['Now you are really listening.','Darling, you are on fire.'],unlock:['A new song for you.'],start:['Sing the tonic before you answer.'],end:['Your ears are tired. That is good.','Rest them, darling.']}}};
+  voice:'a femme fatale out of a 1940s picture: a nightclub singer in a red sequin gown. Cool, cocky, a flirt, and a little corny; she riffs on famous old film lines in her own words and never quotes them straight. Insists you sing everything before you play it; talks about where a note wants to go.',
+  say:{ok:['You heard it, darling.','Oh, lovely.'],miss:['Sing it first, darling.','Listen for home.'],streak:['Now you are really listening.'],unlock:['A new number for you. Try not to break my heart.','Next reel, darling. It gets better.'],start:['Sing the 1 before you answer, darling.','Lights down. Ears open.'],end:['Your ears are tired. That’s how I like them.','Fade out. Same time tomorrow?']}}};
 const PLAYER={n:'Emir',spr:'player',pos:[655,772],h:178};
+Object.values(MASTERS).concat([PLAYER]).forEach(M=>{if(M.anim)SPR_ANIM[M.spr]=M.anim;});
 const artURL=id=>(window.ART_DATA&&window.ART_DATA['masters/'+id])||`art/masters/${id}.png`;
-const sprHTML=(id,frame,cls='')=>`<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;
-function sprFrame(el,frame){if(el)el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}
+const sprHTML=(id,frame,cls='')=>{const A=SPR_ANIM[id];if(A){const c=A.clips[FRAME_MOOD[frame]||'base']||A.clips.base;return `<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id+'-anim')});background-size:${A.cols*100}% ${A.rows*100}%;background-position:0% ${A.rows>1?c[0]/(A.rows-1)*100:0}%"></div>`;}
+  return `<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;};
+function sprFrame(el,frame){if(!el)return;if(SPR_ANIM[el.dataset.spr])return sprPose(el,FRAME_MOOD[frame]||'base');el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}
+/* THE SIX LOOKS (21 Nov 2026): base and the five emotions. Until a master has an animated sheet they are the six old still frames (MOOD_FRAME).
+   An animated sheet is one grid picture, `art/masters/<id>-anim.png`: every row one look, every column one frame of its animation, all cells the same size.
+   MASTERS[cat].anim = {cols, rows, clips:{base:[row, frames, fps], admire:[…], fedup:[…], cry:[…], improve:[…], talk:[…]}}; a missing clip falls back to base.
+   `sprPose(el, mood, play)` shows the look; with `play` it runs the clip (a loop while the look is held); `prefers-reduced-motion` shows its first frame only. */
+const MOOD_FRAME={base:'idle',admire:'amazed',fedup:'angry',cry:'wince',improve:'cheer',talk:'talk'},FRAME_MOOD={idle:'base',amazed:'admire',angry:'fedup',wince:'cry',cheer:'improve',talk:'talk'},SPR_ANIM={},SPR_T=new WeakMap();
+function sprPose(el,mood,play){if(!el)return;const A=SPR_ANIM[el.dataset.spr];clearInterval(SPR_T.get(el));if(!A){el.style.backgroundPosition=`${FRAMES.indexOf(MOOD_FRAME[mood]||'idle')*20}% 0`;return;}
+  const c=A.clips[mood]||A.clips.base,[row,n,fps]=c,at=f=>{el.style.backgroundPosition=`${A.cols>1?f/(A.cols-1)*100:0}% ${A.rows>1?row/(A.rows-1)*100:0}%`;};at(0);
+  if(play&&n>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches){let f=0;SPR_T.set(el,setInterval(()=>{if(!el.isConnected){clearInterval(SPR_T.get(el));return;}f=(f+1)%n;at(f);},1000/(fps||6)));}}
 
 /* ---- facts: the whole picture first, then the master's own section in depth. Everything a talk says comes from here. ---- */
 const stripHTML=s=>String(s).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
@@ -11737,13 +11781,23 @@ let BUD=null;
 function buddySync(){const gid=view.name==='play'&&S?S.gid:view.name==='groove'&&GR?GR.gid:view.name==='results'&&S?S.gid:null,room=(innerWidth-(document.documentElement.classList.contains('wide2')?1400:980))/2;
   if(!gid||room<120){if(BUD){BUD.el.remove();BUD=null;}return;}const cat=GBY[gid].cat,M=MASTERS[cat],size=room>=215?192:128;
   if(!BUD||BUD.cat!==cat||BUD.size!==size){if(BUD)BUD.el.remove();const el=document.createElement('div');el.id='buddy';el.style.width=size+'px';el.style.left=Math.round((room-size)/2)+'px';el.innerHTML=`<div class="budsay" hidden></div>${sprHTML(M.spr,'idle','bob')}<span class="hubname"><b>${M.n}</b></span>`;document.body.append(el);BUD={el,cat,size,t:0,gid:null};}
-  if(BUD.gid!==gid+(view.name==='results'?'r':'')){BUD.gid=gid+(view.name==='results'?'r':'');if(view.name!=='results')buddySay('talk',R1(M.say.start),2600);}}
-function buddySay(mood,text,ms=2200){if(!BUD)return;if(!text&&BUD.until>Date.now())return;BUD.until=text?Date.now()+Math.min(ms,2400):0;const sp=BUD.el.querySelector('.spr'),b=BUD.el.querySelector('.budsay');sprFrame(sp,mood);if(text){b.textContent=text;b.hidden=false;}else b.hidden=true;clearTimeout(BUD.t);BUD.t=setTimeout(()=>{if(!BUD)return;sprFrame(BUD.el.querySelector('.spr'),'idle');BUD.el.querySelector('.budsay').hidden=true;},ms);}
+  if(BUD.gid!==gid+(view.name==='results'?'r':'')){BUD.gid=gid+(view.name==='results'?'r':'');if(view.name!=='results')buddySay('talk',R1(M.say.start),2800);}}
+/* the companion speaks (21 Nov 2026; the rules are in the core, “THE MASTERS' VOICES IN PLAY”). A line stays long enough to be read: 1.9 s and 50 ms a letter, 6 s at most;
+   the pose of its mood is held (and its clip played) for as long, then she goes back to the base look. */
+function budLines(cat,mood){const L=MASTER_LINES[cat];if(L&&L[mood])return L[mood];const s=MASTERS[cat].say;return {admire:s.streak,cry:s.miss,fedup:s.miss,improve:s.streak.concat(s.ok),random:s.start.concat(s.ok)}[mood]||[];}   /* a master without the five moods yet: the old short lines */
+function buddySay(mood,text,ms){if(!BUD||!text)return;ms=ms||Math.min(6000,1900+text.length*50);const b=BUD.el.querySelector('.budsay');BUD.until=Date.now()+ms;sprPose(BUD.el.querySelector('.spr'),mood==='random'?'talk':mood,true);b.textContent=text;b.hidden=false;b.dataset.mood=mood;
+  clearTimeout(BUD.t);BUD.t=setTimeout(()=>{if(!BUD)return;sprPose(BUD.el.querySelector('.spr'),'base',true);BUD.el.querySelector('.budsay').hidden=true;},ms);}
+function buddyMood(mood,slots){if(!BUD)return false;const t=budPick(budLines(BUD.cat,mood),BUD.cat+':'+mood,slots||{});if(!t)return false;buddySay(mood,t);return true;}
+/* after every answer of a round */
+function buddyAnswer(q,it,ok,hinted){if(!BUD||!S)return;S.budSince=(S.budSince||0)+1;const clean=ok&&!hinted,mood=buddyJudge({ok:clean,prev:S.prevStreak||0,streak:S.streak,w:it?it.w:0,r:it?it.r:'',mix:!!S.diag,since:S.budSince,rnd:Math.random()});
+  if(!mood||(ok&&!clean))return;if(buddyMood(mood,{n:mood==='cry'?S.prevStreak:S.streak,mistake:mood==='fedup'||mood==='improve'?budMistake(q):''}))S.budSince=0;}
+/* the continuous rhythm games: clean bars in a row stand for the streak. admire at 8, 16, 24… bars (improve the first time 8 are held after three broken runs); cry when a run of 8 or more breaks;
+   fed up at every fourth broken run that never got that far. Nothing else: the player is reading. */
+function buddyGroove(ev,h){if(!BUD||!GR)return;if(ev==='hold'){if(h<8||h%8)return;if((GR.budBk||0)>=3&&!GR.budImp){GR.budImp=1;if(buddyMood('improve',{}))return;}buddyMood('admire',{n:h});}
+  else{GR.budBk=(GR.budBk||0)+1;if(h>=8)buddyMood('cry',{n:h});else if(GR.budBk%4===0)buddyMood('fedup',{});}}
 function buddyReact(ev,x){if(!BUD)return;const L=MASTERS[BUD.cat].say;
-  if(ev==='ok'){if(x&&[5,10,15,20].includes(x))buddySay('amazed',R1(L.streak),2600);else buddySay('cheer',Math.random()<0.3?R1(L.ok):'',2200);}
-  else if(ev==='miss')buddySay(x?'angry':'wince',R1(L.miss),2600);
-  else if(ev==='unlock')buddySay('amazed',R1(L.unlock),4000);
-  else if(ev==='end')buddySay(x>=0.85?'cheer':x<0.6?'wince':'talk',R1(L.end),6000);}
+  if(ev==='unlock')buddySay('admire',R1(L.unlock),4200);
+  else if(ev==='end')buddySay(x>=0.85?'admire':'talk',R1(L.end),6000);}
 const CASTLE={src:'art/castle-hall.webp',W:1527,H:1030,   /* the second hall (19 Nov 2026): rug, two candelabra, music stand, crescent moon; everything below re-measured from it */
   flames:[[291,303],[320,324],[149,453],[131,637],[171,677],[507,356],[530,335],[553,354],[876,355],[899,340],[922,356]],   // candle flame tips: the skull candles, then the two candelabra
   panes:[[472,195,532,305],[540,190,578,312],[624,160,668,318],[676,160,712,322],[772,150,811,332],[819,130,859,337],[866,125,904,342],[911,160,958,348],

@@ -108,6 +108,23 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   /* half a tune and the whole tune: the allowance does not undo the strict rhythm */
   S={gid:'tunes',used:new Set()};{const q=tunePhraseQ({all:true,time:true})(),beat=1000,mk=(late,drop)=>micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000+(i===late?750:0)})).filter((_,i)=>i!==drop),firstAt:3000,beat:750,beatStart:3000});
    if(!q.tol)gb('tune tol: missing');if(!mk(-1,-1).ok)gb('tune tol: clean whole tune');{const dr=q.target.findIndex((m,i)=>i>=3&&i+1<q.target.length&&q.target[i-1]!==q.target[i+1]);if(q.target.length>=16&&dr>0&&!mk(-1,dr).ok)gb('tune tol: one unheard note in a whole tune');}   /* drop a note whose neighbours differ: equal neighbours would merge into one held note */if(q.target.length>4&&mk(2,-1).ok)gb('tune tol: a note a beat late passed');}}
+ /* the masters' voices in play: when each of the five emotions fires, and the lines themselves */
+ {const J=c=>buddyJudge(Object.assign({ok:true,prev:0,streak:1,w:0,r:'1',mix:false,since:0,rnd:.9},c)),ex=(got,want,m)=>{if(got!==want)gb('voice: '+m+' gave '+got);};
+  ex(J({}),null,'a plain right answer');ex(J({ok:false,r:'0'}),null,'a plain miss');
+  ex(J({streak:5,prev:4}),'admire','the 5th in a row');ex(J({streak:20,prev:19}),'admire','the 20th in a row');ex(J({streak:6,prev:5}),null,'the 6th in a row');
+  ex(J({ok:false,prev:5,streak:0,r:'0'}),'cry','a streak of 5 lost');ex(J({ok:false,prev:4,streak:0,r:'0'}),null,'a streak of 4 lost');
+  ex(J({ok:false,prev:2,streak:0,mix:true,r:'0'}),'fedup','the same mix-up a third time');ex(J({ok:false,prev:0,streak:0,w:3,r:'1010'}),'fedup','an item missed three times, twice lately');
+  ex(J({ok:false,prev:0,streak:0,w:3,r:'01110'}),null,'an old mistake missed once after three clean');ex(J({ok:false,prev:7,streak:0,mix:true,r:'0'}),'fedup','a repeated mistake that also ends a short streak');
+  ex(J({ok:false,prev:12,streak:0,mix:true,r:'0'}),'cry','a repeated mistake that ends a long streak');
+  ex(J({w:3,r:'000111'}),'improve','the third clean answer on an old mistake');ex(J({w:3,r:'0001111'}),null,'the fourth clean answer on it');ex(J({w:2,r:'00111'}),null,'three clean on an item missed only twice');
+  ex(J({w:3,r:'000111',streak:5,prev:4}),'improve','improving beats a streak mark');ex(J({since:6,rnd:.1}),'random','a quiet stretch');ex(J({since:6,rnd:.5}),null,'a quiet stretch, no luck');ex(J({since:3,rnd:.1}),null,'spoke lately');
+  for(const cat in MASTER_LINES){const L=MASTER_LINES[cat];for(const m of ['admire','cry','fedup','improve','random']){const a=L[m]||[];if(a.length<6)gb('voice: '+cat+' '+m+' has '+a.length+' lines');
+     a.forEach(l=>{if(l.length>110||/—|undefined|NaN/.test(l)||(l.match(/\{(\w+)\}/g)||[]).some(k=>!['{n}','{mistake}'].includes(k)))gb('voice: line '+l);if(/\{mistake\}/.test(l)&&!['fedup','improve'].includes(m))gb('voice: {mistake} in '+m);if(/\{n\}/.test(l)&&!['admire','cry'].includes(m))gb('voice: {n} in '+m);});
+     if(a.every(l=>/\{/.test(l)))gb('voice: '+cat+' '+m+' has no line without a slot');}
+    /* a line is never drawn with an empty slot, and never twice running; with the slot known, lines that name it come up */
+    for(const [m,sl] of [['fedup',{}],['fedup',{mistake:'minor 6th'}],['admire',{n:10}],['cry',{n:7}],['improve',{mistake:''}],['random',{}]]){let last='',named=0;for(let k=0;k<60;k++){const x=budPick(L[m],'t:'+cat+m+JSON.stringify(sl),sl);if(!x||/[{}]/.test(x))gb('voice: bad pick '+m+' '+x);if(x===last)gb('voice: the same line twice running '+m);last=x;if(sl.mistake&&x.includes(sl.mistake)||sl.n&&x.includes(String(sl.n)))named++;}
+      if((sl.mistake||sl.n)&&named<15)gb('voice: the named lines hardly come up '+m);}}
+  if(budMistake({answerText:'minor 6th'})!=='minor 6th'||budMistake({answer:['C','E','G']})!==''||budMistake({answerText:'This is a long explanation of the answer.'})!=='')gb('voice: budMistake');}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

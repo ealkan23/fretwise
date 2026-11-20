@@ -14,6 +14,16 @@ for r in reps:
         for k in ('level', 'lv', 'L'):
             if k in c: c[k] = _HM.get(c[k], 10)
 _games = ['fretboard' if g == 'hunt' else g for g in _games] if _games else _games
+# Reading's played lines moved to Sight Reading (20 Nov 2026): a report from a line level of the old 21-level Reading replays there (level 18: lines only)
+_SR = {7: 1, 8: 2, 9: 3, 10: 4, 12: 6, 13: 7, 14: 5, 16: 9, 17: 10, 18: 11, 20: 13}
+for r in reps:
+    c = r['ctx']; lv = c.get('qlv') or c.get('level')
+    if c.get('game') == 'sight' and lv in _SR and (lv != 18 or c.get('label', '').startswith('Line')):
+        dest = (5 if 'first position' in c.get('label', '') else 9) if lv == 14 else _SR[lv]
+        c['game'] = 'sightread'
+        for k in ('level', 'lv', 'L', 'qlv'):
+            if k in c: c[k] = dest
+
 if _games: reps = [r for r in reps if r['ctx'].get('game') in _games]
 if _ids: reps = [r for r in reps if r['id'] in _ids]
 FEED = """async (b64)=>{const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer;const c=Piano.ac();await c.resume();const buf=await c.decodeAudioData(raw);

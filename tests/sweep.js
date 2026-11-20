@@ -337,6 +337,27 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
    if(S0.land){const c=T.slice();c[c.length-1]=T.at(-1)+5;if(micGrade(q,mk(c,G0)).ok)bb('phrase: an answer off the chord accepted');const d=T.slice(),n=G0.filter(b=>b<8).length;d[n-1]=57+mod(rp-9,12);if(micGrade(q,mk(d,G0)).ok)bb('phrase: a question ending on the root accepted');}
    if(S0.landAt){const c=T.slice();c[c.length-1]=57+mod(rp-9,12)+7;if(micGrade(q,mk(c,G0)).ok)bb('phrase: a wrong landing note accepted');}
    if(S0.differ){const n=G0.filter(b=>b<8).length,c=T.slice(0,2*n).concat(T.slice(0,n));if(micGrade(q,mk(c,G0)).ok)bb('phrase: a third phrase equal to the first accepted');}}}
+/* the score engine (Sight Reading, 20 Nov 2026): splitting into written values, bar memory for accidentals, ties, tuplets, the checker itself */
+{const sb=m=>{bad++;console.log('SCORE',m);},Lp={C:0,D:2,E:4,F:5,G:7,A:9,B:11},N=(s,d,x)=>{const k=s.match(/^([A-G])([#b]?)([0-9])$/),m=12*(+k[3]+1)+Lp[k[1]]+(k[2]==='#'?1:k[2]==='b'?-1:0)-12;return Object.assign({m,d,w:writtenOf(m,k[2]==='b'?-1:1)},x||{});},Rr=(d,x)=>Object.assign({rest:1,d},x||{});
+ const acc=(line)=>scoreBars(line).map(b=>b.ev.filter(e=>!e.rest).map(e=>e.acc==null?'-':e.acc).join(''));
+ let a=acc({meter:'4/4',notes:[N('F#4',1),N('F4',1),N('F4',1),N('F#4',1),N('F4',4)]});if(a.join('|')!=='10-1|-')sb('bar memory in C: '+a);
+ a=acc({meter:'4/4',ks:1,notes:[N('F4',1),N('F4',1),N('F#4',1),N('G4',1),N('F#4',4)]});if(a.join('|')!=='0-1-|-')sb('bar memory in G: '+a);
+ a=acc({meter:'4/4',ks:1,notes:[N('F5',1),N('F4',1),N('G4',2),N('F4',4)]});if(a.join('|')!=='00-|0')sb('another octave is another position: '+a);
+ a=acc({meter:'4/4',notes:[N('C4',3),N('C#4',2),N('D4',2),N('C#4',1)]});if(a.join('|')!=='-1|--1')sb('a tie carries the sign over and the next bar repeats it: '+a);
+ a=acc({meter:'4/4',ks:-4,notes:[N('Ab4',1),N('Db5',1),N('D5',1),N('Db5',1)]});if(a.join('|')!=='--0-1')sb('four flats: '+a);
+ const pieces=(line)=>scoreBars(line).map(b=>b.ev.map(e=>(e.rest?'r':'')+e.d+(e.tieTo?'~':'')).join(' ')).join(' | ');
+ const cases=[[{meter:'4/4',notes:[N('C5',.5),N('D5',1),N('E5',.5),N('F5',2)]},'0.5 1 0.5 2'],[{meter:'4/4',notes:[N('C5',.5),N('D5',2),N('E5',1.5)]},'0.5 1.5~ 0.5 1.5'],
+  [{meter:'4/4',notes:[N('C5',3),N('D5',3),N('E5',2)]},'3 1~ | 2 2'],[{meter:'6/8',notes:[N('C5',1),N('D5',1),N('E5',1)]},'1 0.5~ 0.5 1'],[{meter:'3/4',notes:[N('C5',3),Rr(3)]},'3 | r3'],
+  [{meter:'4/4',notes:[N('C5',.25),N('D5',.75),N('E5',.75),N('F5',.25),N('G5',2)]},'0.25 0.75 0.75 0.25 2']];
+ cases.forEach(([l,want])=>{const got=pieces(l);if(got!==want)sb('split '+want+' got '+got);});
+ const T=id=>[(s,d)=>N(s,d,{tup:id}),d=>Rr(d,{tup:id})],[t1,u1]=T(1),[t2]=T(2);
+ const ok=[{meter:'4/4',notes:[t1('C5',1/3),u1(1/3),t1('E5',1/3),t2('F5',2/3),t2('G5',2/3),t2('A5',2/3),N('B5',1)]},{meter:'6/8',notes:[N('C5',1.5),N('D5',1.5)]},{meters:['12/8','C|'],notes:[N('C5',6),N('D5',4)]}];
+ ok.forEach((l,i)=>{const c=scoreCheck(scoreBars(l),l.meter);if(c.length)sb('good line '+i+' faulted: '+c);});
+ const short=scoreBars({meter:'4/4',notes:[N('C5',1),N('D5',1)]});if(!scoreCheck(short,'4/4').length)sb('a short bar passed');
+ const tieBad=scoreBars({meter:'4/4',notes:[N('C5',4)]});tieBad[0].ev[0].tieTo=true;if(!scoreCheck(tieBad.concat(scoreBars({meter:'4/4',notes:[N('D5',4)]})),'4/4').length)sb('a tie to another pitch passed');
+ const tb=scoreBars({meter:'4/4',notes:[t1('C5',1/3),t1('D5',1/3),N('E5',1/3),N('F5',3)]});if(!scoreCheck(tb,'4/4').length)sb('a tuplet that does not add up passed');
+ const d=scoreData(scoreBars({meter:'4/4',notes:[Rr(1),N('G4',3),N('A4',2),N('B4',2)]}));if(JSON.stringify(d.map(x=>[x.bar,x.beat,x.len]))!=='[[1,2,3],[2,1,2],[2,3,2]]')sb('scoreData '+JSON.stringify(d));
+ const sv=scoreOf({meter:'4/4',ks:2,swing:1,notes:[N('D4',4),N('E4',4),N('F#4',4),N('G4',4),N('A4',4)],chords:[{t:0,sym:'DMaj7'}],signs:{0:[{k:'rs'}],1:[{k:'re'}]}});if(/undefined|NaN/.test(sv))sb('svg has undefined/NaN');}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

@@ -187,6 +187,12 @@ svg.staff{width:100%;max-width:360px;display:block}
 .st-acc .bowl{fill:none;stroke:var(--fg);stroke-width:2.2}
 .st-head.ok{stroke:var(--good)}
 .st-head.fill{fill:var(--fg);stroke-width:1.2}.st-head.fill.ok{fill:var(--good)}.st-stem{stroke:var(--fg);stroke-width:1.8}.st-beam{stroke:var(--fg);stroke-width:5}.st-ts{fill:var(--fg);font:700 22px var(--f-sans,sans-serif)}
+svg.staff.score{max-width:none;width:100%;height:auto}.sc-fill,.sc-cut+.x{fill:var(--fg)}.sc-cut{fill:none;stroke:var(--fg);stroke-width:4}.sc-qr{fill:none;stroke:var(--fg);stroke-width:4;stroke-linejoin:miter}.sc-qr2{fill:none;stroke:var(--fg);stroke-width:2.6;stroke-linecap:round}.sc-cutl{stroke:var(--fg);stroke-width:1.8}
+.sc-no{font:italic 600 13px var(--f-body);fill:var(--fg)}.sc-tie{fill:none;stroke:var(--fg);stroke-width:1.7}.sc-tup{font:italic 700 14px var(--f-body);fill:var(--fg);text-anchor:middle}
+.sc-ch{font:700 19px var(--f-body);fill:var(--fg)}.sc-txt{font:italic 700 15px var(--f-body);fill:var(--fg)}.sc-title{font:700 22px var(--f-body);fill:var(--fg)}.sc-sgn{fill:none;stroke:var(--fg);stroke-width:1.5}.sc-sgn .f{fill:var(--fg)}
+.sc-bar.ok{fill:rgba(60,160,90,.13)}.sc-bar.bad{fill:rgba(210,60,60,.13)}
+.scn.ok .st-head{stroke:#1d8a4a}.scn.ok .st-head.fill{fill:#1d8a4a}.scn.bad .st-head{stroke:#c62828}.scn.bad .st-head.fill{fill:#c62828}.scn.miss .st-head{stroke:#d9822b;fill:none;stroke-width:2.6}
+.sc-st.ok{stroke:#1d8a4a}.sc-st.bad{stroke:#c62828}
 /* chord boxes */
 .boxes{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 svg.box{display:block;max-width:100%;height:auto}
@@ -2077,6 +2083,159 @@ function staffRhySVG(ws,ok,dur,ks){const S7=7,BL=104,y=st=>BL-st*S7,PB=42,BW=4*P
   for(const i of pair){const x1=up[i]?xs[i]+7.4:xs[i]-7.4,x2=up[i]?xs[i+1]+7.4:xs[i+1]-7.4,yb=end[i]+(up[i]?2.5:-2.5);h+=`<line class="st-beam" x1="${x1-0.75}" x2="${x2+0.75}" y1="${yb}" y2="${yb}"/>`;}
   dur.forEach((d,i)=>{if(d!==0.5||pair.includes(i)||pair.includes(i-1))return;const sx=up[i]?xs[i]+7.4:xs[i]-7.4,ey=end[i],k=up[i]?1:-1;h+=`<path class="st-flag" d="M${sx} ${ey} c 7 ${5*k} 10 ${12*k} 5 ${20*k} c 2 ${-8*k} -1 ${-13*k} -5 ${-15*k} z"/>`;});
   return h+'</svg>';}
+/* ============ THE SCORE: pitched notation on a treble staff (Sight Reading, 20 Nov 2026) ============
+   One model, three steps. A LINE is what a generator writes: {meter, meters?, ks, notes:[{m (sounding midi) | rest:1, d (beats, quarter = 1), tup?, w?}], chords?:[{t,sym}], signs?:{bar:[{k,len,txt}]}, swing}.
+   scoreBars(line) cuts it into BARS of writable pieces: {m:'4/4', len, ev:[{t (in the bar), d, rest, m, w, tup, tieTo, tieFrom, src (index of the line's note), acc}], ch:[{t,sym}], sg:[…]}
+   (a note that crosses a bar line or cannot be written as one value is split and tied; accidentals are given by bar memory: scoreAcc).
+   scoreSVG(bars, opts) draws the page: four bars a system, clef and key signature on every line, bar numbers, chord symbols, signs; scoreLayout gives the plain data,
+   scoreData the sounded notes (bar, beat, pitch, length), scoreCheck the faults. Written as for guitar: a note sounds an octave under where it is written.
+   Units are quarter notes everywhere; in 6/8 a bar is 3 and the beat (the click) 1.5, in cut time a bar is 4 and the beat 2. */
+const SC_EPS=1e-6,scNear=(a,b)=>Math.abs(a-b)<SC_EPS,scInt=x=>scNear(x,Math.round(x));
+const SC_METER={'4/4':{len:4,beat:1,beam:1,top:'4',bot:'4'},'3/4':{len:3,beat:1,beam:1,top:'3',bot:'4'},'2/4':{len:2,beat:1,beam:1,top:'2',bot:'4'},
+ 'C|':{len:4,beat:2,beam:2,cut:1},'6/8':{len:3,beat:1.5,beam:1.5,top:'6',bot:'8',cmp:1},'12/8':{len:6,beat:1.5,beam:1.5,top:'12',bot:'8',cmp:1}};
+const SC_VAL=[6,4,3,2,1.5,1,.75,.5,.25];   /* written values: dotted whole, whole, dotted half, half, dotted quarter, quarter, dotted eighth, eighth, sixteenth */
+/* the longest value that may start at t (inside its bar) without hiding a beat: on the beat any value that fits (a whole only on 1, a dotted half on 1 or 2);
+   off the beat a quarter or a dotted quarter (print style: e q e, e q.), on the second or fourth sixteenth only short values; in 6/8 and 12/8 nothing crosses a dotted-quarter group but the long values on its first eighth */
+function scPiece(t,d,M){const fit=p=>p<=d+SC_EPS&&t+p<=M.len+SC_EPS;let c;
+  if(M.cmp){const r=t%1.5;if(scNear(r,0)||scNear(r,1.5))c=[scNear(t,0)&&M.len>=6?6:0,(scNear(t,0)||scNear(t,3))?3:0,1.5,1,.75,.5,.25];else if(scNear(r,.5))c=[1,.5,.25];else c=[.5,.25].filter(p=>r+p<=1.5+SC_EPS);}
+  else{const r=t-Math.floor(t+SC_EPS);if(scNear(r,0)||scNear(r,1))c=[scNear(t,0)&&M.len>=4?4:0,(scNear(t,0)||(scNear(t,1)&&M.len>=4))?3:0,2,1.5,1,.75,.5,.25];
+    else if(scNear(r,.5))c=[1.5,1,.5,.25];else if(scNear(r,.25))c=[.75,.5,.25];else c=[.25];}
+  for(const p of c)if(p&&fit(p))return p;return Math.min(d,M.len-t);}
+const SC_SH=[3,0,4,1,5,2,6],SC_FL=[6,2,5,1,4,0,3];   /* letters (C = 0) in the order of the signature's sharps and flats */
+const scKsAlt=(ks,l)=>ks>0?(SC_SH.slice(0,ks).includes(l)?1:0):ks<0?(SC_FL.slice(0,-ks).includes(l)?-1:0):0;
+/* accidentals by bar memory: the signature first, then what the bar has already done at that staff position (the same line or space, the same octave);
+   an accidental holds to the bar line; a tied note carries its pitch over without a sign, and does not set the memory of the new bar */
+function scoreAcc(bars,ks){bars.forEach(b=>{const mem={};b.ev.forEach(e=>{if(e.rest)return;if(e.tieFrom){e.acc=null;return;}const w=e.w,cur=w.step in mem?mem[w.step]:scKsAlt(ks,w.l);e.acc=w.a!==cur?w.a:null;mem[w.step]=w.a;});});return bars;}
+function scoreBars(line){const bars=[],mOf=i=>(line.meters&&line.meters[i])||line.meter||'4/4',ks=line.ks||0,pref=line.pref||(ks<0?-1:1);let cur,acc=0;
+  const nb=()=>{const m=mOf(bars.length),M=SC_METER[m];cur={m,len:M.len,ev:[],ch:[],sg:[]};bars.push(cur);acc=0;};nb();
+  line.notes.forEach((n,src)=>{const w=n.rest?null:(n.w||writtenOf(n.m,pref));if(acc>=cur.len-SC_EPS)nb();
+    if(n.tup){cur.ev.push({t:acc,d:n.d,rest:n.rest?1:0,m:n.m,w,tup:n.tup,src});acc+=n.d;return;}
+    let d=n.d,first=true;while(d>SC_EPS){if(acc>=cur.len-SC_EPS)nb();const p=scPiece(acc,Math.min(d,cur.len-acc),SC_METER[cur.m]);
+      cur.ev.push({t:acc,d:p,rest:n.rest?1:0,m:n.m,w,src,tieFrom:!first&&!n.rest,tieTo:d-p>SC_EPS&&!n.rest});acc+=p;d-=p;first=false;}});
+  bars.forEach(b=>{if(b.ev.length&&b.ev.every(e=>e.rest)&&scNear(b.ev.reduce((x,e)=>x+e.d,0),b.len))b.ev=[{t:0,d:b.len,rest:1,whole:1,src:b.ev[0].src}];});   /* a bar of rest is one whole rest, whatever the meter */
+  if(line.chords){let s=0;const st=bars.map(b=>{const x=s;s+=b.len;return x;});line.chords.forEach(c=>{let i=st.length-1;while(i>0&&st[i]>c.t+SC_EPS)i--;bars[i].ch.push({t:c.t-st[i],sym:c.sym});});}
+  if(line.signs)Object.entries(line.signs).forEach(([i,l])=>{if(bars[i])bars[i].sg.push(...l);});
+  return scoreAcc(bars,ks);}
+const scWv=e=>e.tup?e.d*1.5:e.d;   /* the written value: a triplet note is written as the value two thirds of it would take */
+/* plain data of the sounded notes: a tied note is one note with its lengths summed */
+function scoreData(bars){const out=[];bars.forEach((b,bi)=>b.ev.forEach(e=>{if(e.rest)return;if(e.tieFrom&&out.length&&out.at(-1).src===e.src){out.at(-1).len+=e.d;return;}out.push({bar:bi+1,beat:+(e.t+1).toFixed(3),m:e.m,name:wName(e.w),len:e.d,src:e.src});}));out.forEach(o=>o.len=+o.len.toFixed(4));return out;}
+/* faults: a bar that does not fill its meter, gaps, a piece that is not a written value, a tie between different pitches, a tuplet group that does not add up or crosses a bar */
+function scoreCheck(bars,meter){const bad=[],all=[];bars.forEach((b,bi)=>{const len=SC_METER[b.m||meter].len;let t=0;const tg={};
+  b.ev.forEach(e=>{if(!scNear(e.t,t))bad.push(`bar ${bi+1}: gap or overlap at ${e.t}`);t=e.t+e.d;if(e.tup)(tg[e.tup]=tg[e.tup]||[]).push(e);else if(!e.whole&&!SC_VAL.some(v=>scNear(v,e.d)))bad.push(`bar ${bi+1}: ${e.d} is not a written value`);if(!e.rest)all.push(e);});
+  if(!scNear(t,len))bad.push(`bar ${bi+1}: ${+t.toFixed(3)} beats in ${b.m||meter}`);
+  Object.values(tg).forEach(g=>{const s=g.reduce((a,e)=>a+e.d,0);if(![.5,1,2].some(v=>scNear(v,s)))bad.push(`bar ${bi+1}: a tuplet of ${+s.toFixed(3)} beats`);if(g.some(e=>!SC_VAL.some(v=>scNear(v,scWv(e)))))bad.push(`bar ${bi+1}: a tuplet value that cannot be written`);});});
+  all.forEach((e,i)=>{if(e.tieTo){const n=all[i+1];if(!n||n.m!==e.m||!n.tieFrom)bad.push(`a tie from ${wName(e.w)} that does not reach the same pitch`);}});return bad;}
+function accSVG2(a,x,cy){if(a===0)return `<g class="st-acc"><line x1="${x-3}" x2="${x-3}" y1="${cy-13}" y2="${cy+5}"/><line x1="${x+3}" x2="${x+3}" y1="${cy-5}" y2="${cy+13}"/><line class="bar" x1="${x-3}" x2="${x+3}" y1="${cy-2.5}" y2="${cy-5}"/><line class="bar" x1="${x-3}" x2="${x+3}" y1="${cy+5}" y2="${cy+2.5}"/></g>`;return accSVG(ACC[a],x,cy);}
+/* layout: positions of every piece in plain numbers (y = 0 is the bottom line; a staff step is 7 units) */
+const SCL={W:1000,per:4,stem:49,clef:46,ksw:12,tsw:32,pad:18};
+const SC_SP=[[6,64],[4,58],[3,52],[2,44],[1.5,40],[1,34],[.75,30],[.5,28],[.25,23]];
+function scSpace(e){const v=e.whole?4:scWv(e);let b=SC_SP[0];for(const p of SC_SP)if(Math.abs(p[0]-v)<Math.abs(b[0]-v))b=p;return b[1];}
+/* systems: up to o.per bars (four) a line; a line takes fewer when its bars would be squeezed under 85 % of their natural width (sixteenths) */
+function scoreLayout(bars,o={}){const per=o.per||SCL.per,ks=o.ks||0,sys=[];
+  const natW=b=>SCL.pad+b.ev.reduce((a,e)=>a+scSpace(e)+(e.acc!=null&&!e.rest?13:0),0)+6;
+  for(let i=0;i<bars.length;){const avail=SCL.W-10-(SCL.clef+Math.abs(ks)*SCL.ksw+8+(i===0?SCL.tsw:0));let n=0,w=0;
+    while(i+n<bars.length&&n<per){const bw=natW(bars[i+n]);if(n>0&&(w+bw)*.85>avail)break;w+=bw;n++;}sys.push({from:i,bars:bars.slice(i,i+n),full:n===per||i+n<bars.length});i+=n;}
+  let fullScale=null;
+  sys.forEach((s,si)=>{const first=bars[s.from-1],showTs=si===0||(first&&first.m!==s.bars[0].m);
+    s.x0=SCL.clef+Math.abs(ks)*SCL.ksw+8+(showTs?SCL.tsw:0);s.showTs=showTs;
+    const tsIn=s.bars.map((b,j)=>j>0&&b.m!==s.bars[j-1].m);s.tsIn=tsIn;
+    const nat=s.bars.map((b,j)=>natW(b)+(tsIn[j]?SCL.tsw:0)),sum=nat.reduce((a,b)=>a+b,0),avail=SCL.W-10-s.x0;
+    let sc=avail/sum;if(s.full)fullScale=fullScale===null?sc:fullScale;else sc=Math.min(avail/sum,fullScale!==null?Math.max(1,fullScale):Math.max(1,avail*s.bars.length/per/sum));
+let x=s.x0;s.bx=[];s.pos=[];
+    s.bars.forEach((b,j)=>{s.bx.push(x);let c=SCL.pad+(tsIn[j]?SCL.tsw:0);const p=b.ev.map(e=>{const a=e.acc!=null&&!e.rest?13:0;c+=a;const xx=x+c*sc;c+=scSpace(e);return xx;});
+      if(b.ev.length===1&&b.ev[0].whole)p[0]=x+nat[j]*sc/2;s.pos.push(p);x+=nat[j]*sc;});s.x1=x;});
+  return sys;}
+/* drawing */
+function scoreSVG(bars,o={}){const ks=o.ks||0,sys=scoreLayout(bars,o),S7=7,y=st=>-st*S7,STEM=SCL.stem,mark=o.mark||{};
+  let out='';const blocks=[];
+  sys.forEach((s,si)=>{let h='',lo=0,hi=8;const hds=[];   /* heads of this system, for ties and extents */
+    const bar=(x,cls)=>`<line class="st-line${cls?' '+cls:''}" x1="${x}" x2="${x}" y1="${y(8)}" y2="${y(0)}"/>`;
+    /* bar shading for feedback */
+    s.bars.forEach((b,j)=>{const ok=o.barOk&&o.barOk[s.from+j];if(ok===true||ok===false)h+=`<rect class="sc-bar ${ok?'ok':'bad'}" x="${s.bx[j]}" y="${y(10)}" width="${(j+1<s.bars.length?s.bx[j+1]:s.x1)-s.bx[j]}" height="${y(-2)-y(10)}"/>`;});
+    for(let i=0;i<5;i++)h+=`<line class="st-line" x1="6" x2="${s.x1}" y1="${y(i*2)}" y2="${y(i*2)}"/>`;
+    h+=`<line class="st-line" x1="6" x2="6" y1="${y(8)}" y2="${y(0)}"/><text class="st-glyph" x="10" y="${y(2)}" font-size="56">𝄞</text>`;
+    if(ks)(ks>0?[8,5,9,6,3,7,4]:[4,7,3,6,2,5,1]).slice(0,Math.abs(ks)).forEach((st,i)=>{h+=accSVG(ks>0?'♯':'♭',SCL.clef+6+i*SCL.ksw,y(st));});
+    const ts=(m,x)=>{const M=SC_METER[m];if(M.cut)return `<path class="sc-cut" d="M${x+20} ${y(4)-11} A 14 14 0 1 0 ${x+20} ${y(4)+11}"/><line class="sc-cutl" x1="${x+12.8}" x2="${x+12.8}" y1="${y(9)}" y2="${y(-1)}"/>`;
+      return `<text class="st-ts" x="${x+12}" y="${y(6)+8}" text-anchor="middle">${M.top}</text><text class="st-ts" x="${x+12}" y="${y(2)+8}" text-anchor="middle">${M.bot}</text>`;};
+    if(s.showTs)h+=ts(s.bars[0].m,s.x0-SCL.tsw-2);
+    if(si>0)h+=`<text class="sc-no" x="8" y="${y(8)-14}">${s.from+1}</text>`;
+    let minY=y(8),maxY=y(0);
+    s.bars.forEach((b,j)=>{const bi=s.from+j,bx=s.bx[j],ex=j+1<s.bars.length?s.bx[j+1]:s.x1,P=s.pos[j];if(s.tsIn[j])h+=ts(b.m,bx+2);
+      const last=bi===bars.length-1,sg=b.sg||[],has=k=>sg.some(z=>z.k===k);
+      /* bar lines and repeats */
+      if(has('rs'))h+=`<rect class="sc-fill" x="${bx+1}" y="${y(8)}" width="4" height="${y(0)-y(8)}"/>${bar(bx+8)}<circle class="sc-fill" cx="${bx+13}" cy="${y(5)}" r="2.4"/><circle class="sc-fill" cx="${bx+13}" cy="${y(3)}" r="2.4"/>`;
+      if(has('re'))h+=`<circle class="sc-fill" cx="${ex-13}" cy="${y(5)}" r="2.4"/><circle class="sc-fill" cx="${ex-13}" cy="${y(3)}" r="2.4"/>${bar(ex-8)}<rect class="sc-fill" x="${ex-5}" y="${y(8)}" width="4" height="${y(0)-y(8)}"/>`;
+      else if(last||has('end'))h+=`${bar(ex-7)}<rect class="sc-fill" x="${ex-4}" y="${y(8)}" width="4" height="${y(0)-y(8)}"/>`;else h+=bar(ex);
+      /* the notes */
+      const M=SC_METER[b.m],items=[];
+      b.ev.forEach((e,ei)=>{const x=P[ei],st=e.rest?null:e.w.step,mk=e.rest?null:mark[e.src],cls=mk?' '+mk:'';
+        if(e.rest){const wv=e.whole?4:scWv(e),cy=y(4);if(wv>=4||e.whole)h+=`<rect class="sc-fill" x="${x-8}" y="${y(6)}" width="16" height="7"/>`;
+          else if(wv>=2)h+=`<rect class="sc-fill" x="${x-8}" y="${y(4)-7}" width="16" height="7"/>`;
+          else if(wv>=1)h+=`<g transform="translate(${x} ${cy})"><path class="sc-qr" d="M-4 -20 L4 -10 L-4 -1 L4 8"/><path class="sc-qr2" d="M4 8 C-4 3 -7 12 -1 17"/></g>`;
+          else if(wv>=.5)h+=`<g transform="translate(${x} ${cy+2}) scale(1.6)"><circle class="rh-rest" cx="-3" cy="-6" r="2.6"/><path class="rh-rstem" d="M3 -6 l-6 15"/></g>`;
+          else h+=`<g transform="translate(${x} ${cy+4}) scale(1.6)"><circle class="rh-rest" cx="-3" cy="-6" r="2.2"/><circle class="rh-rest" cx="-5" cy="0" r="2.2"/><path class="rh-rstem" d="M3 -6 l-7 18"/></g>`;
+          if(!e.whole&&[3,1.5,.75].some(v=>scNear(v,wv)))h+=`<circle class="sc-fill" cx="${x+12}" cy="${y(5)}" r="2.2"/>`;items.push({e,ei,x,rest:1});return;}
+        const wv=scWv(e);let g='';
+        if(st<=-2)for(let s2=-2;s2>=st;s2-=2)g+=`<line class="st-line" x1="${x-14}" x2="${x+14}" y1="${y(s2)}" y2="${y(s2)}"/>`;
+        if(st>=10)for(let s2=10;s2<=st;s2+=2)g+=`<line class="st-line" x1="${x-14}" x2="${x+14}" y1="${y(s2)}" y2="${y(s2)}"/>`;
+        if(e.acc!=null)g+=accSVG2(e.acc,x-22,y(st));
+        g+=`<ellipse class="st-head${wv<2?' fill':''}" cx="${x}" cy="${y(st)}" rx="${wv>=4?9.5:8}" ry="5.6" transform="rotate(-22 ${x} ${y(st)})"/>`;
+        if([6,3,1.5,.75].some(v=>scNear(v,wv)))g+=`<circle class="sc-fill" cx="${x+14}" cy="${y(st)-(st%2?0:3.5)}" r="2.2"/>`;
+        h+=`<g class="scn${cls}">${g}</g>`;minY=Math.min(minY,y(st)-8);maxY=Math.max(maxY,y(st)+8);
+        hds.push({x,st,e,bi,ei});items.push({e,ei,x,st,wv,cls});});
+      /* stems, flags and beams: short notes are beamed by the beat (the dotted quarter in 6/8 and 12/8, the half in cut time), a tuplet by its group */
+      const groups=[];let cur=null;
+      items.forEach(it=>{if(it.rest||it.wv>=1-SC_EPS&&!it.e.tup||it.wv>=4){cur=null;if(!it.rest&&it.wv<4)groups.push([it]);return;}
+        const key=it.e.tup?'t'+it.e.tup:'b'+Math.floor(it.e.t/M.beam+SC_EPS);if(it.e.tup&&it.wv>=1-SC_EPS){cur=null;groups.push([it]);return;}
+        if(cur&&cur.key===key)cur.g.push(it);else{cur={key,g:[it]};groups.push(cur.g);cur.g.key=key;}});
+      groups.forEach(g=>{const far=g.reduce((a,it)=>Math.abs(it.st-4)>Math.abs(a-4)?it.st:a,g[0].st),up=g.length>1?far<4:g[0].st<4,sx=it=>up?it.x+7.4:it.x-7.4;
+        let yb=up?Math.min(...g.map(it=>y(it.st)-STEM),y(4)):Math.max(...g.map(it=>y(it.st)+STEM),y(4));
+        if(g.some(it=>it.wv<=.25+SC_EPS))yb+=up?-4:4;
+        g.forEach(it=>{h+=`<line class="st-stem sc-st${it.cls}" x1="${sx(it)}" x2="${sx(it)}" y1="${y(it.st)+(up?-1.5:1.5)}" y2="${yb}"/>`;it.up=up;it.yb=yb;});
+        minY=Math.min(minY,yb-6);maxY=Math.max(maxY,yb+6);
+        const k=up?1:-1;
+        if(g.length===1){const it=g[0];if(it.wv<1-SC_EPS){const f=(yy)=>`<path class="st-flag sc-fl" d="M${sx(it)} ${yy} c 7 ${5*k} 10 ${12*k} 5 ${20*k} c 2 ${-8*k} -1 ${-13*k} -5 ${-15*k} z"/>`;h+=f(yb);if(it.wv<=.25+SC_EPS)h+=f(yb+8*k);}}
+        else{h+=`<line class="st-beam" x1="${sx(g[0])-.8}" x2="${sx(g.at(-1))+.8}" y1="${yb+2.5*k}" y2="${yb+2.5*k}"/>`;
+          g.forEach((it,i)=>{if(it.wv>.25+SC_EPS)return;const nx=g[i+1],px=g[i-1],y2=yb+10.5*k;
+            if(nx&&nx.wv<=.25+SC_EPS)h+=`<line class="st-beam" x1="${sx(it)-.8}" x2="${sx(nx)+.8}" y1="${y2}" y2="${y2}"/>`;
+            else if(!(px&&px.wv<=.25+SC_EPS)){const a=nx?sx(it)+10:sx(it)-10;h+=`<line class="st-beam" x1="${Math.min(a,sx(it))}" x2="${Math.max(a,sx(it))}" y1="${y2}" y2="${y2}"/>`;}});}});
+      /* tuplets: the number over the group; a bracket when the group is not one beam (quarters, a rest inside) */
+      const tg={};items.forEach(it=>{if(it.e.tup)(tg[it.e.tup]=tg[it.e.tup]||[]).push(it);});
+      Object.values(tg).forEach(g=>{const notes=g.filter(it=>!it.rest),beamed=notes.length===g.length&&notes.every(it=>it.wv<1-SC_EPS),up=notes.length?notes[0].up!==false:true,
+          a=g[0].x-6,z=g.at(-1).x+12,cx=(a+z)/2,n=g.length>=6?6:3;
+        const top=Math.min(y(8)-6,...notes.map(it=>Math.min(y(it.st)-8,it.up?it.yb:y(it.st)-8)))-10,bot=Math.max(y(0)+6,...notes.map(it=>Math.max(y(it.st)+8,it.up?y(it.st)+8:it.yb)))+16;
+        const above=beamed?up:true,yy=above?top:bot;
+        if(!beamed)h+=`<path class="rh-tupb" d="M${a} ${yy+5} v-6 H${cx-8} M${cx+8} ${yy-1} H${z} v6"/>`;
+        h+=`<text class="sc-tup" x="${cx}" y="${yy+(above?3:4)}">${n}</text>`;minY=Math.min(minY,yy-12);maxY=Math.max(maxY,yy+6);});
+      /* chord symbols and signs come later (they sit above everything) */
+    });
+    /* ties: the curve on the side away from the stem; across a line break it runs to the end of the line and starts again before the note */
+    hds.forEach((hd,i)=>{if(!hd.e.tieTo)return;const nx=hds[i+1],dn=hd.st>=4,yy=y(hd.st)+(dn?-9:9),c=dn?-9:9;
+      if(nx&&nx.e.src===hd.e.src){const a=hd.x+7,z=nx.x-7;h+=`<path class="sc-tie" d="M${a} ${yy} Q ${(a+z)/2} ${yy+c} ${z} ${yy}"/>`;}
+      else{const a=hd.x+7,z=s.x1+4;h+=`<path class="sc-tie" d="M${a} ${yy} Q ${(a+z)/2} ${yy+c} ${z} ${yy+c/2}"/>`;}});
+    if(si>0){const prev=blocks[si-1];if(prev&&prev.tieOut){const fh=hds[0];if(fh){const dn=fh.st>=4,yy=y(fh.st)+(dn?-9:9),c=dn?-9:9,a=s.x0-14,z=fh.x-7;h+=`<path class="sc-tie" d="M${a} ${yy+c/2} Q ${(a+z)/2} ${yy+c} ${z} ${yy}"/>`;}}}
+    const tieOut=hds.length&&hds.at(-1).e.tieTo;
+    /* chord symbols and signs above the staff */
+    const cy=Math.min(y(8)-18,minY-8),sy=cy-26;let any=false;
+    s.bars.forEach((b,j)=>{const bx=s.bx[j],ex=j+1<s.bars.length?s.bx[j+1]:s.x1,P=s.pos[j];
+      b.ch.forEach(c=>{let x=bx+SCL.pad;const k=b.ev.findIndex(e=>e.t>=c.t-SC_EPS);if(k>=0)x=P[k]-6;h+=`<text class="sc-ch" x="${x}" y="${cy}">${c.sym}</text>`;any=true;});
+      (b.sg||[]).forEach(z=>{const span=z.len||1,ez=j+span<=s.bars.length?(j+span<s.bars.length?s.bx[j+span]:s.x1):s.x1;
+        if(z.k==='v1'||z.k==='v2'){h+=`<path class="sc-sgn" d="M${bx+3} ${sy+14}V${sy}H${ez-6}${z.k==='v1'?'V'+(sy+14):''}"/><text class="sc-txt" x="${bx+8}" y="${sy+12}">${z.k==='v1'?'1.':'2.'}</text>`;any=true;}
+        else if(z.k==='segno'){h+=`<g class="sc-sgn" transform="translate(${bx+14} ${sy+4}) scale(1.5)"><path d="M3.6 -4.4c-1.5 -2.6 -6.6 -2 -6.6 1.2c0 3.4 6 3 6 6.5c0 3.2 -5 3.8 -6.6 1.2"/><line x1="-5.5" x2="5.5" y1="6.5" y2="-6.5"/><circle class="f" cx="-5" cy="-1.4" r="1.1"/><circle class="f" cx="5" cy="1.4" r="1.1"/></g>`;any=true;}
+        else if(z.k==='coda'){h+=scCoda(bx+14,sy+4)+`<text class="sc-txt" x="${bx+28}" y="${sy+9}">Coda</text>`;any=true;}
+        else if(z.k==='toCoda'){h+=`<text class="sc-txt" x="${ex-30}" y="${sy+9}" text-anchor="end">To Coda</text>`+scCoda(ex-16,sy+4);any=true;}
+        else if(z.k==='txt'){h+=`<text class="sc-txt" x="${ex-8}" y="${sy+9}" text-anchor="end">${z.txt}</text>`;any=true;}});});
+    if(si===0&&o.swing){h+=`<text class="sc-txt" x="${s.x0}" y="${sy+9}">Swing</text>`;any=true;}
+    if(si===0&&o.title){h+=`<text class="sc-title" x="${SCL.W/2}" y="${sy-22}" text-anchor="middle">${o.title}</text>`;}
+    const top=Math.min(minY-6,(any||bars.some(b=>b.ch.length))?sy-14:cy-16,y(8)-30)-(si===0&&o.title?40:0),bottom=Math.max(maxY+8,y(0)+26);
+    blocks.push({h,top,bottom,tieOut});});
+  let H=0;blocks.forEach(bk=>{out+=`<g transform="translate(0 ${H-bk.top})">${bk.h}</g>`;H+=bk.bottom-bk.top;});
+  const M=bars[0]?bars[0].m:'4/4',kn=ks?`, ${Math.abs(ks)} ${ks>0?'sharp':'flat'}${Math.abs(ks)>1?'s':''} in the key signature`:'';
+  const VW=Math.max(...sys.map(z=>z.x1))+8;
+  return `<svg class="staff score" viewBox="0 0 ${VW} ${H}" style="max-width:${VW*(o.zoom||1.1)}px" role="img" aria-label="${o.label||`Treble staff, ${bars.length} bar${bars.length>1?'s':''} in ${M==='C|'?'cut time':M}${kn}, ${scoreData(bars).length} notes`}">${out}</svg>`;}
+const scCoda=(x,y)=>`<g class="sc-sgn" transform="translate(${x} ${y}) scale(1.5)"><ellipse cx="0" cy="0" rx="3.3" ry="4.5"/><line x1="-6.5" x2="6.5" y1="0" y2="0"/><line x1="0" x2="0" y1="-7" y2="7"/></g>`;
+/* one call from a line: bars, then the page */
+const scoreOf=(line,o={})=>scoreSVG(scoreBars(line),Object.assign({ks:line.ks||0,swing:line.swing},o));
 /* two bars of 4/4 for a reading line: quarters, halves and beamed eighth pairs (q=1 h=2 e=two eighths) */
 const READ_BARS=[['q','q','q','q'],['h','q','q'],['q','q','h'],['h','h'],['e','q','q','q'],['q','e','q','q'],['q','q','e','q'],['q','q','q','e'],['e','e','q','q'],['q','e','h']];
 const readRhythm=(cells)=>{if(cells){const {ev}=rhyBar(cells,2);return ev.map(e=>e.d);}const out=[];for(let b=0;b<2;b++){let p=R(READ_BARS);if(b===1&&p.at(-1)!=='h'&&Math.random()<.6)p=R(READ_BARS.filter(x=>x.at(-1)==='h'));p.forEach(t=>t==='e'?out.push(.5,.5):out.push(t==='h'?2:1));}return out;};

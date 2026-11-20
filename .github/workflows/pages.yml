@@ -18,12 +18,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: mkdir _site && cp src/fretwise.html _site/index.html && cp -r piano _site/piano && cp -r vendor _site/vendor && cp -r art _site/art
       - run: sed -i "s/const BUILD='dev'/const BUILD='${GITHUB_SHA::7}'/" _site/index.html && grep -c "const BUILD='${GITHUB_SHA::7}'" _site/index.html
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+      # The deploy step asks GitHub for the artifact a fraction of a second after the upload step finished it, and GitHub sometimes
+      # answers "0 artifacts" (20 Nov 2026: five failures in one evening, the upload successful every time). Wait, and try once more if needed.
+      - run: sleep 20
       - id: deployment
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment2
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5

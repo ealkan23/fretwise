@@ -358,6 +358,24 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  const tb=scoreBars({meter:'4/4',notes:[t1('C5',1/3),t1('D5',1/3),N('E5',1/3),N('F5',3)]});if(!scoreCheck(tb,'4/4').length)sb('a tuplet that does not add up passed');
  const d=scoreData(scoreBars({meter:'4/4',notes:[Rr(1),N('G4',3),N('A4',2),N('B4',2)]}));if(JSON.stringify(d.map(x=>[x.bar,x.beat,x.len]))!=='[[1,2,3],[2,1,2],[2,3,2]]')sb('scoreData '+JSON.stringify(d));
  const sv=scoreOf({meter:'4/4',ks:2,swing:1,notes:[N('D4',4),N('E4',4),N('F#4',4),N('G4',4),N('A4',4)],chords:[{t:0,sym:'DMaj7'}],signs:{0:[{k:'rs'}],1:[{k:'re'}]}});if(/undefined|NaN/.test(sv))sb('svg has undefined/NaN');}
+/* Sight Reading (20 Nov 2026): every generator. The written page read back as a reader would (signature, then the bar's own signs) gives the pitch played; bars fill their meters;
+   targets lie in the position and the key; no pitch twice in a row; a perfect take passes, one wrong note fails, one note a beat late fails (long lines: one late note over the allowance) */
+{const sb=m=>{bad++;console.log('SIGHTREAD',m);};S.gid='sightread';GBY.sightread.levels.forEach((lv,li)=>lv.g.forEach((gen,gi)=>{let shown=0;for(let t=0;t<40;t++){let q;try{q=gen();}catch(e){sb('L'+(li+1)+' g'+gi+' throws '+e.message);break;}const tag='L'+(li+1)+' g'+gi+' '+q.key,o=gen.o||{};
+  const bars=q.sr.bars,fl=scoreCheck(bars,bars[0].m);if(fl.length){sb(tag+' '+fl[0]);break;}
+  let i=0,bad1='';bars.forEach(b=>{const mem={};b.ev.forEach(e=>{if(e.rest)return;if(e.tieFrom)return;const w=e.w,alt=e.acc!=null?e.acc:(w.step in mem?mem[w.step]:scKsAlt(q.sr.ks,w.l));mem[w.step]=alt;
+    const m=12*(w.oct+1)+NAT[w.l]+alt-12;if(m!==q.target[i])bad1='read back '+m+' for '+q.target[i]+' (note '+(i+1)+')';i++;});});if(bad1){sb(tag+' '+bad1);break;}
+  if(i!==q.target.length){sb(tag+' targets do not match the written notes');break;}
+  if(!noDup(q.target)){sb(tag+' a pitch twice in a row');break;}
+  if(!o.wins){const KS=o.key?null:null,win=o.win;if(q.target.some(m=>!posOf(m).some(x=>x.f>=win[0]&&x.f<=win[1]))){sb(tag+' a note outside the position');break;}}
+  const B=1000,t0=5000,mk=T=>({notes:T.map((m,k)=>({midi:m,mf:m,t:t0+q.grid[k]*B,dur:250})),firstAt:t0,beat:B,beatStart:t0}),ok=T=>micGrade(q,mk(T)).ok;
+  if(!ok(q.target)){sb(tag+' the perfect take fails');break;}
+  const w2=q.target.slice(),kk=Math.floor(w2.length/2),dv=[1,-1,2,-2].find(d=>w2[kk]+d!==w2[kk-1]&&w2[kk]+d!==w2[kk+1]);w2[kk]+=dv;if(ok(w2)){sb(tag+' a wrong note passes');break;}
+  const late=n=>{const r=mk(q.target);const idx=[];for(let k=1;k<q.target.length&&idx.length<n;k+=2)idx.push(k);idx.forEach(k=>{r.notes[k].t+=B*.45;});return micGrade(q,r).ok;};
+  {const r=mk(q.target),k1=Math.min(1,q.target.length-1);r.notes[k1].t+=B;if(micGrade(q,r).ok){sb(tag+' a note a beat late passes');break;}}
+  const lm=q.tol?Math.max(q.tol.lateMin||0,Math.ceil(q.target.length*q.tol.late))+1:1;if(q.tol&&lm<=Math.floor(q.target.length/2)&&late(lm)){sb(tag+' '+lm+' late notes pass');break;}
+  if(o.nat&&!bars.some(b=>b.ev.some(e=>e.acc===0))){sb(tag+' the naturals level without a natural');break;}
+  if(o.ties&&!bars.some(b=>b.ev.some(e=>e.tieTo))){sb(tag+' the ties level without a tie');break;}
+  if(o.bars&&bars.length!==o.bars){sb(tag+' '+bars.length+' bars');break;}}}));}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

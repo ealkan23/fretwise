@@ -15,11 +15,11 @@ for r in reps:
             if k in c: c[k] = _HM.get(c[k], 10)
 _games = ['fretboard' if g == 'hunt' else g for g in _games] if _games else _games
 # Reading's played lines moved to Sight Reading (20 Nov 2026): a report from a line level of the old 21-level Reading replays there (level 18: lines only)
-_SR = {7: 1, 8: 2, 9: 3, 10: 4, 12: 6, 13: 7, 14: 5, 16: 9, 17: 10, 18: 11, 20: 13}
+_SR = {7: 1, 8: 2, 9: 3, 10: 5, 12: 7, 13: 8, 14: 6, 16: 13, 17: 14, 18: 16, 20: 20}   # to the final 25-level numbering (phase 4)
 for r in reps:
     c = r['ctx']; lv = c.get('qlv') or c.get('level')
     if c.get('game') == 'sight' and lv in _SR and (lv != 18 or c.get('label', '').startswith('Line')):
-        dest = (5 if 'first position' in c.get('label', '') else 9) if lv == 14 else _SR[lv]
+        dest = (6 if 'first position' in c.get('label', '') else 13) if lv == 14 else _SR[lv]
         c['game'] = 'sightread'
         for k in ('level', 'lv', 'L', 'qlv'):
             if k in c: c[k] = dest

@@ -75,6 +75,12 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
    Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length)gb('stage '+k+(n+1));const inStage=new Set();sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('step range '+k+(n+1)+' '+gid+' '+from+'–'+to);
      if(inStage.has(gid))gb('a game twice in one stage '+k+(n+1)+' '+gid);inStage.add(gid);if(from!==(last[gid]||0)+1)gb(k+(n+1)+' '+gid+' starts at '+from+', the goal has it up to '+(last[gid]||0)+': a gap or a step back');last[gid]=to;for(let L=from;L<=to;L++)core.add(gid+':'+L);});});
    if(!Array.isArray(Gl.more)||!Gl.more.length)gb('no appendix '+k);(Gl.more||[]).forEach(([gid,from,to,why])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('appendix range '+k+' '+gid);if(!why||why.length<12)gb('appendix reason '+k+' '+gid);for(let L=from;L<=to;L++)if(core.has(gid+':'+L))gb('appendix repeats a required level '+k+' '+gid+' '+L);});});
+ /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
+ GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
+  W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});
+  GOALS[k].stages.forEach(sg=>sg.steps.forEach(([g,a])=>{const e=W.steps[g+':'+a];keys.add(g+':'+a);if(!e)return gb('why: no text '+k+' '+g+' '+a);if(!pk.has(e[0]))gb('why: element '+k+' '+g+' '+a);seenP.add(e[0]);
+   if(e[1].length<150||/—|undefined|NaN/.test(e[1])||/\b(ii|iii|iv|vi|vii)\b/.test(e[1]))gb('why: text '+k+' '+g+' '+a);}));
+  Object.keys(W.steps).forEach(x=>{if(!keys.has(x))gb('why: stale '+k+' '+x);});pk.forEach(x=>{if(!seenP.has(x))gb('why: unused element '+k+' '+x);});});
  const used=new Set();GOAL_KEYS.forEach(k=>{GOALS[k].stages.forEach(sg=>sg.steps.forEach(([g,a,b])=>{for(let L=a;L<=b;L++)used.add(g+':'+L);}));});console.log('levels required by a goal',used.size);}
 /* every generator of every level must produce questions when called directly: pickQ swallows throwing generators (a level would silently lose a question type) */
 GAMES.forEach(x=>{S.gid=x.id;x.levels.forEach((lv,li)=>lv.g.forEach((gen,gi)=>{let ok=0,err='';for(let t=0;t<30;t++){try{gen();ok++;}catch(e){err=e.message;}}if(!ok){bad++;console.log('GENERATOR THROWS',x.id,'L'+(li+1),'g'+gi,err);}}));});

@@ -17,7 +17,7 @@ srv=subprocess.Popen(['python3','-m','http.server','8793'],cwd=root,stdout=subpr
 bad=[]
 try:
   with sync_playwright() as p:
-    b=p.chromium.launch(channel='chrome');pg=b.new_page(viewport={'width':1100,'height':900});errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
+    b=p.chromium.launch(channel='chrome',args=['--mute-audio']);pg=b.new_page(viewport={'width':1100,'height':900});errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto('http://localhost:8793/src/fretwise.html')
     if raw:pg.evaluate("r=>localStorage.setItem('fretwise-v1',r)",raw);pg.reload()
     pg.wait_for_timeout(1200)

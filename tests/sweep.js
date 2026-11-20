@@ -96,6 +96,13 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   for(const id of ['chorus','chorus8','stdAll','blues8']){const q=soloQ(SOLO[id])(),n=q.target.length,mm=Math.floor(n/16);
    if(!play(q).ok)gb('solo tol: clean '+id);if(!play(q,Array.from({length:mm},(_,i)=>5+i*9)).ok)gb('solo tol: allowed misses '+id);if(play(q,Array.from({length:mm+1},(_,i)=>5+i*7)).ok)gb('solo tol: one too many '+id);}
   {const q=soloQ(SOLO.gt)();if(play(q,[3]).ok)gb('solo tol: a short line let a note through');}
+  /* the blues takes the key's blues scale between the strong beats: over I7 the ♭3 falling to the root passes, the ♭2 of the key does not, and a wrong note on beat 1 still fails */
+  {const q=soloQ(SOLO.blues)(),T=q.target.slice(),C=q.solo.chs[0],k=C.rp,near=(m,p)=>{for(let d=0;d<12;d++){if((m-d-p+1200)%12===0)return m-d;}},b3=near(T[1]+5,(k+3)%12),r1=near(b3,k);
+   const run=ms=>play(q,null,Object.fromEntries(ms.map((m,i)=>[i,m])));
+   if(![0,3,5,6,7,10].every(x=>C.sc.includes((k+x)%12)))gb('blues: the key blues scale is not in the I7 set');if(C.sc.includes((k+1)%12)||C.sc.includes((k+8)%12))gb('blues: ♭2 or ♭6 of the key allowed over I7');
+   const a2=T.slice();a2[1]=b3;a2[2]=r1;if(a2[2]!==a2[3]&&a2[1]!==a2[0]&&!run(a2).ok)gb('blues: ♭3 falling to the root fails over I7');
+   const a3=T.slice();a3[0]=near(T[0]+6,(k+3)%12);if(a3[0]!==a3[1]&&run(a3).ok)gb('blues: a blue note on beat 1 passed as a guide tone');
+   for(const id of ['blues','chorus','blues8','chorus8']){const x=soloQ(SOLO[id])();x.solo.chs.forEach(c=>{if(!/^b-/.test(c.sk))gb('blues: no blues set on '+id);if(c.ct.some(p=>!c.sc.includes(p)))gb('blues: set misses a chord tone '+id);});}}
   /* the eighth-note blues asks a chord tone on beat 3 */
   {const q=soloQ(SOLO.blues8)(),C=q.solo.chs[0],bad=[0,1,2,3,4,5,6,7,8,9,10,11].find(p=>C.sc.includes(p)&&!C.ct.includes(p)),m=q.target[4],alt=m-((m%12)-bad+12)%12;if(alt!==q.target[3]&&alt!==q.target[5]&&play(q,null,{4:alt}).ok)gb('blues8: a non-chord tone on beat 3 passed');}
   /* half a tune and the whole tune: the allowance does not undo the strict rhythm */

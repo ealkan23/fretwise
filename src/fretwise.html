@@ -2859,6 +2859,10 @@ function tuneTimeQ(o){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.include
 const SOLO_SC={m7:[0,2,3,5,7,9,10],'7':[0,2,4,5,7,9,10],maj7:[0,2,4,5,7,9,11],'m7♭5':[0,1,3,5,6,8,10],'7♭9':[0,1,4,5,7,8,10]},SOLO_SCN={m7:'Dorian','7':'Mixolydian',maj7:'major','m7♭5':'Locrian','7♭9':'harmonic minor from its 5th'};
 /* the notes allowed between the strong slots over a standard's chords (20 Nov 2026, build brief item 4): the union of the scales a teacher would accept for the chord type */
 Object.assign(SOLO_SC,{'f-maj':[0,2,4,5,6,7,9,11],'f-m7':[0,1,2,3,5,7,8,9,10],'f-mm':[0,2,3,5,7,8,9,10,11],'f-hd':[0,1,2,3,5,6,8,10],'f-dim':[0,2,3,5,6,8,9,11],'f-7m':[0,1,2,4,5,7,8,9,10],'f-7a':[0,1,3,4,5,6,7,8,10],'f-7l':[0,2,4,6,7,9,10],'f-7':[0,2,4,5,6,7,9,10]});
+/* the blues (20 Nov 2026, user: “why wouldn't I want the blue note”): over I7, IV7 and V7 the key's blues scale (1 ♭3 4 ♭5 5 ♭7) is accepted beside the chord's Mixolydian,
+   written from each chord's own root. The changes are still enforced where they are heard: the 3rd or 7th on beat 1, a chord tone on beat 3 in the eighth-note levels. */
+Object.assign(SOLO_SC,{'b-I':[0,2,3,4,5,6,7,9,10],'b-IV':[0,1,2,4,5,7,9,10],'b-V':[0,2,3,4,5,7,8,9,10,11]});
+Object.assign(SOLO_SCN,{'b-I':'Mixolydian, and the blues scale of the key (its ♭3 and ♭5)','b-IV':'Mixolydian, and the blues scale of the key (here its ♭5)','b-V':'Mixolydian, and the blues scale of the key (its ♭3, ♭5 and ♭7)'});
 Object.assign(SOLO_SCN,{'f-maj':'major, ♯4 allowed','f-m7':'Dorian, Aeolian or Phrygian (2 or ♭2, 6 or ♭6)','f-mm':'melodic minor, Dorian or natural minor (6 or ♭6, 7 or ♭7)','f-7a':'altered, or harmonic minor from its 5th','f-hd':'Locrian, ♮2 allowed','f-dim':'whole-half diminished','f-7m':'harmonic minor from its 5th or Mixolydian','f-7l':'Lydian ♭7','f-7':'Mixolydian, ♯4 allowed'});
 /* a chord symbol of FORMS read for soloing: root, the quality whose chord tones are strict, the scale family; a plain major triad (rhythm changes' B♭) takes 6 and maj7 as chord tones.
    A dominant without its own alteration takes harmonic minor from its 5th as well as Mixolydian when the next different chord is a minor one a 5th below. */
@@ -2919,16 +2923,16 @@ const SOLO={
  chr:{id:'chr',n:'approach notes through II–V–I',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const x=iiVIof(k);return [[x.ii,'m7'],[x.V,'7'],[x.root,'maj7']];}},
  e8:{id:'e8',n:'eighth notes over V7 into I',pool:'scale',strong:[0,2,4,6],chrom:true,div:2,land:true,bars:k=>{const x=iiVIof(k);return [[x.V,'7'],[x.root,'maj7']];}},
  min:{id:'min',n:'minor II–V–I',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const r=P(k);return [[tr(r,2,2),'m7♭5'],[tr(r,5,7),'7♭9'],[r,'m7']];}},
- chorus:{id:'chorus',n:'a blues chorus',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const r=P(k),I=[r,'7'],IV=[tr(r,4,5),'7'],V=[tr(r,5,7),'7'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}},
- blues:{id:'blues',n:'blues, bars 1–4',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const r=P(k);return [[r,'7'],[tr(r,4,5),'7'],[r,'7'],[r,'7']];}},
+ chorus:{id:'chorus',n:'a blues chorus',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const r=P(k),I=[r,'7',,'b-I'],IV=[tr(r,4,5),'7',,'b-IV'],V=[tr(r,5,7),'7',,'b-V'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}},
+ blues:{id:'blues',n:'blues, bars 1–4',pool:'scale',strong:[0],guide:true,chrom:true,div:1,bars:k=>{const r=P(k);return [[r,'7',,'b-I'],[tr(r,4,5),'7',,'b-IV'],[r,'7',,'b-I'],[r,'7',,'b-I']];}},
  /* eighth-note lines (20 Nov 2026, build brief item 3): II–V–I, the turnaround two beats a chord (VI7 takes the 7♭9 scale: it leads to a minor chord), the blues in eighths */
  e8iiV:{id:'e8iiV',n:'eighth notes through II–V–I',pool:'scale',strong:[0,2,4,6],guide:true,chrom:true,div:2,land:true,bars:k=>{const x=iiVIof(k);return [[x.ii,'m7'],[x.V,'7'],[x.root,'maj7']];}},
  e8turn:{id:'e8turn',n:'eighth notes through the turnaround',pool:'scale',strong:[0,2],guide:true,chrom:true,div:2,per:2,land:true,bars:k=>{const x=iiVIof(k);return [[x.root,'maj7'],[tr(x.root,6,9),'7',2,'7♭9'],[x.ii,'m7'],[x.V,'7'],[x.root,'maj7']];}},
  /* a standard's changes (build brief item 4): one note a beat, the 3rd or 7th on the first beat of every chord, the scale union of the chord type between */
  std8:{id:'std8',n:'a standard, the first eight bars',pool:'scale',strong:[0],guide:true,chrom:true,div:1,uniq:true,first:8,forms:WHOLE,bars:k=>formSoloBars(FORMS.find(x=>x.n===k),8)},
  stdAll:{id:'stdAll',n:'a standard, the whole form',pool:'scale',strong:[0],guide:true,chrom:true,div:1,uniq:true,forms:WHOLE,bars:k=>formSoloBars(FORMS.find(x=>x.n===k),0)},
- blues8:{id:'blues8',n:'blues in eighths, bars 1–4',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k);return [[r,'7'],[tr(r,4,5),'7'],[r,'7'],[r,'7']];}},
- chorus8:{id:'chorus8',n:'a blues chorus in eighths',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k),I=[r,'7'],IV=[tr(r,4,5),'7'],V=[tr(r,5,7),'7'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}}};
+ blues8:{id:'blues8',n:'blues in eighths, bars 1–4',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k);return [[r,'7',,'b-I'],[tr(r,4,5),'7',,'b-IV'],[r,'7',,'b-I'],[r,'7',,'b-I']];}},
+ chorus8:{id:'chorus8',n:'a blues chorus in eighths',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k),I=[r,'7',,'b-I'],IV=[tr(r,4,5),'7',,'b-IV'],V=[tr(r,5,7),'7',,'b-V'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}}};
 /* ============ SCALE RUNNER (10 Nov 2026; positions rebuilt 12 Nov 2026 on Leavitt's system, at the user's request, replacing the sheet they had supplied) ============
    A Modern Method for Guitar: a position is the fret of the first finger; the four fingers cover four frets, and one fret more is reached by a STRETCH of the
    first finger (down) or the fourth finger (up) — the hand never shifts. In one position every major scale is playable, with twelve fingering types.
@@ -6541,7 +6545,7 @@ improv:[
  t:['The 3rd of V7 is the leading tone of the minor key. Landing on it makes the cadence clear.']},
 {a:'The first four bars of a blues: I7 – IV7 – I7 – I7.',
  w:['The 3rd of I7 goes down a half step to become the ♭7 of IV7.'],
- t:['That one note movement, 3 to ♭3 of the key, is the sound of the blues changing chord.']},
+ t:['That one note movement, 3 to ♭3 of the key, is the sound of the blues changing chord.','Between the guide tones you may use each chord’s Mixolydian scale or the blues scale of the key (1 ♭3 4 ♭5 5 ♭7).']},
 {k:['A whole chorus: twelve bars, one note a beat, your own line. The 3rd or 7th of the chord has to be on beat 1 of every bar.','This is the first level where you solo over a complete form.'],
  w:['Know the bar you are in. The changes are at bars 2, 3, 5, 7, 9, 10, 11 and 12 in this version.','Aim at the guide tone of the next bar before you get there.','Keep the line moving: no note twice in a row, at least three different notes a bar.'],
  s:'Holding a form while improvising. Everything before this was a cadence; a tune is a form.',
@@ -6555,7 +6559,7 @@ improv:[
  t:['Two beats a chord is how the end of most standards goes by. If the line feels rushed, aim only at the guide tones first and fill the rest later.']},
 {a:'The first four bars of the blues in eighth notes: I7 – IV7 – I7 – I7, the 3rd or 7th on beat 1 of every bar and a chord tone on beat 3.',
  w:['Eight notes a bar over one chord: you need at least three different notes, and real lines use far more.','The change to IV7 in bar 2: the 3rd of I7 falls a half step to the ♭7 of IV7.'],
- t:['A chromatic note is allowed when it moves a half step into the next note: that is how the blue ♭3 gets into a line over I7.']},
+ t:['Between the strong beats the blues scale of the key (1 ♭3 4 ♭5 5 ♭7) is accepted over all three chords, beside each chord’s Mixolydian: the ♭3 may fall to the root or rise to the 3rd.']},
 {a:'A whole blues chorus in eighth notes: 96 notes in one take, the 3rd or 7th on beat 1 of every bar and a chord tone on beat 3.',
  w:['Know where you are: the changes come at bars 2, 3, 5, 7, 9, 10, 11 and 12.','Stamina and attention: the line still has to hit the guide tone in bar eleven.'],
  t:['Real solos breathe: here every eighth is asked so the rules can be checked, but in your own playing leave space.','If a chorus is too long at first, play the four-bar level until it is easy, then come back.']},
@@ -8502,7 +8506,7 @@ LESSON_NOTES.improv=(()=>{
    {fig:()=>LN('C5 Bb4 Ab4 G4 | F4 Ab4 B4 D5 | Eb5 D5 C5 Bb4'),cap:'A level 7 line. Bar 1 comes down D Locrian from the 7th. Bar 2 is the diminished arpeggio F, A♭, B, D over G7♭9. D rises a half step into E♭, the 3rd of Cm7.'},
    {tip:'The step from A♭ up to B inside the V scale is three half steps wide. It is the sound of harmonic minor. Play it on purpose a few times so it stops feeling like a wrong fingering.'}]},
  {h:'The blues',p:[
-   'Levels 8 and 9 are over dominant chords only. Each chord takes its own Mixolydian scale (1 2 3 4 5 6 ♭7), and the guide tones are the 3rd and the ♭7th.',
+   'Levels 8 and 9 are over dominant chords only. Each chord takes its own Mixolydian scale (1 2 3 4 5 6 ♭7), and the guide tones are the 3rd and the ♭7th. The blues scale of the key (1 ♭3 4 ♭5 5 ♭7) is accepted over all three chords as well: the changes are marked by the guide tone on beat 1, and the blue notes colour what lies between.',
    'Between I7 and IV7 both guide tones move a half step: <b>the 3rd of I7 falls to the ♭7th of IV7, and the ♭7th of I7 falls to the 3rd of IV7.</b> In F: A to A♭, and E♭ to D. The first of these is the 3 of the key becoming the ♭3 of the key, which is the sound of a blues changing chord.',
    {fig:()=>NF.staff('A4+Eb5=F7 Ab4+D5=B♭7 A4+Eb5=F7 | Bb4+E5=C7 Ab4+D5=B♭7 A4+Eb5=F7'),cap:'Guide-tone pairs in an F blues. I7 to IV7 and back: both notes move a half step. V7 to IV7 (bars 9 and 10): both fall a whole step.'},
    {tbl:[['Bars','','','',''],[

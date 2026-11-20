@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Scale Runner: “Thirds, in C” before the thirds level (20 Nov 2026, user: “before level 8 put the same game with only C major”; 15 levels)
+Level 8 “Thirds, in C” = the thirds level with every generator in C major only (eight positions); level 9 “Thirds: C, F and G” is the former level 8. `REORDERS23` (flag `r49`) shifts the old levels 8–14 up by one; a player whose frontier was the old level 8 (the user) keeps 8 as the frontier with the old one open as 9; under a higher frontier the new level is open, not passed. `GOALS` (`['scales',8,11]`, `12,12`, `13,15`) and `LEVEL_NOTES.scales` moved with it. On the user's data: 982 answers kept, the 3 answers of the old thirds level are on level 9, second load a no-op. The user asks for a C-only step before a level adds keys (also level 1, 17 Nov): **offer it when a new Scale Runner level starts in several keys.**
+
 ## Strummed chords: measured while they ring (20 Nov 2026, user: “the triad shapes strummed guitar version is so bad”; fix-list #91–95)
 The five reported Triad Shapes takes showed three faults in the chord path, none of them the playing:
 - **The measuring window ended before the chord was complete.** The user rolls the chord (three strings over 300–650 ms); `chordStrums` averaged 60–290 ms after the first string. Now a strum is measured **while it rings**: from 60 ms to `CHO.ring` (1.5 s) after it, or to just before the next strum; `act[m]` = the mean of the upper half of the note's frames in that window (a note that enters late still counts, a blip does not).

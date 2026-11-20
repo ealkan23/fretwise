@@ -1868,7 +1868,7 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
       const pv=d[i-1],nx=d[i+1],over=(pv&&pv.t+(pv.dur||0)>=x.t-40)||(nx&&nx.t-x.t<=160);
       return !!over&&(op||[pv,nx].some(y=>y&&octOf(x.midi,y.midi)));},
     extra=d.filter((x,i)=>!used.has(i)&&!(x.dur&&x.dur<blip)&&!noise(x,i)&&!ghost(x,i));
-  const graded=per.filter(x=>x.onTime!==null);let notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);   /* a tune in time (q.rhyStrict, 20 Nov 2026): the rhythm is the answer, so a note half a beat or more away from its place fails, whatever the others do */if(q.rhyStrict&&graded.some(x=>x.off!==null&&Math.abs(x.off)>=res.beat*0.5))timeOk=false;
+  const graded=per.filter(x=>x.onTime!==null);let notesOk=extra.length===0&&per.every(x=>x.ok),timeOk=!q.metro||graded.filter(x=>x.onTime).length>=Math.ceil(graded.length*0.75);   
   /* q.tol (Scale Runner, 14 Nov 2026, user rule): a run counts as clean with at most tol.miss notes not heard and at most tol.late notes off the beat;
      any wrong note played (a wrong pitch in a slot, or a note that is not in the run) fails it. The timing share rule above does not apply. */
   const missN=per.filter(x=>x.got===null).length,wrongN=per.filter(x=>x.got!==null&&!x.ok).length+extra.length,lateN=graded.filter(x=>x.onTime===false).length;
@@ -1877,8 +1877,10 @@ function micGradeOne(q,res){const t=q.target,cmp=(a,b)=>q.octaveFree?mod(a-b,12)
   /* not heard: one note, and one in sixteen on long runs (two in a 33-note run). 17 Nov 2026, fix-list #67, #71, #72: in fast triplets the detector itself loses up to two notes of a run that was played whole */
   const missMax=q.tol?Math.max(q.tol.miss,Math.floor(per.length/16)):0;
   if(q.tol){notesOk=wrongN===0&&missN<=missMax&&missN<per.length;timeOk=!q.metro||lateN<=lateMax;}
+  /* a tune in time (q.rhyStrict, 20 Nov 2026): the rhythm is the answer, so a note half a beat or more away from its place fails, whatever the others do; after q.tol, which would otherwise undo it */
+  if(q.rhyStrict&&graded.some(x=>x.off!==null&&Math.abs(x.off)>=res.beat*0.5))timeOk=false;
   return {ok:notesOk&&timeOk,notesOk,timeOk,per,extra:extra.map(x=>x.midi),firstAt:res.firstAt,missN,missMax,wrongN,lateN,lateMax,octOff:notesOk&&q.octaveFree&&per.some(x=>x.got!==x.m)};}
-function slotsTarget(){const q=S.q,r=S.micResult;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
+function slotsTarget(){const q=S.q,r=S.micResult;if(q.hideTarget&&!r&&q.target.length>32)return `<p class="muted" style="margin:0">${q.target.length} notes: each one is shown here after the take, right or wrong.</p>`;return `<div class="slots">${q.target.map((m,i)=>{const x=r?r.per[i]:null,hide=q.hideTarget&&!r;return `<div class="slot ${x?(x.ok?'ok':'no'):'empty'}"><span class="n">${hide?'?':q.degs[i]}</span><span class="s">${hide?'&nbsp;':q.names[i]}</span></div>`;}).join('')}</div>`;}
 function slotsHeard(){const r=S.micResult,notes=r?r.per.map(x=>x.got).concat(r.extra):(S.live||[]);if(!notes.length)return `<div class="slots"><div class="slot empty"><span class="n">·</span><span class="s">nothing yet</span></div></div>`;
   return `<div class="slots">${notes.map((m,i)=>{const x=r?r.per[i]:null,late=x&&x.onTime===false;return `<div class="slot ${x?(x.ok?'ok':'no'):r?'no':''}${late?' late':''}"><span class="n">${m===null?'–':NOTE_PC[mod(m,12)]}</span><span class="s">${m===null?'missing':late?nameOf(m)+' · off beat':nameOf(m)}${x&&x.gotF!=null&&isVoice(S.gid)?` <i class="cents">${(x.gotF-Math.round(x.gotF))*100>=0?'+':''}${Math.round((x.gotF-Math.round(x.gotF))*100)}¢</i>`:''}</span></div>`;}).join('')}</div>`;}
 function cinRun(q){const tok=S.cinTok=(S.cinTok||0)+1,bt=60000/q.metro;S.cin=0;for(let i=0;i<=4;i++)setTimeout(()=>{if(S&&S.q===q&&S.listening&&S.cinTok===tok){S.cin=i+1;const el=document.getElementById('cin');if(el)el.innerHTML=cinHTML(S.cin);}},100+i*bt);
@@ -2171,7 +2173,8 @@ function olLine(k,shape,minor){const root=P(k),nat=minor?SC.natural:SC.major,har
   return {root,chs,ns:steps.map(note),steps};}
 function outlineQ(o0={}){return ()=>{const o=micOpt(),minor=!!o0.minor;for(let t=0;t<80;t++){const k=o0.keys?rootPick(o0.keys):rootPick(minor?OL_MIN:OL_MAJ),shape=o0.shape||R(Object.keys(OL_SH)),L=olLine(k,shape,minor);
   if(!okAcc(L.chs.map(c=>c.r))||!okAcc(L.ns.map(x=>x.n)))continue;let mids=null,a=null;
-  for(const b of [48,60,36,72].map(b=>b+pc(L.root)).sort((x,y)=>Math.abs(x+4-62)-Math.abs(y+4-62))){const ms=L.ns.map(x=>b+x.semi);if(Math.min(...ms)<40||Math.max(...ms)>84)continue;const f=fitWindow(ms);if(f){mids=ms;a=f;break;}}
+  {const fits=[];for(const b of [48,60,36,72].map(b=>b+pc(L.root)).sort((x,y)=>Math.abs(x+4-62)-Math.abs(y+4-62))){const ms=L.ns.map(x=>b+x.semi);if(Math.min(...ms)<40||Math.max(...ms)>84)continue;const f=fitWindow(ms);if(f)fits.push([ms,f]);}
+    const pick=fits.find(z=>Math.min(...z[0])>=48)||fits[0];if(pick){mids=pick[0];a=pick[1];}}   /* off the lowest string where another octave fits: the laptop mic hears notes under C3 poorly */
   if(!a)continue;const bpm=Math.min(o.bpm,66),chi=i=>i<4?0:i<8?1:2,names=L.ns.map(x=>nm(x.n)),degs=mids.map((m,i)=>{const c=L.chs[chi(i)];return olDeg(m-pc(c.r),c.q);}),
    syms=L.chs.map(c=>c.q==='maj7'?nm(c.r)+'Maj7':sym(c.r,c.q)),part=i=>`<b>${syms[i]}</b> ${degs.filter((_,j)=>chi(j)===i).join(' ')} <span class="muted">(${names.filter((_,j)=>chi(j)===i).join(' ')})</span>`,
    st=(x,y)=>Math.abs(x-y)===1?'a half step':'a whole step',kn=minor?nm(L.root)+' minor':nm(L.root)+' major';
@@ -2843,7 +2846,7 @@ function tuneTimeQ(o){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.include
     const cad=()=>mo.cadence===false?0:t.m==='blues'?playBluesCadence(root):playCadence(root,t.m==='minor');
     const what=o.all?`the whole of <b>${t.n}</b>, every phrase in order`:o.half?(n===t.ph.length?`<b>${t.n}</b> (the tune is one phrase: all of it)`:`the first half of <b>${t.n}</b> (${n} phrase${n>1?'s':''} of ${t.ph.length})`):`a phrase of a tune`;
     return M({key:o.all?`tu-${t.id}-all`:o.half?`tu-${t.id}-half`:`tu-${t.id}-${i}t`,label:o.all?`${t.n}, the whole tune in time`:o.half?`${t.n}, the first half in time`:`${t.n}, phrase ${i+1} in time`,
-      target:mids,octaveFree:oct,hideTarget:true,maxNotes:mids.length,degs,names,answerText:names.join(' '),metro:bpm,grid:sl.map(x=>x.b),rhyStrict:true,tune:{total,ns:ns.map(x=>({semi:x.semi,d:x.d}))},
+      target:mids,octaveFree:oct,hideTarget:true,maxNotes:mids.length,degs,names,answerText:names.join(' '),metro:bpm,grid:sl.map(x=>x.b),rhyStrict:true,...(o.half||o.all?{tol:{miss:1,late:.15,lateMin:2}}:{}),tune:{total,ns:ns.map(x=>({semi:x.semi,d:x.d}))},
       prompt:`${o.half||o.all?'From memory, in time: ':''}${what} in <b>${kt}</b>. Hear it with the click, then <b>play it back in time</b> after the count-in: the notes and the rhythm are both checked (a note half a beat or more from its place fails).${reps?' <span class="muted">A note struck twice in a row is one note here, on the beat of the first: the microphone cannot reliably hear the same pitch picked again, so the repeat is not checked.</span>':''}`,
       visual:listenCard(o.half||o.all?`${t.n} in ${kt}`:'Key chord, then the phrase with the click',`${bpm} bpm · ${mids.length} notes to play${o.half||o.all?' · replay it as often as you need':''}`),
       audio:()=>{const d=cad(),t0=d+0.3,lead=4*beat;for(let b=0;b<4+Math.ceil(total);b++)Piano.tick(t0+b*beat,b%4===0);let at=t0+lead;ns.forEach(x=>{Piano.note(base+x.semi,at,Math.max(0.15,x.d*beat*0.95),0.85);at+=x.d*beat;});return at+0.3;},
@@ -2855,15 +2858,15 @@ function tuneTimeQ(o){const pool=[];TUNES.forEach(t=>{if(o.mode&&!o.mode.include
    chrom = a note outside the scale passes when it moves a half step into the next note; div = notes per beat; land = one more note on beat 1 of the chord after the last bar. */
 const SOLO_SC={m7:[0,2,3,5,7,9,10],'7':[0,2,4,5,7,9,10],maj7:[0,2,4,5,7,9,11],'m7♭5':[0,1,3,5,6,8,10],'7♭9':[0,1,4,5,7,8,10]},SOLO_SCN={m7:'Dorian','7':'Mixolydian',maj7:'major','m7♭5':'Locrian','7♭9':'harmonic minor from its 5th'};
 /* the notes allowed between the strong slots over a standard's chords (20 Nov 2026, build brief item 4): the union of the scales a teacher would accept for the chord type */
-Object.assign(SOLO_SC,{'f-maj':[0,2,4,5,6,7,9,11],'f-m7':[0,1,2,3,5,7,8,9,10],'f-mm':[0,2,3,5,7,9,10,11],'f-hd':[0,1,2,3,5,6,8,10],'f-dim':[0,2,3,5,6,8,9,11],'f-7m':[0,1,2,4,5,7,8,9,10],'f-7l':[0,2,4,6,7,9,10],'f-7':[0,2,4,5,6,7,9,10]});
-Object.assign(SOLO_SCN,{'f-maj':'major, ♯4 allowed','f-m7':'Dorian, Aeolian or Phrygian (2 or ♭2, 6 or ♭6)','f-mm':'melodic minor or Dorian','f-hd':'Locrian, ♮2 allowed','f-dim':'whole-half diminished','f-7m':'harmonic minor from its 5th or Mixolydian','f-7l':'Lydian ♭7','f-7':'Mixolydian, ♯4 allowed'});
+Object.assign(SOLO_SC,{'f-maj':[0,2,4,5,6,7,9,11],'f-m7':[0,1,2,3,5,7,8,9,10],'f-mm':[0,2,3,5,7,8,9,10,11],'f-hd':[0,1,2,3,5,6,8,10],'f-dim':[0,2,3,5,6,8,9,11],'f-7m':[0,1,2,4,5,7,8,9,10],'f-7a':[0,1,3,4,5,6,7,8,10],'f-7l':[0,2,4,6,7,9,10],'f-7':[0,2,4,5,6,7,9,10]});
+Object.assign(SOLO_SCN,{'f-maj':'major, ♯4 allowed','f-m7':'Dorian, Aeolian or Phrygian (2 or ♭2, 6 or ♭6)','f-mm':'melodic minor, Dorian or natural minor (6 or ♭6, 7 or ♭7)','f-7a':'altered, or harmonic minor from its 5th','f-hd':'Locrian, ♮2 allowed','f-dim':'whole-half diminished','f-7m':'harmonic minor from its 5th or Mixolydian','f-7l':'Lydian ♭7','f-7':'Mixolydian, ♯4 allowed'});
 /* a chord symbol of FORMS read for soloing: root, the quality whose chord tones are strict, the scale family; a plain major triad (rhythm changes' B♭) takes 6 and maj7 as chord tones.
    A dominant without its own alteration takes harmonic minor from its 5th as well as Mixolydian when the next different chord is a minor one a 5th below. */
 function formQual(s){const m=s.split('/')[0].match(/^([A-G][♭♯]?)(.*)$/),r=P(m[1].replace('♭','b').replace('♯','#')),x=m[2];
   if(x===''||x==='6'||x==='6/9'||x==='69')return {r,q:'6',fam:'f-maj',ext:{ct:[11],gt:[11]}};if(/^(Maj|maj|△)(7|9|13)?$/.test(x))return {r,q:'maj7',fam:'f-maj'};
   if(/^(m7♭5|ø7?|-7♭5)$/.test(x))return {r,q:'m7♭5',fam:'f-hd'};if(/^(°7?|dim7?)$/.test(x))return {r,q:'dim7',fam:'f-dim'};
   if(/^(m6|m\(maj7\)|mMaj7|m)$/.test(x))return {r,q:x==='m(maj7)'||x==='mMaj7'?'m(maj7)':'m6',fam:'f-mm'};if(/^(m|-)(7|9|11)$/.test(x))return {r,q:'m7',fam:'f-m7'};
-  if(/♯11/.test(x))return {r,q:'7',fam:'f-7l'};if(/♭9|♯9|alt|♭13/.test(x))return {r,q:'7',fam:'f-7m'};if(/^(7|9|13)/.test(x))return {r,q:'7',fam:'f-7'};return null;}
+  if(/♯11/.test(x))return {r,q:'7',fam:'f-7l'};if(/♯9|alt/.test(x))return {r,q:'7',fam:'f-7a'};if(/♭9|♭13/.test(x))return {r,q:'7',fam:'f-7m'};if(/^(7|9|13)/.test(x))return {r,q:'7',fam:'f-7'};return null;}
 function formSoloBars(f,nb){const all=formChords(f).map(c=>({...c,...formQual(c.sym)})),per={};f.bars.forEach((b,i)=>per[i+1]=b.split(' ').length);
   all.forEach((c,i)=>{if(c.fam!=='f-7')return;let j=(i+1)%all.length;while(all[j].sym===c.sym&&j!==i)j=(j+1)%all.length;const n=all[j];if(mod(pc(n.r)-pc(c.r),12)===5&&['f-m7','f-hd','f-mm'].includes(n.fam))c.fam='f-7m';});
   return all.filter(c=>!nb||c.bar<=nb).map(c=>[c.r,c.q,4/per[c.bar],c.fam,Object.assign({sym:c.sym},c.ext||{})]);}
@@ -2882,7 +2885,7 @@ function soloLine(chs,S0){const out=[];let prev=60,dir=1;chs.forEach((C,b)=>{con
 function soloQ(S0){return ()=>{const o=micOpt(),k=S0.forms?R(S0.forms):rootPick(S0.keys||AN_KEYS),fo=S0.forms?FORMS.find(x=>x.n===k):null,fn=fo?fo.n.split(' (')[0]:'',F=soloForm(S0,k),bars=F.bars,chs=F.chs,nb=S0.land?chs.length-1:chs.length,spec=Object.assign({nbars:nb,lens:F.lens},S0),bpm=Math.min(o.bpm,S0.div===2?66:80),beat=60/bpm;
   const line=soloLine(chs,spec),grid=[],slot=[];for(let b=0;b<nb;b++)for(let j=0;j<F.lens[b]*S0.div;j++){grid.push(F.st[b]+j/S0.div);slot.push({b,j});}if(S0.land){grid.push(F.st[nb]);slot.push({b:nb,j:0,land:true});}
   const bl=[];chs.slice(0,nb).forEach((c,i)=>{const B=Math.floor(F.st[i]/4);(bl[B]=bl[B]||[]).push(c.sym);});
-  const txt=bl.map(x=>x.join(' ')).join(' | ')+(S0.land?` → ${chs[nb].sym}`:''),two=F.lens.slice(0,nb).some(l=>l!==4),rules=[S0.pool==='ct'?'chord tones only':'notes of each chord’s scale'+(S0.chrom?', or a chromatic note that moves a half step into the next note':''),S0.guide?`the <b>3rd or 7th</b> on the first beat of every ${two?'chord':'bar'}`:'',S0.pool==='ct'?'':S0.strong.length?`a <b>chord tone</b> on beat${S0.strong.length>1?'s':''} ${S0.strong.map(j=>j/S0.div+1).join(' and ')}${two?' of each chord':''}`:'','never the same note twice in a row',S0.land?`land on a chord tone of ${chs[nb].sym}`:''].filter(Boolean);
+  const txt=bl.map(x=>x.join(' ')).join(' | ')+(S0.land?` → ${chs[nb].sym}`:''),two=F.lens.slice(0,nb).some(l=>l!==4),rules=[S0.pool==='ct'?'chord tones only':'notes of each chord’s scale'+(S0.chrom?', or a chromatic note that moves a half step into the next note':''),S0.guide?`the <b>3rd or 7th</b> on the first beat of every ${two?'chord':'bar'}`:'',S0.pool==='ct'?'':(()=>{const st=S0.strong.filter(j=>!(S0.guide&&j===0));return st.length?`a <b>chord tone</b> on beat${st.length>1?'s':''} ${st.map(j=>j/S0.div+1).join(', ').replace(/, (\d+)$/,' and $1')}${two?' of each chord':''}`:'';})(),'never the same note twice in a row',S0.land?`land on a chord tone of ${chs[nb].sym}`:''].filter(Boolean);
   const fbars=fo?(S0.first?fo.bars.slice(0,S0.first):fo.bars):null,chart=fbars?`<div class="formchart" style="display:grid;grid-template-columns:repeat(4,max-content);margin-bottom:10px">${fbars.map((b,i)=>`<span class="fbar"><small>${i+1}</small>${b}</span>`).join('')}</div>`:'';
   return M({key:fo?`imp-${S0.id}-${fn}`:`imp-${S0.id}-${k}`,label:fo?`your own line: ${S0.n}, ${fn}`:`your own line: ${S0.n}, in ${kname(k)}`,vamp:{bpm,cin:1,chords:bars.map(([r,q],i)=>({root:pc(r),pcs:(CH[q]||CH['7']).map(x=>mod(IV[x][1],12)),len:F.lens[i]}))},solo:{chs,slot,spec},target:line,names:line.map((m,i)=>chs[slot[i].b].name(m)),degs:slot.map(s=>{if(s.land)return '→';const g=F.st[s.b]+s.j/S0.div;return g%1?'&':String(Math.floor(g%4)+1);}),hideTarget:true,maxNotes:line.length,metro:bpm,grid,
     prompt:`<b>${fo?fo.n.replace(' (whole form)','').replace('whole form, ','')+(S0.first?`, the first ${S0.first} bars`:`, the whole form (${fbars.length} bars)`):txt}</b>${two&&!fo?' (two beats a chord)':fo&&two?' (a bar with two chords: two beats each)':''}, ${S0.div===2?'eighth notes':'one note per beat'}, with the click after the count-in. <b>Improvise your own line</b>: ${rules.join('; ')}. The rules are checked, not one answer.`,
@@ -2898,12 +2901,16 @@ function soloGrade(q,res){const {chs,slot,spec}=q.solo,notes=(res&&res.notes)||[
       else if(s.land){if(!C.ct.includes(p)){ok=false;why.push(`land on a chord tone of ${C.sym} (${C.ct.map(C.name).join(' ')})`);}}
       else if(spec.guide&&s.j===0&&!C.gt.includes(p)){ok=false;why.push(`${where(s,i)} should be the 3rd or 7th of ${C.sym} (${C.gt.map(C.name).join(' or ')})`);}
       else if((spec.pool==='ct'||spec.strong.includes(s.j))&&!C.ct.includes(p)){ok=false;why.push(`${where(s,i)} should be a chord tone of ${C.sym}`);}
-      else if(!C.sc.includes(p)&&!(spec.chrom&&nx!=null&&Math.abs(nx-g)===1)){ok=false;why.push(`${where(s,i)}: ${C.name(p)} is outside the scale${spec.chrom?' and does not move a half step into the next note':''}`);}}
+      else if(!C.sc.includes(p)&&!(spec.chrom&&(nx!=null?Math.abs(nx-g)===1:i<slot.length-1))){   /* the next note was not heard: the approach cannot be judged, so it is not held against the player */ok=false;why.push(`${where(s,i)}: ${C.name(p)} is outside the scale${spec.chrom?' and does not move a half step into the next note':''}`);}}
     per.push({m:q.target[i],got:g,ok,onTime:g!==null});});
   /* at least three different notes in every bar of four beats (with two chords a bar, the bar counts as a whole) */
-  let flat=false;const byBar={};slot.forEach((s,i)=>{if(s.land||got[i]===null)return;const B=Math.floor(q.grid[i]/4);(byBar[B]=byBar[B]||new Set()).add(got[i]);});
-  Object.keys(byBar).forEach(B=>{const n=byBar[B].size;if(n&&n<3){flat=true;why.push(`bar ${+B+1}: use at least three different notes`);}});
-  const ok=per.every(x=>x.ok)&&!flat;return {ok,notesOk:ok,timeOk:true,per,extra:[],firstAt:res&&res.firstAt,walkWhy:why};}
+  let flat=false;const byBar={},lost={};slot.forEach((s,i)=>{if(s.land)return;const B=Math.floor(q.grid[i]/4);if(got[i]===null){lost[B]=(lost[B]||0)+1;return;}(byBar[B]=byBar[B]||new Set()).add(got[i]);});   /* a note that was not heard may have been the third one: it is not held against the bar */
+  Object.keys(byBar).forEach(B=>{const n=byBar[B].size+(lost[B]||0);if(byBar[B].size&&n<3){flat=true;why.push(`bar ${+B+1}: use at least three different notes`);}});
+  /* not heard (review, 20 Nov 2026): one note in sixteen may be missing, as in Scale Runner (fix-list #67–72: the detector itself loses notes of a line that was played whole).
+     A chorus is 48 to 96 notes and a whole form up to 144: with no allowance one lost note failed the take. Under 16 notes nothing is let through. A broken rule always fails. */
+  const missN=got.filter(g=>g===null).length,missMax=Math.floor(slot.length/16),broke=per.some((x,i)=>!x.ok&&got[i]!==null);
+  const ok=!broke&&!flat&&missN<=missMax;if(ok&&missN)why.length=0,why.push(`${missN} note${missN>1?'s were':' was'} not heard and ${missN>1?'were':'was'} let through (up to ${missMax} in a line of ${slot.length})`);
+  return {ok,notesOk:ok,timeOk:true,per,extra:[],firstAt:res&&res.firstAt,walkWhy:why,missN,missMax};}
 const SOLO={
  one:{id:'one',n:'chord tones, one chord',pool:'ct',strong:[],div:1,bars:k=>{const x=iiVIof(k);return [R([[x.ii,'m7'],[x.V,'7'],[x.root,'maj7']])];}},
  iiV:{id:'iiV',n:'chord tones through II–V',pool:'ct',strong:[],div:1,bars:k=>{const x=iiVIof(k);return [[x.ii,'m7'],[x.V,'7']];}},
@@ -2920,8 +2927,8 @@ const SOLO={
  /* a standard's changes (build brief item 4): one note a beat, the 3rd or 7th on the first beat of every chord, the scale union of the chord type between */
  std8:{id:'std8',n:'a standard, the first eight bars',pool:'scale',strong:[0],guide:true,chrom:true,div:1,uniq:true,first:8,forms:WHOLE,bars:k=>formSoloBars(FORMS.find(x=>x.n===k),8)},
  stdAll:{id:'stdAll',n:'a standard, the whole form',pool:'scale',strong:[0],guide:true,chrom:true,div:1,uniq:true,forms:WHOLE,bars:k=>formSoloBars(FORMS.find(x=>x.n===k),0)},
- blues8:{id:'blues8',n:'blues in eighths, bars 1–4',pool:'scale',strong:[0],guide:true,chrom:true,div:2,bars:k=>{const r=P(k);return [[r,'7'],[tr(r,4,5),'7'],[r,'7'],[r,'7']];}},
- chorus8:{id:'chorus8',n:'a blues chorus in eighths',pool:'scale',strong:[0],guide:true,chrom:true,div:2,bars:k=>{const r=P(k),I=[r,'7'],IV=[tr(r,4,5),'7'],V=[tr(r,5,7),'7'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}}};
+ blues8:{id:'blues8',n:'blues in eighths, bars 1–4',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k);return [[r,'7'],[tr(r,4,5),'7'],[r,'7'],[r,'7']];}},
+ chorus8:{id:'chorus8',n:'a blues chorus in eighths',pool:'scale',strong:[0,4],guide:true,chrom:true,div:2,bars:k=>{const r=P(k),I=[r,'7'],IV=[tr(r,4,5),'7'],V=[tr(r,5,7),'7'];return [I,IV,I,I,IV,IV,I,I,V,IV,I,V];}}};
 /* ============ SCALE RUNNER (10 Nov 2026; positions rebuilt 12 Nov 2026 on Leavitt's system, at the user's request, replacing the sheet they had supplied) ============
    A Modern Method for Guitar: a position is the fret of the first finger; the four fingers cover four frets, and one fret more is reached by a STRETCH of the
    first finger (down) or the fourth finger (up) — the hand never shifts. In one position every major scale is playable, with twelve fingering types.
@@ -3864,8 +3871,8 @@ const GAMES=[
   {n:'A blues chorus',d:'Twelve bars, one note a beat: your own line through the whole form, the 3rd or 7th on beat 1 of every bar',g:[soloQ(SOLO.chorus)]},
   {n:'Eighths through II–V–I',d:'IIm7 | V7 | land on IMaj7 in eighth notes: a chord tone on every beat, the 3rd or 7th on beat 1 of each bar',g:[soloQ(SOLO.e8iiV)]},
   {n:'Eighths through the turnaround',d:'IMaj7 VI7 | IIm7 V7 → IMaj7, two beats a chord, in eighth notes: the 3rd or 7th as each chord arrives',g:[soloQ(SOLO.e8turn)]},
-  {n:'Blues in eighths, bars 1–4',d:'I7 – IV7 – I7 – I7 in eighth notes, the 3rd or 7th on beat 1 of every bar',g:[soloQ(SOLO.blues8)]},
-  {n:'A blues chorus in eighths',d:'Twelve bars of your own eighth-note line, 96 notes in one take',g:[soloQ(SOLO.chorus8)]},
+  {n:'Blues in eighths, bars 1–4',d:'I7 – IV7 – I7 – I7 in eighth notes: the 3rd or 7th on beat 1 of every bar, a chord tone on beat 3',g:[soloQ(SOLO.blues8)]},
+  {n:'A blues chorus in eighths',d:'Twelve bars of your own eighth-note line, 96 notes in one take: the 3rd or 7th on beat 1 of every bar, a chord tone on beat 3',g:[soloQ(SOLO.chorus8)]},
   {n:'A standard: the first eight bars',d:'Blue Bossa, Take the A Train, Satin Doll, All The Things You Are, Autumn Leaves or rhythm changes: one note a beat, the 3rd or 7th as every chord arrives',g:[soloQ(SOLO.std8)]},
   {n:'A standard: the whole form',d:'The same tunes from the first bar to the last, 64 to 144 notes in one take',g:[soloQ(SOLO.stdAll)]}]},
  {id:'scales',cat:'neck',mic:true,name:'Scale Runner',area:'The scale in position · guitar',desc:'The scale in one position, built up the way it is taught: the whole position from the tonic and back to it, in C first and then in F and G, then eighths and triplets, the movable one-octave forms, patterns, twelve keys in one position, the modes as a new home note, and the minor scales, pentatonics and blues scale inside the same fingerings. Leavitt’s twelve fingering types: stretches, never shifts. Always with the click.',levels:[
@@ -6546,10 +6553,10 @@ improv:[
 {a:'The turnaround IMaj7 VI7 | IIm7 V7, landing on IMaj7: two beats a chord, so the chord changes every four eighths. The 3rd or 7th as each chord arrives, a chord tone on its second beat.',
  w:['VI7 leads to a minor chord, so its scale is harmonic minor from its 5th: in C, A7 takes B♭ and F, the ♭9 and ♭13.','The 3rd of VI7 (C♯ in C) is not in the key. It is the note that makes the turnaround sound.'],
  t:['Two beats a chord is how the end of most standards goes by. If the line feels rushed, aim only at the guide tones first and fill the rest later.']},
-{a:'The first four bars of the blues in eighth notes: I7 – IV7 – I7 – I7, the 3rd or 7th on beat 1 of every bar.',
+{a:'The first four bars of the blues in eighth notes: I7 – IV7 – I7 – I7, the 3rd or 7th on beat 1 of every bar and a chord tone on beat 3.',
  w:['Eight notes a bar over one chord: you need at least three different notes, and real lines use far more.','The change to IV7 in bar 2: the 3rd of I7 falls a half step to the ♭7 of IV7.'],
  t:['A chromatic note is allowed when it moves a half step into the next note: that is how the blue ♭3 gets into a line over I7.']},
-{a:'A whole blues chorus in eighth notes: 96 notes in one take, the 3rd or 7th on beat 1 of every bar.',
+{a:'A whole blues chorus in eighth notes: 96 notes in one take, the 3rd or 7th on beat 1 of every bar and a chord tone on beat 3.',
  w:['Know where you are: the changes come at bars 2, 3, 5, 7, 9, 10, 11 and 12.','Stamina and attention: the line still has to hit the guide tone in bar eleven.'],
  t:['Real solos breathe: here every eighth is asked so the rules can be checked, but in your own playing leave space.','If a chorus is too long at first, play the four-bar level until it is easy, then come back.']},
 {k:['A real tune: the first eight bars of Blue Bossa, Take the A Train, Satin Doll, All The Things You Are, Autumn Leaves or rhythm changes, one note a beat.','The 3rd or 7th on the first beat of every chord. A bar with two chords gives each chord two beats, so a guide tone comes on beat 1 and on beat 3.','Between them, any note a teacher would accept over the chord type, or a chromatic note that moves a half step into the next note.'],
@@ -6558,7 +6565,7 @@ improv:[
  t:['What is accepted between the guide tones: over maj7 and 6 the major scale with ♯4; over m7 Dorian, Aeolian or Phrygian (2 or ♭2, 6 or ♭6); over m7♭5 Locrian with ♮2; over °7 whole-half; over a 7 that resolves to a minor chord harmonic minor from its 5th or Mixolydian; over 7♯11 Lydian ♭7; over any other 7 Mixolydian with ♯4. The full list for each chord is shown after the answer.','The game is lenient between the strong beats on purpose: it checks that your line is correct, not that it is good.']},
 {a:'The whole form in one take: 64 notes for Blue Bossa, 128 for the 32-bar tunes, 144 for All The Things You Are.',
  w:['Know the form: AABA in A Train, Satin Doll and rhythm changes; the bridge is where you get lost.','The last bar of a section and the first of the next: the guide tone has to be ready before the bar line.'],
- t:['Learn the form away from the guitar first: sing the roots, then the guide tones, bar by bar.','A take of two minutes is long. If you lose the place, keep the click and come back in on the next chord: the missed notes count, but a found place is worth more than a stopped take.']}],
+ t:['Learn the form away from the guitar first: sing the roots, then the guide tones, bar by bar.','A take of two minutes is long. If you lose the place, keep the click and come back in on the next chord. A few notes the microphone does not hear are let through (one in sixteen); a note that breaks a rule is not.']}],
 bends:[
 {k:['A bend raises the pitch by pushing the string across the fret. A half-step bend should arrive exactly on the note one fret higher.'],
  w:['Play the target fret first so you know the pitch you are aiming at.','Bend with the third finger, with the first and second behind it helping.'],

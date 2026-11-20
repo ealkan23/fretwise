@@ -7,6 +7,17 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## Review of the six-item build (20 Nov 2026, user: “take what he built and make it flawless”; the build below was done by another session from `.claude/build-brief.md`)
+Read and tested: the outlines in every key, the scale table of every standard form, the grading of the new levels. The music was right (outline notes, guide tones, the scale family of each chord in all six forms). Changed:
+- **Long improvised takes let unheard notes through** (`soloGrade`): one note in sixteen may be missing (`missMax=floor(slots/16)`: 3 in the quarter-note chorus, 6 in the chorus in eighths, 8–9 in a whole form; none under 16 notes), as Scale Runner does. Before, one note the detector lost failed a 144-note form. A broken rule still fails. A chromatic note whose next note was not heard is not judged, and an unheard note is not held against “three different notes in a bar”. **This also loosens the existing Improvise 9.**
+- **Eighth-note blues (Improvise 12–13)**: a chord tone on beat 3 as well as the guide tone on beat 1 (`strong:[0,4]`; it was beat 1 only, which left seven free notes in eight).
+- **Half a tune and the whole tune (Tunes by Ear 9–10)** carry the Scale Runner allowance (`q.tol`), and the strict-rhythm rule (`q.rhyStrict`) is applied after it (the allowance would have undone it).
+- **Scale families**: a plain minor chord (`f-mm`) also takes the ♭6; a dominant written ♯9 or alt takes the altered scale (`f-7a`). Neither occurs in the six forms today.
+- **Outlines stay off the lowest string** where another octave fits (no line goes under C3 now; the laptop mic hears those notes poorly).
+- The rule line of a question no longer says the same thing twice (“the 3rd or 7th on the first beat… a chord tone on beat 1”); a take of more than 32 hidden notes shows one line before it is played, not a wall of empty boxes.
+- Sweep: the allowance (allowed misses pass, one more fails, short lines let none through), the chord tone on beat 3, a late note in a whole tune still fails.
+- All 14 new levels started headless and muted on the user's data without an error. **Still not played on a real guitar.**
+
 ## Foundations for the goals: six items of the build brief (20 Nov 2026, `.claude/build-brief.md`; the user chose six items from a list of missing skills, everything else is parked)
 **14 new levels, all appended; no migration, no reorder, no existing key changed.** Each item: sweep bad 0, `pages_check` all ok, every new level started headless (muted) without a page error, committed and deployed one by one.
 1. **Path fixes** (`GOALS` only): A requires Scale Runner 13–15 (`more` keeps 16); B requires Sing It 3–5, 6–9, 10–12 (its `more` entry removed); C requires Pulse 3–6 / 7–12, Reading Rhythm 1–5, Jazz Rhythm 1–3; D requires Chord Spelling 8–10, Rhythm Theory 1–5 / 6–11, Harmony & Analysis 5–7 / 8–10 (its `more` entry removed). `GOAL_WHY` entries for every new step; `A scales:13` rewritten.

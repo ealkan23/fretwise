@@ -91,6 +91,16 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
    if(T[8]%12!==t3(C[2])||!(T[7]-T[8]>=1&&T[7]-T[8]<=2))ob('no landing on the 3rd of I '+id);
    const res=n=>({notes:n.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000})),firstAt:3000,beat:750,beatStart:3000});
    if(!micGrade(q,res(T)).ok)ob('self '+id);const w=T.slice();w[5]+=1;if(micGrade(q,res(w)).ok)ob('one wrong note passes '+id);}}
+ /* long improvised takes (review, 20 Nov 2026): one unheard note in sixteen is let through, one more fails; a short line lets none through */
+ {S={gid:'improv',used:new Set()};const play=(q,drop,alt)=>{const beat=1000,notes=[];q.target.forEach((m,i)=>{if(drop&&drop.includes(i))return;notes.push({midi:alt&&alt[i]!==undefined?alt[i]:m,t:q.grid[i]*beat});});return soloGrade(q,{notes,beat,beatStart:0,lat:0});};
+  for(const id of ['chorus','chorus8','stdAll','blues8']){const q=soloQ(SOLO[id])(),n=q.target.length,mm=Math.floor(n/16);
+   if(!play(q).ok)gb('solo tol: clean '+id);if(!play(q,Array.from({length:mm},(_,i)=>5+i*9)).ok)gb('solo tol: allowed misses '+id);if(play(q,Array.from({length:mm+1},(_,i)=>5+i*7)).ok)gb('solo tol: one too many '+id);}
+  {const q=soloQ(SOLO.gt)();if(play(q,[3]).ok)gb('solo tol: a short line let a note through');}
+  /* the eighth-note blues asks a chord tone on beat 3 */
+  {const q=soloQ(SOLO.blues8)(),C=q.solo.chs[0],bad=[0,1,2,3,4,5,6,7,8,9,10,11].find(p=>C.sc.includes(p)&&!C.ct.includes(p)),m=q.target[4],alt=m-((m%12)-bad+12)%12;if(alt!==q.target[3]&&alt!==q.target[5]&&play(q,null,{4:alt}).ok)gb('blues8: a non-chord tone on beat 3 passed');}
+  /* half a tune and the whole tune: the allowance does not undo the strict rhythm */
+  S={gid:'tunes',used:new Set()};{const q=tunePhraseQ({all:true,time:true})(),beat=1000,mk=(late,drop)=>micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000+(i===late?750:0)})).filter((_,i)=>i!==drop),firstAt:3000,beat:750,beatStart:3000});
+   if(!q.tol)gb('tune tol: missing');if(!mk(-1,-1).ok)gb('tune tol: clean whole tune');if(q.target.length>=16&&!mk(-1,3).ok)gb('tune tol: one unheard note in a whole tune');if(q.target.length>4&&mk(2,-1).ok)gb('tune tol: a note a beat late passed');}}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

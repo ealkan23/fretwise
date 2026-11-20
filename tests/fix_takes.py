@@ -21,7 +21,7 @@ FEED = """async (b64)=>{const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).
 NM = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B']; nm = lambda m: NM[m % 12] + str(m // 12 - 1) if m is not None else '—'
 passed = 0
 with sync_playwright() as pw:
-    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required', '--mute-audio'])
+    b = pw.chromium.launch(channel='chrome', headless=True, args=['--autoplay-policy=no-user-gesture-required', '--mute-audio', '--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'])
     for r in reps:
         c = r['ctx']; pg = b.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.goto((root / 'dist' / 'fretwise.html').as_uri()); pg.evaluate('localStorage.clear()'); pg.reload()

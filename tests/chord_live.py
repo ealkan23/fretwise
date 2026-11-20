@@ -9,7 +9,7 @@ TESTS = [('Cmaj7 x3545x', [48, 55, 59, 64], True), ('Dm7 x5756x', [50, 57, 60, 6
          ('C7 (one note off Cmaj7)', [48, 55, 58, 64], False), ('Cmaj7 with E♭', [48, 55, 59, 63], False), ('Dm7 with F♯', [50, 57, 60, 66], False),
          ('G7 with F♯ (Gmaj7)', [43, 54, 59, 62], False), ('Am7 (other chord)', [45, 52, 55, 60], False)]
 with sync_playwright() as pw:
-    b = pw.chromium.launch(channel='chrome', headless=False, args=['--window-position=-2400,-2400', '--autoplay-policy=no-user-gesture-required', '--mute-audio'])
+    b = pw.chromium.launch(channel='chrome', headless=True, args=['--autoplay-policy=no-user-gesture-required', '--mute-audio', '--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'])
     pg = b.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto((root / 'dist' / 'fretwise.html').as_uri()); pg.evaluate('bpLoad()'); pg.wait_for_function('BP.state!=="loading"', timeout=60000)
     dur = pg.evaluate(FEED, base64.b64encode((root / 'recordings' / 'chords.wav').read_bytes()).decode())

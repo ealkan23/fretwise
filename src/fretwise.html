@@ -1553,23 +1553,34 @@ function bpHuntPicks(fr,on,x,sr,offMs,pcs,evS){const FPS=22050/256,N=on.length,b
 /* ---- chords (Nov 2026, beta): strums and what sounds in them. Tuned on the user's strummed Cmaj7 / Dm7 / G7 take (10 strums): the right
    chord passed 9/10 (the 10th really lacked its C4), another chord 0/20, a chord one note off 0/74. A laptop mic barely hears notes below C3
    (G2 read at ~0.1), so those are reported as not checked instead of being guessed. */
-const CHO={thr:2,dist:300,jump:2,w0:5,w1:25,hit:0.25,extra:0.35,low:48,pitched:0.3};
+const CHO={thr:2,dist:300,jump:2,w0:5,w1:25,ring:1.5,hit:0.25,extra:0.35,low:48,pitched:0.3,minDb:-46,near:26};
 /* the model's frame and onset matrices for audio x, queued with the other reads */
 function bpRaw(x,sr){const job=BP.q.then(async()=>{const fr=[],on=[];await BP.inst.evaluateModel(bpResample(x,sr),(f,o)=>{fr.push(...f);on.push(...o);},()=>{});return {fr,on};});BP.q=job.catch(()=>{});return job;}
-/* strums: peaks of the onset strength summed over the guitar range that line up with a jump in loudness; act = mean activation per midi
-   over 5–25 frames (60–290 ms) after the strum. Pure function (also run by tests/chord_check.js) */
+/* strums: peaks of the onset strength summed over the guitar range that line up with a jump in loudness. Pure function (also run by tests/chord_check.js).
+   20 Nov 2026, fix-list #91–95 (Triad Shapes strummed: right chords marked wrong, a take with nothing played graded):
+   · a strum is measured while the chord RINGS: from 60 ms after it to CHO.ring (1.5 s) later, or to just before the next strum. The old window (60–290 ms) ended before
+     a rolled chord was complete: the user's three strings arrive over 300–650 ms. act = per note, the mean of the upper half of its frames in that window, so a note
+     that enters late in the roll or dies early still counts and a passing blip does not.
+   · loudness: a strum quieter than CHO.minDb (−46 dBFS), or more than CHO.near (26 dB) under the loudest strum of the take, is handling noise, not a chord
+     (the reported takes: noise −50 to −60 dBFS, real strums −21 to −35). */
 function chordStrums(fr,on,x,sr,offMs){const FPS=22050/256,N=on.length,hop=sr/FPS,E=new Float32Array(N);
   for(let i=0;i<N;i++){let q=0;const a=Math.floor(i*hop),b=Math.min(x.length,Math.floor((i+1)*hop));for(let j=a;j<b;j++)q+=x[j]*x[j];E[i]=Math.sqrt(q/Math.max(1,b-a))+1e-5;}
-  const st=on.map(r=>{let v=0;for(let b=19;b<=67;b++)v+=r[b];return v;}),K=Math.round(0.12*FPS),D=Math.round(CHO.dist/1000*FPS),out=[];let last=-1e9;
+  const st=on.map(r=>{let v=0;for(let b=19;b<=67;b++)v+=r[b];return v;}),K=Math.round(0.12*FPS),D=Math.round(CHO.dist/1000*FPS),cand=[],out=[];let last=-1e9;
   for(let f=0;f<N;f++){if(st[f]<CHO.thr)continue;let pk=true;for(let k=Math.max(0,f-K);k<=Math.min(N-1,f+K);k++)if(st[k]>st[f]||(st[k]===st[f]&&k<f)){pk=false;break;}if(!pk||f-last<D)continue;
     let aft=0,bef=Infinity;for(let k=f-1;k<=f+4;k++)if(k>=0&&k<N)aft=Math.max(aft,E[k]);for(let k=f-10;k<=f-3;k++)if(k>=0)bef=Math.min(bef,E[k]);if(aft/(bef===Infinity?1e-5:bef)<CHO.jump)continue;last=f;
-    const a0=Math.min(N,f+CHO.w0),a1=Math.min(N,f+CHO.w1),act={};for(let b=19;b<=67;b++){let v=0;for(let k=a0;k<a1;k++)v+=fr[k][b];act[b+21]=v/Math.max(1,a1-a0);}
-    if(Math.max(...Object.values(act))>=CHO.pitched)out.push({t:offMs+f/FPS*1000,act});}   // a strum with no pitch is a hand movement
+    let pkE=0;for(let k=f;k<Math.min(N,f+CHO.w1);k++)pkE=Math.max(pkE,E[k]);cand.push({f,db:20*Math.log10(pkE)});}
+  const top=cand.reduce((m,c)=>Math.max(m,c.db),-120),keep=cand.filter(c=>c.db>=CHO.minDb&&c.db>=top-CHO.near),W=Math.round(CHO.ring*FPS);
+  keep.forEach((c,i)=>{const f=c.f,nx=i+1<keep.length?keep[i+1].f:N,a0=Math.min(N,f+CHO.w0),a1=Math.min(N,Math.max(f+CHO.w1,Math.min(nx-2,f+W))),act={};
+    for(let b=19;b<=67;b++){const v=[];for(let k=a0;k<a1;k++)v.push(fr[k][b]);v.sort((p,q)=>q-p);const h=Math.max(1,Math.ceil(v.length/2));let sm=0;for(let k=0;k<h;k++)sm+=v[k];act[b+21]=v.length?sm/h:0;}
+    if(Math.max(...Object.values(act))>=CHO.pitched)out.push({t:offMs+f/FPS*1000,act,db:Math.round(c.db)});});   // a strum with no pitch is a hand movement
   return out;}
 /* one strum against one voicing: every target note from C3 up sounds; nothing else sounds unless it is an overtone of a target note */
 function chordCheck(act,target){const unchecked=target.filter(m=>m<CHO.low),miss=target.filter(m=>m>=CHO.low&&!(act[m]>=CHO.hit)),harm=new Set();
   for(const m of target)for(const d of [12,19,24,28,31])harm.add(m+d);
-  const extra=Object.keys(act).map(Number).filter(m=>m>=40&&m<=88&&!target.includes(m)&&!harm.has(m)&&act[m]>=CHO.extra);
+  /* the model often adds a fainter note an octave (or two) under a sounding one (E3 under E4, #91): that is not an extra note as long as it is weaker than the note above it.
+     A chord really played an octave too low has the low notes stronger, so it still fails. */
+  const ghost=m=>target.some(t=>(m===t-12||m===t-24)&&(act[t]||0)>act[m]);
+  const extra=Object.keys(act).map(Number).filter(m=>m>=40&&m<=88&&!target.includes(m)&&!harm.has(m)&&act[m]>=CHO.extra&&!ghost(m));
   return {ok:!miss.length&&!extra.length,miss,extra,unchecked};}
 /* notes in audio x (rate sr) whose first sample is offMs into the listen; runs one at a time. o: {keepRepeats, pcs (Note Hunt)} */
 /* loudness gate: the take's noise floor is the 20th percentile of 50 ms frames; a note's level is measured over its first 50–200 ms */
@@ -1621,7 +1632,7 @@ function startListening(onDone,maxNotes,opts={}){const c=Piano.ac(),sr=c.sampleR
       LS.frames.push({rms:r,m:null,t:el});drawLive(r);if(LS.limit?el>LS.limit:el>40000)return stopListening();requestAnimationFrame(step);return;}   // a given length rules (checkups run past 40 s)
     const C=LS.bp;
     if(C&&LS.chord){LS.frames.push({rms:r,m:null,t:el});const n=LS.frames.length,pv=n>=4?Math.min(LS.frames[n-2].rms,LS.frames[n-3].rms,LS.frames[n-4].rms):1;
-      if(el>=300&&r>LS.thr*2&&r>2.5*pv&&el-(LS.attacks.at(-1)??-1e9)>=250)LS.attacks.push(el);}
+      if(el>=300&&r>LS.thr*2&&r>2.5*pv&&r>=Math.pow(10,CHO.minDb/20)&&el-(LS.attacks.at(-1)??-1e9)>=250)   /* a sound under −46 dBFS is not a strum: it must not start the 1.8 s countdown that ends the take (#95: a touch of the strings ended it before the chord) */LS.attacks.push(el);}
     else if(C){LS.frames.push({rms:r,m:null,t:el});
       // every 0.4 s, re-read the last 6 s; the first second of a window lacks context, so earlier results stand there
       if(!C.busy&&C.n&&now-C.last>=BPO.every){C.busy=true;C.last=now;const end=C.n,st=Math.max(0,end-BPO.win*C.sr),off=C.off+st/C.sr*1000,edge=st>0?off+1000:-1e9;
@@ -1661,7 +1672,7 @@ function stopListening(cancel,silent){clickStop();if(!LS||LS.stopped)return;LS.s
   const C=L.bp;if(!C)return fin(L.notes);C.node.disconnect();C.src.disconnect();if(cancel)return;
   if(S&&view.name==='play'){S.micMsg='Checking…';render();}
   LAST_TAKE={x:C.buf.slice(0,C.n),sr:C.sr};
-  if(L.chord){const x=LAST_TAKE.x;bpRaw(x,C.sr).then(({fr,on})=>{const strums=chordStrums(fr,on,x,C.sr,C.off||0);L.onDone({notes:[],strums,onsets:[],firstAt:strums.length?strums[0].t:null,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!!silent&&!strums.length});},()=>fin([]));return;}
+  if(L.chord){const x=LAST_TAKE.x;bpRaw(x,C.sr).then(({fr,on})=>{const strums=chordStrums(fr,on,x,C.sr,C.off||0);L.onDone({notes:[],strums,onsets:[],firstAt:strums.length?strums[0].t:null,beat:L.beat,beatStart:L.beatStart,lat:L.lat,silent:!strums.length});},()=>fin([]));return;}   /* no strum loud enough to be a chord: nothing is graded (“Nothing heard”) */
   bpAnalyse(LAST_TAKE.x,C.sr,C.off||0,{keepRepeats:L.repeats,pcs:L.pcs,want:L.want}).then(ns=>fin(ns.filter(n=>n.t>80)),()=>fin(L.notes));}
 function drawLive(r){const l=document.getElementById('lvl');if(l)l.firstElementChild.style.width=Math.min(100,r*400)+'%';
   if(view.name==='play'&&S&&LS){const ms=LS.notes.map(n=>n.midi);if(ms.join()!==(S.live||[]).join()){S.live=ms;const h=document.getElementById('heardwrap');if(h)h.innerHTML=slotsHeard();}}

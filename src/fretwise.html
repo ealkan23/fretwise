@@ -501,6 +501,8 @@ mark.hl{color:inherit;border-radius:2px;padding:1px 0;cursor:pointer;-webkit-box
 @media(max-width:1179px){.srspread{grid-template-columns:1fr}.srspread svg.staff.score{max-height:none}}
 
 html.srpage #cin{position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:60;margin:0;padding:8px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
+.spr.gspr{image-rendering:auto;filter:drop-shadow(0 6px 12px rgba(0,0,0,.6))}
 </style>
 
 <header class="top"><div class="wrap">
@@ -11626,21 +11628,43 @@ const MASTERS={
   say:{ok:['There it is.','Nice grip.','Good. Now the next one.'],miss:['Find the root first.','One finger moved, that is all.','Slow. Which inversion is it?'],streak:['That is how the hands learn.','Smooth.'],unlock:['More grips. Good.'],start:['Root, then the rest.'],end:['Good work. Play them in a tune.','That is enough for the hands.']}},
  ear:{n:'Jessica',spr:'ear',pos:[640,518],h:188,role:'Ear & Solfège',
   voice:'a femme fatale out of a 1940s picture: a nightclub singer in a red sequin gown. Cool, cocky, a flirt, and a little corny; she riffs on famous old film lines in her own words and never quotes them straight. Insists you sing everything before you play it; talks about where a note wants to go.',
-  say:{ok:['You heard it, darling.','Oh, lovely.'],miss:['Sing it first, darling.','Listen for home.'],streak:['Now you are really listening.'],unlock:['A new number for you. Try not to break my heart.','Next reel, darling. It gets better.'],start:['Sing the 1 before you answer, darling.','Lights down. Ears open.'],end:['Your ears are tired. That’s how I like them.','Fade out. Same time tomorrow?']}}};
+  say:{ok:['You heard it, darling.','Oh, lovely.'],miss:['Sing it first, darling.','Listen for home.'],streak:['Now you are really listening.'],unlock:['A new number for you. Try not to break my heart.','Next reel, darling. It gets better.'],start:['Sing the 1 before you answer, darling.','Lights down. Ears open.'],end:['Your ears are tired. That’s how I like them.','Fade out. Same time tomorrow?']},
+  /* frames 0–35 the idle sheet, 36–44 admiring, 45–53 crying, 54–62 fed up, 63–71 improving (each emotion: 0 the base look, 4 the peak, 8 back). Timing by hand:
+     idle rests two or three seconds on a still frame and plays its scenes at speed (a blink is 120 ms, the gum grows over a second and pops in a fifth);
+     admiring and improving snap in (about 100 ms a frame) and sit on the peak; crying wails back and forth; fed up stops dead on the blank stare, explodes, then sighs it out slowly. */
+  game:{file:'ear-game.webp',cols:9,rows:8,clips:{
+   base:{loop:[[0,2600],[1,1500],[2,520],[3,760],[4,120],[5,140],[6,2400],[7,1400],[8,620],[9,950],[10,700],[11,150],[12,190],[13,950],[14,170],[15,900],[16,170],[17,2600],
+     [18,1700],[19,250],[20,250],[21,300],[22,340],[23,950],[24,200],[25,950],[26,750],[27,1500],[28,2600],[29,190],[30,200],[31,950],[32,520],[33,760],[34,220],[35,2800]]},
+   streak:{loop:[[40,1700],[41,460],[40,1400],[39,380]]},
+   talk:{in:[[29,110],[30,120]],hold:[[31,340],[32,300],[33,340],[32,280]],out:[[34,160],[35,140]]},
+   admire:{in:[[36,70],[37,110],[38,110],[39,130]],hold:[[40,1100],[41,400]],out:[[42,150],[43,170],[44,170]]},
+   cry:{in:[[45,180],[46,150],[47,130],[48,130]],hold:[[49,300],[50,260],[49,300],[48,220]],out:[[51,300],[52,380],[53,650]]},
+   fedup:{in:[[54,90],[55,240],[56,700],[57,220]],hold:[[58,850],[59,800]],out:[[60,1100],[61,380],[62,220]]},
+   improve:{in:[[63,80],[64,110],[65,120],[66,140]],hold:[[67,700],[68,520]],out:[[69,170],[70,170],[71,200]]}}}}};
 const PLAYER={n:'Emir',spr:'player',pos:[655,772],h:178};
-Object.values(MASTERS).concat([PLAYER]).forEach(M=>{if(M.anim)SPR_ANIM[M.spr]=M.anim;});
 const artURL=id=>(window.ART_DATA&&window.ART_DATA['masters/'+id])||`art/masters/${id}.png`;
-const sprHTML=(id,frame,cls='')=>{const A=SPR_ANIM[id];if(A){const c=A.clips[FRAME_MOOD[frame]||'base']||A.clips.base;return `<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id+'-anim')});background-size:${A.cols*100}% ${A.rows*100}%;background-position:0% ${A.rows>1?c[0]/(A.rows-1)*100:0}%"></div>`;}
-  return `<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;};
-function sprFrame(el,frame){if(!el)return;if(SPR_ANIM[el.dataset.spr])return sprPose(el,FRAME_MOOD[frame]||'base');el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}
-/* THE SIX LOOKS (21 Nov 2026): base and the five emotions. Until a master has an animated sheet they are the six old still frames (MOOD_FRAME).
-   An animated sheet is one grid picture, `art/masters/<id>-anim.png`: every row one look, every column one frame of its animation, all cells the same size.
-   MASTERS[cat].anim = {cols, rows, clips:{base:[row, frames, fps], admire:[…], fedup:[…], cry:[…], improve:[…], talk:[…]}}; a missing clip falls back to base.
-   `sprPose(el, mood, play)` shows the look; with `play` it runs the clip (a loop while the look is held); `prefers-reduced-motion` shows its first frame only. */
-const MOOD_FRAME={base:'idle',admire:'amazed',fedup:'angry',cry:'wince',improve:'cheer',talk:'talk'},FRAME_MOOD={idle:'base',amazed:'admire',angry:'fedup',wince:'cry',cheer:'improve',talk:'talk'},SPR_ANIM={},SPR_T=new WeakMap();
-function sprPose(el,mood,play){if(!el)return;const A=SPR_ANIM[el.dataset.spr];clearInterval(SPR_T.get(el));if(!A){el.style.backgroundPosition=`${FRAMES.indexOf(MOOD_FRAME[mood]||'idle')*20}% 0`;return;}
-  const c=A.clips[mood]||A.clips.base,[row,n,fps]=c,at=f=>{el.style.backgroundPosition=`${A.cols>1?f/(A.cols-1)*100:0}% ${A.rows>1?row/(A.rows-1)*100:0}%`;};at(0);
-  if(play&&n>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches){let f=0;SPR_T.set(el,setInterval(()=>{if(!el.isConnected){clearInterval(SPR_T.get(el));return;}f=(f+1)%n;at(f);},1000/(fps||6)));}}
+const sprHTML=(id,frame,cls='')=>`<div class="spr ${cls}" data-spr="${id}" style="background-image:url(${artURL(id)});background-position:${FRAMES.indexOf(frame)*20}% 0"></div>`;
+function sprFrame(el,frame){if(el)el.style.backgroundPosition=`${FRAMES.indexOf(frame)*20}% 0`;}
+/* THE SIX LOOKS: base and the five emotions. A master without an animated sheet shows them as the six old still frames (MOOD_FRAME). */
+const MOOD_FRAME={base:'idle',admire:'amazed',fedup:'angry',cry:'wince',improve:'cheer',talk:'talk'};
+function sprPose(el,mood){if(el)el.style.backgroundPosition=`${FRAMES.indexOf(MOOD_FRAME[mood]||'idle')*20}% 0`;}
+/* THE ANIMATED IN-GAME SPRITE (21 Nov 2026, the user's own drawings; Jessica first). `MASTERS[cat].game = {file, cols, rows, clips}`: one sheet of frames, `cols` to a row
+   (built by tools/sprites_anim.py from art-src/<id>-game/), and the clips as lists of [frame, milliseconds]:
+     base   {loop}            the idle look; long holds on the still frames, the little scenes (a glance, a wink, the bubble gum, a hand on the mic) played through in order
+     streak {loop}            what she rests in while a streak of five or more lasts: the peak of admiring, held (the user: “a streak should keep admiring in the max admiration pose”)
+     talk admire cry fedup improve   {in, hold, out}: in is played once, hold goes round until the line has been up long enough, out leads back to the base look
+   Only the in-game companion uses it: the hall and the master's page keep the six-frame sprite. */
+const gsDur=q=>q.reduce((a,x)=>a+x[1],0),gsStill=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function gsFrame(el,A,f){el.style.backgroundPosition=`${A.cols>1?(f%A.cols)/(A.cols-1)*100:0}% ${A.rows>1?Math.floor(f/A.cols)/(A.rows-1)*100:0}%`;}
+function gsStop(el){if(el&&el._gs){clearTimeout(el._gs.t);el._gs=null;}}
+/* run [frame, ms] steps one after another; `next` when the list is done */
+function gsRun(el,A,steps,next){const st=el._gs={t:0};let i=0;const go=()=>{if(el._gs!==st||!el.isConnected)return;if(i>=steps.length){if(next)next();return;}gsFrame(el,A,steps[i][0]);st.t=setTimeout(go,steps[i++][1]);};go();}
+function gsLoop(el,A,loop){gsStop(el);if(gsStill()){gsFrame(el,A,loop[0][0]);return;}const again=()=>gsRun(el,A,loop,again);again();}
+/* an emotion: in, then hold until `ms` have nearly passed, then out, then `then` (her resting look). skipOut: go straight on (a streak keeps the peak) */
+function gsEmote(el,A,clip,ms,then,skipOut){gsStop(el);if(gsStill()){gsFrame(el,A,clip.hold[0][0]);el._gs={t:setTimeout(()=>{el._gs=null;then&&then();},ms)};return;}
+  const t0=performance.now(),tail=skipOut?0:gsDur(clip.out),end=()=>skipOut?(then&&then()):gsRun(el,A,clip.out,then),hold=()=>{if(performance.now()-t0+gsDur(clip.hold)*0.5>ms-tail)return end();gsRun(el,A,clip.hold,hold);};
+  gsRun(el,A,clip.in,hold);}
+const gsMin=c=>gsDur(c.in)+gsDur(c.hold)+gsDur(c.out);   /* an emotion is never cut shorter than one full pass */
 
 /* ---- facts: the whole picture first, then the master's own section in depth. Everything a talk says comes from here. ---- */
 const stripHTML=s=>String(s).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
@@ -11779,21 +11803,28 @@ function masterOpen(cat){talkType(cat);if(aiKey()&&!(TALK[cat]&&TALK[cat].ai))ma
 /* ---- the companion: the section's master stands at the left of the game and reacts ---- */
 let BUD=null;
 function buddySync(){const gid=view.name==='play'&&S?S.gid:view.name==='groove'&&GR?GR.gid:view.name==='results'&&S?S.gid:null,room=(innerWidth-(document.documentElement.classList.contains('wide2')?1400:980))/2;
-  if(!gid||room<120){if(BUD){BUD.el.remove();BUD=null;}return;}const cat=GBY[gid].cat,M=MASTERS[cat],size=room>=215?192:128;
-  if(!BUD||BUD.cat!==cat||BUD.size!==size){if(BUD)BUD.el.remove();const el=document.createElement('div');el.id='buddy';el.style.width=size+'px';el.style.left=Math.round((room-size)/2)+'px';el.innerHTML=`<div class="budsay" hidden></div>${sprHTML(M.spr,'idle','bob')}<span class="hubname"><b>${M.n}</b></span>`;document.body.append(el);BUD={el,cat,size,t:0,gid:null};}
-  if(BUD.gid!==gid+(view.name==='results'?'r':'')){BUD.gid=gid+(view.name==='results'?'r':'');if(view.name!=='results')buddySay('talk',R1(M.say.start),2800);}}
+  if(!gid||room<120){if(BUD){BUD.el.remove();BUD=null;}return;}const cat=GBY[gid].cat,M=MASTERS[cat],A=M.game,size=A?Math.max(210,Math.min(330,Math.round(room*1.25))):room>=215?192:128;   /* an animated master is drawn larger than the margin: the frame has clear space round her, which may lie over the edge of the page */
+  if(!BUD||BUD.cat!==cat||BUD.size!==size){if(BUD){gsStop(BUD.el.querySelector('.spr'));BUD.el.remove();}const el=document.createElement('div');el.id='buddy';el.style.width=size+'px';el.style.left=Math.max(Math.round((room-size)/2),A?-10:0)+'px';
+    el.innerHTML=`<div class="budsay" hidden></div>${A?`<div class="spr gspr" data-spr="${M.spr}" style="background-image:url(${(window.ART_DATA&&window.ART_DATA['masters/'+A.file.replace(/\.\w+$/,'')])||'art/masters/'+A.file});background-size:${A.cols*100}% ${A.rows*100}%"></div>`:sprHTML(M.spr,'idle','bob')}<span class="hubname"><b>${M.n}</b></span>`;document.body.append(el);BUD={el,cat,size,t:0,gid:null,rest:'base'};budRest();}
+  if(BUD.gid!==gid+(view.name==='results'?'r':'')){BUD.gid=gid+(view.name==='results'?'r':'');if(view.name!=='results'){BUD.rest='base';buddySay('talk',R1(M.say.start),2800);}}}
+/* her resting look: the idle loop, or the peak of admiring for as long as a streak of five or more lasts */
+function budRest(){if(!BUD)return;const A=MASTERS[BUD.cat].game,sp=BUD.el.querySelector('.spr');if(!A){sprPose(sp,'base');return;}gsLoop(sp,A,(BUD.rest==='streak'&&A.clips.streak||A.clips.base).loop);}
 /* the companion speaks (21 Nov 2026; the rules are in the core, “THE MASTERS' VOICES IN PLAY”). A line stays long enough to be read: 1.9 s and 50 ms a letter, 6 s at most;
    the pose of its mood is held (and its clip played) for as long, then she goes back to the base look. */
 function budLines(cat,mood){const L=MASTER_LINES[cat];if(L&&L[mood])return L[mood];const s=MASTERS[cat].say;return {admire:s.streak,cry:s.miss,fedup:s.miss,improve:s.streak.concat(s.ok),random:s.start.concat(s.ok)}[mood]||[];}   /* a master without the five moods yet: the old short lines */
-function buddySay(mood,text,ms){if(!BUD||!text)return;ms=ms||Math.min(6000,1900+text.length*50);const b=BUD.el.querySelector('.budsay');BUD.until=Date.now()+ms;sprPose(BUD.el.querySelector('.spr'),mood==='random'?'talk':mood,true);b.textContent=text;b.hidden=false;b.dataset.mood=mood;
-  clearTimeout(BUD.t);BUD.t=setTimeout(()=>{if(!BUD)return;sprPose(BUD.el.querySelector('.spr'),'base',true);BUD.el.querySelector('.budsay').hidden=true;},ms);}
+function buddySay(mood,text,ms){if(!BUD||!text)return;const A=MASTERS[BUD.cat].game,look=mood==='random'?'talk':mood,clip=A&&(A.clips[look]||A.clips.talk),sp=BUD.el.querySelector('.spr'),b=BUD.el.querySelector('.budsay');
+  ms=Math.max(ms||Math.min(6000,1900+text.length*50),clip?gsMin(clip):0);BUD.until=Date.now()+ms;b.textContent=text;b.hidden=false;b.dataset.mood=mood;clearTimeout(BUD.t);
+  if(clip)gsEmote(sp,A,clip,ms,budRest,look==='admire'&&BUD.rest==='streak');else{sprPose(sp,look);}   /* admiring on a streak does not come down: it settles into the held peak */
+  BUD.t=setTimeout(()=>{if(!BUD)return;BUD.el.querySelector('.budsay').hidden=true;if(!clip)sprPose(BUD.el.querySelector('.spr'),'base');},ms);}
 function buddyMood(mood,slots){if(!BUD)return false;const t=budPick(budLines(BUD.cat,mood),BUD.cat+':'+mood,slots||{});if(!t)return false;buddySay(mood,t);return true;}
 /* after every answer of a round */
 function buddyAnswer(q,it,ok,hinted){if(!BUD||!S)return;S.budSince=(S.budSince||0)+1;const clean=ok&&!hinted,mood=buddyJudge({ok:clean,prev:S.prevStreak||0,streak:S.streak,w:it?it.w:0,r:it?it.r:'',mix:!!S.diag,since:S.budSince,rnd:Math.random()});
-  if(!mood||(ok&&!clean))return;if(buddyMood(mood,{n:mood==='cry'?S.prevStreak:S.streak,mistake:mood==='fedup'||mood==='improve'?budMistake(q):''}))S.budSince=0;}
+  BUD.rest=S.streak>=5?'streak':'base';   /* set before the line: the emotion's ending leads into it */
+  if(mood&&!(ok&&!clean)&&buddyMood(mood,{n:mood==='cry'?S.prevStreak:S.streak,mistake:mood==='fedup'||mood==='improve'?budMistake(q):''})){S.budSince=0;return;}
+  if(!(BUD.until>Date.now()))budRest();}
 /* the continuous rhythm games: clean bars in a row stand for the streak. admire at 8, 16, 24… bars (improve the first time 8 are held after three broken runs); cry when a run of 8 or more breaks;
    fed up at every fourth broken run that never got that far. Nothing else: the player is reading. */
-function buddyGroove(ev,h){if(!BUD||!GR)return;if(ev==='hold'){if(h<8||h%8)return;if((GR.budBk||0)>=3&&!GR.budImp){GR.budImp=1;if(buddyMood('improve',{}))return;}buddyMood('admire',{n:h});}
+function buddyGroove(ev,h){if(!BUD||!GR)return;BUD.rest=ev==='hold'&&h>=8?'streak':'base';if(ev==='hold'){if(h<8||h%8)return;if((GR.budBk||0)>=3&&!GR.budImp){GR.budImp=1;if(buddyMood('improve',{}))return;}buddyMood('admire',{n:h});}
   else{GR.budBk=(GR.budBk||0)+1;if(h>=8)buddyMood('cry',{n:h});else if(GR.budBk%4===0)buddyMood('fedup',{});}}
 function buddyReact(ev,x){if(!BUD)return;const L=MASTERS[BUD.cat].say;
   if(ev==='unlock')buddySay('admire',R1(L.unlock),4200);

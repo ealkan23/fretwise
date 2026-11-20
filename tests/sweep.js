@@ -117,7 +117,7 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   ex(J({ok:false,prev:0,streak:0,w:3,r:'01110'}),null,'an old mistake missed once after three clean');ex(J({ok:false,prev:7,streak:0,mix:true,r:'0'}),'fedup','a repeated mistake that also ends a short streak');
   ex(J({ok:false,prev:12,streak:0,mix:true,r:'0'}),'cry','a repeated mistake that ends a long streak');
   ex(J({w:3,r:'000111'}),'improve','the third clean answer on an old mistake');ex(J({w:3,r:'0001111'}),null,'the fourth clean answer on it');ex(J({w:2,r:'00111'}),null,'three clean on an item missed only twice');
-  ex(J({w:3,r:'000111',streak:5,prev:4}),'improve','improving beats a streak mark');ex(J({since:6,rnd:.1}),'random','a quiet stretch');ex(J({since:6,rnd:.5}),null,'a quiet stretch, no luck');ex(J({since:3,rnd:.1}),null,'spoke lately');
+  ex(J({w:3,r:'000111',streak:5,prev:4}),'improve','improving beats a streak mark');ex(J({since:3,rnd:.1}),'random','a quiet stretch');ex(J({since:6,rnd:.5}),null,'a quiet stretch, no luck');ex(J({since:2,rnd:.1}),null,'spoke lately');
   for(const cat in MASTER_LINES){const L=MASTER_LINES[cat];for(const m of ['admire','cry','fedup','improve','random']){const a=L[m]||[];if(a.length<6)gb('voice: '+cat+' '+m+' has '+a.length+' lines');
      a.forEach(l=>{if(l.length>110||/—|undefined|NaN/.test(l)||(l.match(/\{(\w+)\}/g)||[]).some(k=>!['{n}','{mistake}'].includes(k)))gb('voice: line '+l);if(/\{mistake\}/.test(l)&&!['fedup','improve'].includes(m))gb('voice: {mistake} in '+m);if(/\{n\}/.test(l)&&!['admire','cry'].includes(m))gb('voice: {n} in '+m);});
      if(a.every(l=>/\{/.test(l)))gb('voice: '+cat+' '+m+' has no line without a slot');}

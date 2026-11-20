@@ -75,6 +75,11 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
    Gl.stages.forEach((sg,n)=>{if(!sg.n||!sg.why||sg.why.length<40||!sg.steps.length)gb('stage '+k+(n+1));const inStage=new Set();sg.steps.forEach(([gid,from,to])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('step range '+k+(n+1)+' '+gid+' '+from+'–'+to);
      if(inStage.has(gid))gb('a game twice in one stage '+k+(n+1)+' '+gid);inStage.add(gid);if(from!==(last[gid]||0)+1)gb(k+(n+1)+' '+gid+' starts at '+from+', the goal has it up to '+(last[gid]||0)+': a gap or a step back');last[gid]=to;for(let L=from;L<=to;L++)core.add(gid+':'+L);});});
    if(!Array.isArray(Gl.more)||!Gl.more.length)gb('no appendix '+k);(Gl.more||[]).forEach(([gid,from,to,why])=>{const x=GBY[gid];if(!x||x.retired||from<1||to<from||to>x.levels.length)return gb('appendix range '+k+' '+gid);if(!why||why.length<12)gb('appendix reason '+k+' '+gid);for(let L=from;L<=to;L++)if(core.has(gid+':'+L))gb('appendix repeats a required level '+k+' '+gid+' '+L);});});
+ /* a run's tightness is measured per subdivision: a different lean in quarters and in sixteenths passes, a loose player does not, alike bars are unchanged */
+ {const mk=(lean,jit)=>{const on=[];let i=0;for(let b=0;b<32;b++){const n=[4,4,8,8,12,12,16,16][b%8];for(let k=0;k<n;k++){on.push({bar:b,hit:1,off:lean(n)+Math.sin(i*7.3)*jit});i++;}}return on;},
+   run=on=>{GR={onsets:on,res:on.length,holdFrom:0,c:{},std:25,hold:30,feelSet:[],met:{},accOn:false};return grooveMeets();};
+  if(!run(mk(n=>n===4?-28:n===16?27:0,18)).ok)gb('runSpread: lean by subdivision must pass');if(run(mk(n=>0,60)).ok)gb('runSpread: loose must fail');
+  const u=[];for(let b=0;b<30;b++)for(let k=0;k<4;k++)u.push({bar:b,hit:1,off:-20+Math.sin(b*4+k)*20});if(Math.abs(run(u).t-spread(u.map(o=>o.off)))>1e-9)gb('runSpread: alike bars changed');}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

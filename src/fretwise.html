@@ -4323,6 +4323,8 @@ const G=id=>{if(RZ1.includes(id)&&!(STORE.games[id]&&STORE.games[id].mig&&STORE.
   if(!(g.mig&&g.mig.rl2)){if(RZ1.includes(id)&&id!=='rhytheory')rlOlder(g);g.mig={...(g.mig||{}),rl2:1};saveLocal();}
   if(!(g.mig&&g.mig.rl3)){rlTag(g,id);g.mig={...(g.mig||{}),rl3:1};saveLocal();}
   if(id==='pulse'&&!(g.mig&&g.mig.pu1)){g.opts=Object.assign({},g.opts||{},{tapMic:true});g.mig={...(g.mig||{}),pu1:1};saveLocal();}   /* 8 Nov 2026: strumming is the default (the keyboard has no dynamics and its own latency) */
+  if(id==='pulse'&&!(g.mig&&g.mig.ps5)){g.mig={...(g.mig||{}),ps5:1};   /* 20 Nov 2026: level 5 passed where a run of 24+ clean bars was held and its last blocks were all clean; the run's tightness had been measured around one centre (see runSpread) */
+    const h=(g.hist||{})[5]||[];if(g.lvl===5&&h.length>=NEED&&h.every(Boolean)&&(g.rl||[]).some(z=>z.L===5&&z.hold>=GRV.hold)){g.lvl=6;g.unl=(g.unl||[]).filter(L=>L>6);}saveLocal();}
   if(id==='pulse'&&!(g.mig&&g.mig.ur3)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur3:1};saveLocal();}   /* 15 Nov 2026: the user asked for every Pulse & Feel level open (opened, not passed: g.lvl, the stats and the tree stay as they are) */
   if((id==='pulse'||id==='rhyread')&&!(g.mig&&g.mig.ur2)){const n=GBY[id].levels.length;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:n},(_,i)=>i+1).filter(L=>L>g.lvl)])].sort((a,b)=>a-b);g.mig={...(g.mig||{}),ur2:1};saveLocal();}   /* the user asked for Time & Groove open: its successors open too (opened, not passed) */
   if(!(g.mig&&g.mig.c27)&&GBY[id]){countBackfill(id,g);g.mig={...(g.mig||{}),c26:1,c27:1};if(g.hm&&g.hm.g)Object.keys(g.hm.g).forEach(L=>{if(!((g.lc[L]||{}).g))delete g.hm.g[L];});saveLocal();}openAllSync(id,g);return g;};
@@ -4616,7 +4618,13 @@ function grooveRecord(o){const g=G(GR.gid),st=GR.stats;
     const hs8=GR.onsets.slice(Math.max(0,GR.res-8),GR.res).filter(x=>x.hit),offs=hs8.map(x=>x.off);{const bo=Object.assign({n:1,c:w},offs.length?{tn:1,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff)))}:{});dayAdd(g,bo);const ck=GR.ck||(GR.ck={n:0,c:0,tn:0,dr:0,ab:0});for(const k in bo)ck[k]+=bo[k];if(ck.n>=4){rlAdd(g,Object.assign({t:Date.now(),L:GR.L,m:GR.mic?'g':'s'},ck));GR.rlN=(GR.rlN||0)+1;GR.ck=null;}}if(offs.length){(g.pl||(g.pl=[])).push({t:Date.now(),k:K('groove-'+GR.L),lv:GR.L,ok:w,n:8,dr:Math.round(offs.reduce((a,b)=>a+b,0)/offs.length),ab:Math.round(spread(hs8.map(adjOff))),m:GR.mic?1:0});plTrim(g,GR.gid);}}
   grooveUnlock();}
 /* what the unlock needs now: 64 in a row, tightness over them within the standard; feel levels also every ahead/behind target placed */
-function grooveMeets(){const hs=GR.onsets.slice(0,GR.res).filter(o=>o.hit&&o.bar>=GR.holdFrom),t=hs.length>=4?spread(hs.map(adjOff)):null,h16=hs.slice(-GRV.win),t16=h16.length>=4?spread(h16.map(adjOff)):null;   /* the hits inside the current run of bars */
+/* tightness of a run when the bars differ in how many notes they hold (Pulse & Feel 5: quarters, eighths, triplets, sixteenths in turn). A player's lean is not
+   the same in quarters as in sixteenths (the user, 20 Nov 2026: 69 clean bars, every block within 14–20 ms, quarters about 25 ms early and sixteenths about 25 ms
+   late: one centre for the whole run read as over 25 ms and the level never opened). So the hits are grouped by the number of written notes in their bar and each
+   group is measured around its own centre; a group of fewer than 8 hits is pooled with the other small ones. Bars that are all alike: one group, as before. */
+function runSpread(hs){if(!hs.length)return 0;const per={};GR.onsets.forEach(o=>{per[o.bar]=(per[o.bar]||0)+1;});const gr={};hs.forEach(o=>{(gr[per[o.bar]]||(gr[per[o.bar]]=[])).push(adjOff(o));});
+  const big=[],small=[];Object.values(gr).forEach(a=>{if(a.length>=8)big.push(a);else small.push(...a);});if(small.length)big.push(small);return big.reduce((p,a)=>p+spread(a)*a.length,0)/hs.length;}
+function grooveMeets(){const hs=GR.onsets.slice(0,GR.res).filter(o=>o.hit&&o.bar>=GR.holdFrom),t=hs.length>=4?runSpread(hs):null,h16=hs.slice(-GRV.win),t16=h16.length>=4?runSpread(h16):null;   /* the hits inside the current run of bars */
   const feelOk=!GR.c.feel||GR.feelSet.every(f=>GR.met[f]),tight=t!==null&&t<=GR.std,end=t16!==null&&t16<=GR.std;   /* tight over the whole run and still tight at its end */
   const acc=GR.accOn?accentDb(hs):null,accOk=!GR.accOn||(acc!==null&&acc>=GRV.accDb);
   return {t,t16,n:hs.length,tight,end,feelOk,acc,accOk,enough:hs.length>=GRV.minHits,ok:GR.hold>=GRV.hold&&hs.length>=GRV.minHits&&tight&&end&&feelOk&&accOk};}

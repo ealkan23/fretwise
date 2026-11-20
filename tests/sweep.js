@@ -107,7 +107,7 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   {const q=soloQ(SOLO.blues8)(),C=q.solo.chs[0],bad=[0,1,2,3,4,5,6,7,8,9,10,11].find(p=>C.sc.includes(p)&&!C.ct.includes(p)),m=q.target[4],alt=m-((m%12)-bad+12)%12;if(alt!==q.target[3]&&alt!==q.target[5]&&play(q,null,{4:alt}).ok)gb('blues8: a non-chord tone on beat 3 passed');}
   /* half a tune and the whole tune: the allowance does not undo the strict rhythm */
   S={gid:'tunes',used:new Set()};{const q=tunePhraseQ({all:true,time:true})(),beat=1000,mk=(late,drop)=>micGrade(q,{notes:q.target.map((m,i)=>({midi:m,mf:m,t:q.grid[i]*750+3000+(i===late?750:0)})).filter((_,i)=>i!==drop),firstAt:3000,beat:750,beatStart:3000});
-   if(!q.tol)gb('tune tol: missing');if(!mk(-1,-1).ok)gb('tune tol: clean whole tune');if(q.target.length>=16&&!mk(-1,3).ok)gb('tune tol: one unheard note in a whole tune');if(q.target.length>4&&mk(2,-1).ok)gb('tune tol: a note a beat late passed');}}
+   if(!q.tol)gb('tune tol: missing');if(!mk(-1,-1).ok)gb('tune tol: clean whole tune');{const dr=q.target.findIndex((m,i)=>i>=3&&i+1<q.target.length&&q.target[i-1]!==q.target[i+1]);if(q.target.length>=16&&dr>0&&!mk(-1,dr).ok)gb('tune tol: one unheard note in a whole tune');}   /* drop a note whose neighbours differ: equal neighbours would merge into one held note */if(q.target.length>4&&mk(2,-1).ok)gb('tune tol: a note a beat late passed');}}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});
@@ -362,11 +362,11 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
    targets lie in the position and the key; no pitch twice in a row; a perfect take passes, one wrong note fails, one note a beat late fails (long lines: one late note over the allowance) */
 {const sb=m=>{bad++;console.log('SIGHTREAD',m);};S.gid='sightread';GBY.sightread.levels.forEach((lv,li)=>lv.g.forEach((gen,gi)=>{let shown=0;for(let t=0;t<40;t++){let q;try{q=gen();}catch(e){sb('L'+(li+1)+' g'+gi+' throws '+e.message);break;}const tag='L'+(li+1)+' g'+gi+' '+q.key,o=gen.o||{};
   const bars=q.sr.bars,fl=scoreCheck(bars,bars[0].m);if(fl.length){sb(tag+' '+fl[0]);break;}
-  let i=0,bad1='';bars.forEach(b=>{const mem={};b.ev.forEach(e=>{if(e.rest)return;if(e.tieFrom)return;const w=e.w,alt=e.acc!=null?e.acc:(w.step in mem?mem[w.step]:scKsAlt(q.sr.ks,w.l));mem[w.step]=alt;
-    const m=12*(w.oct+1)+NAT[w.l]+alt-12;if(m!==q.target[i])bad1='read back '+m+' for '+q.target[i]+' (note '+(i+1)+')';i++;});});if(bad1){sb(tag+' '+bad1);break;}
-  if(i!==q.target.length){sb(tag+' targets do not match the written notes');break;}
+  const rb={};let bad1='';bars.forEach(b=>{const mem={};b.ev.forEach(e=>{if(e.rest)return;if(e.tieFrom)return;const w=e.w,alt=e.acc!=null?e.acc:(w.step in mem?mem[w.step]:scKsAlt(q.sr.ks,w.l));mem[w.step]=alt;rb[e.src]=12*(w.oct+1)+NAT[w.l]+alt-12;});});
+  q.target.forEach((m,k)=>{const s0=[].concat(q.sr.srcs[k])[0];if(rb[s0]!==m)bad1='read back '+rb[s0]+' for '+m+' (target '+(k+1)+')';});if(bad1){sb(tag+' '+bad1);break;}
+  if(q.target.length!==q.sr.srcs.length){sb(tag+' targets and written notes do not line up');break;}
   if(!noDup(q.target)){sb(tag+' a pitch twice in a row');break;}
-  if(!o.wins){const KS=o.key?null:null,win=o.win;if(q.target.some(m=>!posOf(m).some(x=>x.f>=win[0]&&x.f<=win[1]))){sb(tag+' a note outside the position');break;}}
+  if(o.win){const win=o.win;if(q.target.some(m=>!posOf(m).some(x=>x.f>=win[0]&&x.f<=win[1]))){sb(tag+' a note outside the position');break;}}
   const B=1000,t0=5000,mk=T=>({notes:T.map((m,k)=>({midi:m,mf:m,t:t0+q.grid[k]*B,dur:250})),firstAt:t0,beat:B,beatStart:t0}),ok=T=>micGrade(q,mk(T)).ok;
   if(!ok(q.target)){sb(tag+' the perfect take fails');break;}
   const w2=q.target.slice(),kk=Math.floor(w2.length/2),dv=[1,-1,2,-2].find(d=>w2[kk]+d!==w2[kk-1]&&w2[kk]+d!==w2[kk+1]);w2[kk]+=dv;if(ok(w2)){sb(tag+' a wrong note passes');break;}
@@ -376,6 +376,24 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   if(o.nat&&!bars.some(b=>b.ev.some(e=>e.acc===0))){sb(tag+' the naturals level without a natural');break;}
   if(o.ties&&!bars.some(b=>b.ev.some(e=>e.tieTo))){sb(tag+' the ties level without a tie');break;}
   if(o.bars&&bars.length!==o.bars){sb(tag+' '+bars.length+' bars');break;}}}));}
+/* Sight Reading pages (phase 5): generated pages over real changes (strong beats on chord tones, the A sections equal, position, the last note 1 3 or 5),
+   a thousand and more pages through scoreCheck; the road map (a wrong turn fails, every written bar different); every written tune page clean */
+{const sb=m=>{bad++;console.log('SRPAGE',m);};S.gid='sightread';let pages=0;
+ for(const [forms,nb] of [[SR_FORMS16,16],[SR_FORMS32,32]])for(const fn of forms){const f=FORMS.find(x=>x.n===fn);for(let t=0;t<(nb===16?200:150);t++){const pg=srFormPage(f,nb,{swing:nb===32});if(!pg){sb('no page '+fn+' '+nb);break;}pages++;
+   const bars=scoreBars(pg.line),fl=scoreCheck(bars,'4/4');if(fl.length){sb(fn+' '+fl[0]);break;}if(bars.length!==nb){sb(fn+' '+bars.length+' bars');break;}
+   const ns=pg.notes.filter(n=>!n.rest),chAt=tt=>{let c=pg.ch[0];for(const x of pg.ch)if(x.t<=tt+1e-6)c=x;return c;};
+   const off=ns.find(n=>scInt(n.t)&&Math.round(n.t)%2===0&&!chAt(n.t).pcs.includes(mod(n.m,12)));if(off){sb(fn+' a strong beat not a chord tone at '+off.t);break;}
+   if(!noDup(ns.map(n=>n.m))){sb(fn+' a pitch twice in a row');break;}
+   if(ns.some(n=>!posOf(n.m).some(p=>p.f>=4&&p.f<=11))){sb(fn+' a note outside positions IV to VII');break;}
+   if(nb===32){const avg=(x,y)=>{const z=ns.filter(n=>n.t>=x*4&&n.t<y*4);return z.reduce((a2,n)=>a2+n.m,0)/z.length;};if(!(avg(16,24)>avg(0,8)+1)){sb(fn+' the bridge is not higher than the A');break;}}
+   const ln=ns.at(-1),lc=chAt(ln.t);if(![0,IV[CH[lc.q][1]][1],IV[CH[lc.q][2]][1]].map(v=>mod(lc.r+v,12)).includes(mod(ln.m,12))){sb(fn+' the last note is not 1, 3 or 5');break;}
+   for(let b=8;b<nb;b+=8)for(let a0=0;a0<b;a0+=8){if(f.bars.slice(a0,a0+8).join('|')!==f.bars.slice(b,b+8).join('|'))continue;const sec=x=>pg.notes.filter(n=>n.t>=x*4-1e-6&&n.t<(x+8)*4-1e-6).map(n=>(n.rest?'r':n.m)+':'+n.d+'@'+(n.t-x*4)).join(' ');if(sec(a0)!==sec(b)){sb(fn+' the A section at bar '+(b+1)+' is not the one at bar '+(a0+1));break;}}}}
+ if(pages<1000)sb('only '+pages+' pages');
+ const rg=GBY.sightread.levels[27].g[0];for(let t=0;t<60;t++){const q=rg(),B=1000,t0=5000,mk=T=>({notes:T.map((m,k)=>({midi:m,mf:m,t:t0+k*B*0.5,dur:250})),firstAt:t0,beat:B,beatStart:t0});
+   const ch=Object.assign({},CHARTS[q.srMap]),written=[];q.sr.bars.forEach((b,bi)=>b.ev.forEach(e=>{if(!e.rest&&!e.tieFrom)written.push(e.m);}));
+   const wr=written.slice(0,q.target.length);const r=micGrade(q,{notes:wr.map((m,k)=>({midi:m,mf:m,t:t0+q.grid[Math.min(k,q.grid.length-1)]*B,dur:250})),firstAt:t0,beat:B,beatStart:t0});if(r.ok&&wr.join()!==q.target.join()){sb('road map: reading straight through passes '+q.srMap);break;}
+   const sigs=q.sr.bars.map(b=>b.ev.map(e=>(e.rest?'r':e.m)+':'+e.d).join(','));if(new Set(sigs).size!==sigs.length){sb('road map: two written bars alike '+q.srMap);break;}}
+ TUNES.filter(t=>SR_TUNE[t.id]).forEach(t=>{for(let k=0;k<6;k++){const pg=srTunePage(t,SR_TUNE[t.id]);if(!pg){sb('tune '+t.id+' fits no position');return;}const fl=scoreCheck(scoreBars(pg.line),pg.line.meter);if(fl.length){sb('tune '+t.id+' '+fl[0]);return;}}});}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

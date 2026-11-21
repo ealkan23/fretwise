@@ -125,6 +125,14 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
     for(const [m,sl] of [['fedup',{}],['fedup',{mistake:'minor 6th'}],['admire',{n:10}],['cry',{n:7}],['improve',{mistake:''}],['random',{}]]){let last='',named=0;for(let k=0;k<60;k++){const x=budPick(L[m],'t:'+cat+m+JSON.stringify(sl),sl);if(!x||/[{}]/.test(x))gb('voice: bad pick '+m+' '+x);if(x===last)gb('voice: the same line twice running '+m);last=x;if(sl.mistake&&x.includes(sl.mistake)||sl.n&&x.includes(String(sl.n)))named++;}
       if((sl.mistake||sl.n)&&named<15)gb('voice: the named lines hardly come up '+m);}}
   if(budMistake({answerText:'minor 6th'})!=='minor 6th'||budMistake({answer:['C','E','G']})!==''||budMistake({answerText:'This is a long explanation of the answer.'})!=='')gb('voice: budMistake');}
+ /* YoutubeNotes: every figure draws and its labels are the notes they sit on (NF.err), table rows fit their heads, video references exist with times rising inside the video, every listed video is used, house rules of the text */
+ {NF.err.length=0;YT_NOTES.forEach(S0=>{const used=new Set();S0.chapters.concat([{h:'end',p:S0.end||[],vids:[]}]).forEach(c=>{if(!c.h||!c.p.length)gb('yt: empty chapter');
+    c.p.forEach(it=>{const txt=typeof it==='string'?[it]:Array.isArray(it)?it:it.tip?[].concat(it.tip):it.sub?[it.sub]:it.cap?[it.cap]:[];txt.forEach(x=>{if(/—|undefined|NaN/.test(x)||/\\b(ii|iii|iv|vi|vii)\\b/.test(x))gb('yt: text '+String(x).slice(0,50));});
+      if(it.fig){let h;try{h=it.fig();}catch(e){gb('yt: figure threw in '+c.h+': '+e.message);return;}if(!h||/undefined|NaN|nf-err/.test(String(h).replace(/aria-label="[^"]*"/g,'')))gb('yt: broken figure in '+c.h);}
+      if(it.tbl)it.tbl[1].forEach(r=>{if(r.length!==it.tbl[0].length)gb('yt: table row in '+c.h);r.forEach(x=>{if(/undefined|NaN|\\?/.test(String(x)))gb('yt: table cell '+x);});});});
+    c.vids.forEach(([id,at])=>{const v=S0.videos[id];used.add(id);if(!v)return gb('yt: unknown video '+id);at.forEach(([s2,l],i)=>{if(!(s2>=0&&s2<v.len)||(i&&s2<=at[i-1][0])||!l)gb('yt: time '+s2+' in '+id);});});});
+   Object.keys(S0.videos).forEach(id=>{if(!/^[\\w-]{11}$/.test(id))gb('yt: id '+id);if(!used.has(id))gb('yt: video never referenced '+id);});});
+  if(NF.err.length)gb('yt: figure faults: '+NF.err.slice(0,5).join(' | '));console.log('youtube notes',YT_NOTES.length,'sets',YT_NOTES.reduce((a,z)=>a+z.chapters.length,0),'chapters');}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

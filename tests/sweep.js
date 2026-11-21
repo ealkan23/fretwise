@@ -119,17 +119,21 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
   ex(J({w:3,r:'000111'}),'improve','the third clean answer on an old mistake');ex(J({w:3,r:'0001111'}),null,'the fourth clean answer on it');ex(J({w:2,r:'00111'}),null,'three clean on an item missed only twice');
   ex(J({w:3,r:'000111',streak:5,prev:4}),'improve','improving beats a streak mark');ex(J({since:3,rnd:.1}),'random','a quiet stretch');ex(J({since:6,rnd:.5}),null,'a quiet stretch, no luck');ex(J({since:2,rnd:.1}),null,'spoke lately');
   for(const cat in MASTER_LINES){const L=MASTER_LINES[cat];for(const m of ['admire','cry','fedup','improve','random']){const a=L[m]||[];if(a.length<6)gb('voice: '+cat+' '+m+' has '+a.length+' lines');
-     a.forEach(l=>{if(l.length>110||/—|undefined|NaN/.test(l)||(l.match(/\{(\w+)\}/g)||[]).some(k=>!['{n}','{mistake}'].includes(k)))gb('voice: line '+l);if(/\{mistake\}/.test(l)&&!['fedup','improve'].includes(m))gb('voice: {mistake} in '+m);if(/\{n\}/.test(l)&&!['admire','cry'].includes(m))gb('voice: {n} in '+m);});
+     a.forEach(l=>{if(l.length>110||/—|undefined|NaN/.test(l)||(l.match(/\\{(\\w+)\\}/g)||[]).some(k=>!['{n}','{mistake}'].includes(k)))gb('voice: line '+l);if(/\{mistake\}/.test(l)&&!['fedup','improve'].includes(m))gb('voice: {mistake} in '+m);if(/\{n\}/.test(l)&&!['admire','cry'].includes(m))gb('voice: {n} in '+m);});
      if(a.every(l=>/\{/.test(l)))gb('voice: '+cat+' '+m+' has no line without a slot');}
     /* a line is never drawn with an empty slot, and never twice running; with the slot known, lines that name it come up */
     for(const [m,sl] of [['fedup',{}],['fedup',{mistake:'minor 6th'}],['admire',{n:10}],['cry',{n:7}],['improve',{mistake:''}],['random',{}]]){let last='',named=0;for(let k=0;k<60;k++){const x=budPick(L[m],'t:'+cat+m+JSON.stringify(sl),sl);if(!x||/[{}]/.test(x))gb('voice: bad pick '+m+' '+x);if(x===last)gb('voice: the same line twice running '+m);last=x;if(sl.mistake&&x.includes(sl.mistake)||sl.n&&x.includes(String(sl.n)))named++;}
       if((sl.mistake||sl.n)&&named<15)gb('voice: the named lines hardly come up '+m);}}
   if(budMistake({answerText:'minor 6th'})!=='minor 6th'||budMistake({answer:['C','E','G']})!==''||budMistake({answerText:'This is a long explanation of the answer.'})!=='')gb('voice: budMistake');}
+ /* the video library: a real game, a YouTube id, times rising and inside the video, text by the house rules */
+ {let nv=0;for(const g in VIDEOS){if(!GBY[g])gb('video: no game '+g);VIDEOS[g].forEach(v=>{nv++;if(!/^[\\w-]{11}$/.test(v.id)||!v.t||!v.by||!(v.len>60)||!v.sum||v.sum.length<60)gb('video: shape '+v.id);if(v.tips.length<5)gb('video: few points '+v.id);
+    v.tips.forEach(([s2,x],i)=>{if(!(s2>=0&&s2<v.len)||(i&&s2<v.tips[i-1][0]))gb('video: time '+v.id+' '+s2);if(x.length<25||x.length>240||/—|undefined|NaN/.test(x)||/\\b(ii|iii|iv|vi|vii)\\b/.test(x))gb('video: text '+v.id+' '+x.slice(0,40));});});}
+  const ids=Object.values(VIDEOS).flat().map(v=>v.id);if(new Set(ids).size!==ids.length)gb('video: the same video in two games');console.log('videos',nv);}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});
   GOALS[k].stages.forEach(sg=>sg.steps.forEach(([g,a])=>{const e=W.steps[g+':'+a];keys.add(g+':'+a);if(!e)return gb('why: no text '+k+' '+g+' '+a);if(!pk.has(e[0]))gb('why: element '+k+' '+g+' '+a);seenP.add(e[0]);
-   if(e[1].length<150||/—|undefined|NaN/.test(e[1])||/\b(ii|iii|iv|vi|vii)\b/.test(e[1]))gb('why: text '+k+' '+g+' '+a);}));
+   if(e[1].length<150||/—|undefined|NaN/.test(e[1])||/\\b(ii|iii|iv|vi|vii)\\b/.test(e[1]))gb('why: text '+k+' '+g+' '+a);}));
   Object.keys(W.steps).forEach(x=>{if(!keys.has(x))gb('why: stale '+k+' '+x);});pk.forEach(x=>{if(!seenP.has(x))gb('why: unused element '+k+' '+x);});});
  const used=new Set();GOAL_KEYS.forEach(k=>{GOALS[k].stages.forEach(sg=>sg.steps.forEach(([g,a,b])=>{for(let L=a;L<=b;L++)used.add(g+':'+L);}));});console.log('levels required by a goal',used.size);}
 /* every generator of every level must produce questions when called directly: pickQ swallows throwing generators (a level would silently lose a question type) */
@@ -168,7 +172,7 @@ Object.entries(TG).forEach(([name,T])=>{for(const rp of [0,5,10]){tgGrips(name,r
 /* level details: one note for every level of every game, in one of the two forms, with nothing empty and no leaks */
 GAMES.forEach(x=>{const N=LEVEL_NOTES[x.id];if(!N||N.length!==x.levels.length){bad++;console.log('LEVEL_NOTES count',x.id,N&&N.length,'levels',x.levels.length);return;}
   N.forEach((n,i)=>{const full=!!(n.k&&n.w&&n.s&&n.t),add=typeof n.a==='string'&&n.a.length>8;if(full===add||(n.a&&(n.k||n.s))){bad++;console.log('LEVEL_NOTES form',x.id,i+1);}
-    const strs=[n.a,n.s,...(n.k||[]),...(n.w||[]),...(n.t||[])].filter(z=>z!==undefined);if(strs.some(z=>typeof z!=='string'||z.length<12||/undefined|NaN|\$\{|=>/.test(z)||/\b(ii|iii|iv|vi|vii)\b/.test(z))){bad++;console.log('LEVEL_NOTES text',x.id,i+1);}
+    const strs=[n.a,n.s,...(n.k||[]),...(n.w||[]),...(n.t||[])].filter(z=>z!==undefined);if(strs.some(z=>typeof z!=='string'||z.length<12||/undefined|NaN|\$\{|=>/.test(z)||/\\b(ii|iii|iv|vi|vii)\\b/.test(z))){bad++;console.log('LEVEL_NOTES text',x.id,i+1);}
     if(i===0&&!full){bad++;console.log('LEVEL_NOTES: level 1 must be a full note',x.id);}
     for(const f of ['k','w','t'])if(n[f]&&(!Array.isArray(n[f])||!n[f].length)){bad++;console.log('LEVEL_NOTES empty list',x.id,i+1,f);}});});
 Object.keys(LEVEL_NOTES).forEach(k=>{if(!GBY[k]){bad++;console.log('LEVEL_NOTES for a game that does not exist',k);}});

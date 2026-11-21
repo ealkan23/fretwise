@@ -509,15 +509,6 @@ html.srpage #cin{position:fixed;top:84px;left:50%;transform:translateX(-50%);z-i
 
 .spr.gspr{image-rendering:auto;filter:drop-shadow(0 6px 12px rgba(0,0,0,.6))}
 
-.nvid{margin-top:34px}.nvid>h3{display:flex;gap:12px;align-items:baseline}.nvnote{font-size:13.5px;max-width:74ch}
-.vcard{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start;margin:18px 0 26px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
-.vplay{position:sticky;top:84px;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}.vplay iframe{width:100%;height:100%;border:0;display:block}
-.vthumb{all:unset;display:block;position:relative;width:100%;height:100%;cursor:pointer}.vthumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.86}.vthumb:hover img,.vthumb:focus-visible img{opacity:1}
-.vthumb span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62px;height:44px;border-radius:12px;background:rgba(20,20,26,.82);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
-.vbody h4{margin:0 0 2px;font:700 18px/1.25 var(--f-body)}.vby{font-size:13px;margin:0 0 8px}.vby a{color:inherit}.vbody>p{margin:0 0 10px;line-height:1.5}
-.vtips{list-style:none;margin:0;padding:0;display:grid;gap:7px}.vtips li{display:grid;grid-template-columns:54px 1fr;gap:10px;align-items:start;line-height:1.45;font-size:14.5px}
-.vtips button{all:unset;cursor:pointer;font:600 12.5px var(--f-mono,ui-monospace,monospace);color:var(--accent,#f2c230);border:1px solid var(--line);border-radius:7px;padding:2px 0;text-align:center}.vtips button:hover,.vtips button:focus-visible{border-color:var(--fg);color:var(--fg)}
-@media(max-width:900px){.vcard{grid-template-columns:1fr}.vplay{position:static}}
 </style>
 
 <header class="top"><div class="wrap">
@@ -5697,20 +5688,10 @@ function hlMouseUp(e){if(view.name!=='notes'||e.target.closest('#hlpop'))return;
   const txt=nodes.map(n=>n.nodeValue).join(''),str=txt.slice(a,b);if(str.trim().length<2)return;let k=0,p0=-1;while((p0=txt.indexOf(str,p0+1))>=0&&p0<a)k++;
   STORE.hl=STORE.hl||{};(STORE.hl[view.gid]=STORE.hl[view.gid]||[]).push({c:+sec.id.slice(3),s:str,k,col:STORE.hlCol||'y',t:Date.now()});saveLocal();sel.removeAllRanges();const y0=window.scrollY;render();window.scrollTo(0,y0);}
 document.addEventListener('mouseup',e=>{try{hlMouseUp(e);}catch(err){}});document.addEventListener('scroll',()=>hlHide(),{passive:true});
-/* the video library of a game, at the end of its notes: a card a video; a time (or the picture) loads YouTube's player in the card at that second. Nothing loads from YouTube's player before a click. */
-const vidTime=t=>`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
-function videosHTML(gid){const V=VIDEOS[gid]||[];if(!V.length)return '';
-  return `<section class="nvid" id="ns-v"><h3><span>▶</span>Videos</h3><p class="muted nvnote">The lessons are the channels’ own and play from YouTube. The points under each one are a summary in Fretwise’s words; a time opens the video at that moment.</p>
-   ${V.map(v=>`<article class="vcard" id="vid-${v.id}"><div class="vplay"><button class="vthumb" data-act="vid" data-v="${v.id}" data-t="0" aria-label="Play ${esc(v.t)}"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg"><span>▶</span></button></div>
-     <div class="vbody"><h4>${esc(v.t)}</h4><p class="muted vby">${esc(v.by)} · ${Math.round(v.len/60)} min · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">on YouTube</a></p><p>${esc(v.sum)}</p>
-     <ul class="vtips">${v.tips.map(([t,x])=>`<li><button data-act="vid" data-v="${v.id}" data-t="${t}">${vidTime(t)}</button><span>${esc(x)}</span></li>`).join('')}</ul></div></article>`).join('')}</section>`;}
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-act="vid"]');if(!b)return;const c=document.getElementById('vid-'+b.dataset.v);if(!c)return;
-  c.querySelector('.vplay').innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${b.dataset.v}?start=${+b.dataset.t||0}&autoplay=1&rel=0" title="YouTube video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-  if(b.closest('.vtips')){const r=c.getBoundingClientRect();if(r.top<70||r.top>innerHeight*0.5)window.scrollTo({top:window.scrollY+r.top-84,behavior:'smooth'});}});
 function vNotes(){const x=GBY[view.gid],N=LESSON_NOTES[x.id]||[],M=MASTERS[x.cat];
   return `<div class="notespage"><div class="nhead"><button class="btn small ghost" data-act="lobby" data-g="${x.id}">← ${x.name}</button><div class="eyebrow">${M.n}’s notes · ${M.role}</div><h1>${x.name}</h1><p class="muted">${x.area}</p></div>
   <div class="hlbar"><button class="btn small ${STORE.hlOn===false?'ghost':'primary'}" data-act="hltog">Highlighter: ${STORE.hlOn===false?'off':'on'}</button>${['y','g','p'].map(c=>`<button class="hldot hl-${c}${(STORE.hlCol||'y')===c?' on':''}" data-act="hlcol" data-c="${c}" aria-label="highlight colour" aria-pressed="${(STORE.hlCol||'y')===c}"></button>`).join('')}<span class="muted">${STORE.hlOn===false?'Switched off: selecting text does nothing.':'Select any text to highlight it. Select highlighted text again to remove it; click a highlight to change its colour.'} ${((STORE.hl||{})[x.id]||[]).length?((STORE.hl||{})[x.id]||[]).length+' in these notes, kept with your progress.':''}</span></div>
-  <nav class="ntoc"><b>Chapters</b>${N.map((n,i)=>`<button data-act="notesec" data-i="${i}"><span>${i+1}</span>${n.h}</button>`).join('')}${(VIDEOS[x.id]||[]).length?`<button data-act="notesec" data-i="v"><span>▶</span>Videos (${VIDEOS[x.id].length})</button>`:''}</nav>${notesBody(x.id)}${videosHTML(x.id)}
+  <nav class="ntoc"><b>Chapters</b>${N.map((n,i)=>`<button data-act="notesec" data-i="${i}"><span>${i+1}</span>${n.h}</button>`).join('')}</nav>${notesBody(x.id)}
   <div class="nfoot"><button class="btn" data-act="lobby" data-g="${x.id}">Back to ${x.name}</button></div></div>`;}
 /* The full notes of every game are textbook chapters (17 Nov 2026) and follow as one statement per game just before the VIEWS marker, after everything they draw from.
    Only the retired Guide Tones on the Neck keeps its old short notes here. */
@@ -11509,100 +11490,6 @@ function budPick(lines,key,slots){const has=k=>slots&&slots[k]!=null&&slots[k]!=
   return l.replace(/\{(\w+)\}/g,(_,k)=>slots[k]);}
 /* what she calls the mistake: the right answer's own short name (“minor 6th”, “5”, “Dorian”); nothing when it would not read as a name */
 function budMistake(q){const t=String(q.answerText||(typeof q.answer==='string'||typeof q.answer==='number'?q.answer:'')).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();return t&&t.length<=22&&!/[.:;!?]/.test(t)?t:'';}
-
-/* ============ THE VIDEO LIBRARY (22 Nov 2026, user: “a video library per game, inside the full notes… transcribe a YouTuber's videos to add his tips”) ============
-   VIDEOS[gameId] = [{id (YouTube), by (the channel), t (title), len (seconds), sum, tips:[[second, text]…]}]. The video stays on YouTube and is played from there in an
-   embedded player (nothing is copied; no video file, no transcript in the repo: transcripts are fetched to the git-ignored videos/ folder and read there). `sum` and every
-   tip are written in Fretwise's own words from the transcript; a tip's second opens the video at that moment. One home game per video.
-   The pipeline: `yt-dlp --flat-playlist` lists a channel → `yt-dlp --skip-download --write-auto-subs --sub-format json3` fetches captions → `tools/captions.py` makes timed text
-   → the digest is written by reading it. The sweep checks ids, times and the house rules of the text. */
-const VIDEOS={
- analysis:[{id:'fDu56BR14eA',by:'Marbin Music',t:'Berklee Harmony for Beginners',len:914,
-  sum:'Twinkle, Twinkle taken apart four ways: by note names, by degrees counted from the key, by degrees counted from each chord, and by function. Then the tune is reharmonised with chords of the same function, and every move to IV is replaced by IIm7 V7.',
-  tips:[[30,'Note names tell a reader what to play and nothing about why. They are for reading and writing, not for understanding.'],
-   [153,'A note can be numbered two ways: from the key, or from the chord of the moment. You need both.'],
-   [215,'Number the bass from the key, always. Numbered from itself it is 1 1 1 1 and tells you nothing.'],
-   [280,'Number the melody from the chord when you play over changes: “put the 9 on every chord” is one instruction; from the key it is a different degree on each chord.'],
-   [330,'A chord symbol already works this way: E7 means 1 3 5 ♭7 with E as 1. Reading symbols is counting from a 1 that moves.'],
-   [430,'His habit when improvising: the bass heard against the key, the line heard against each chord. A composer hears both against the key.'],
-   [460,'Three families in a major key: tonic (I, VIm), subdominant (IIm, IV), dominant (V, VII). Inside a family the chords can stand in for one another.'],
-   [590,'A substitute keeps the function and changes the colour: the same melody over VIm where I was still feels like home, a sadder one.'],
-   [630,'IIIm can stand for I or for V, but not while the melody holds the 1 or the 4 of the key: each sits a half step above one of its chord tones.'],
-   [720,'The first jazz move: wherever the harmony goes to IV, play IIm7 V7 in its place, so the music keeps turning back to I.']]}],
- chordscale:[{id:'7ES5ULUlSdE',by:'Marbin Music',t:'First 3 Years of Berklee in 20 Minutes',len:1195,
-  sum:'Which scale goes over any dominant chord in a key. A cadence is explained by its tritone; then the secondary dominants in two families, the tritone substitutes, and a map of all twelve dominant chords in C.',
-  tips:[[90,'Only one chord of a major key pulls: V7. Play each of the others against I and listen, then play V7 to I. That pull is a cadence.'],
-   [150,'What pulls: the root goes up a 4th, the 3rd rises a half step to the new root, the ♭7 falls a half step to the new 3rd. The 3rd and the ♭7 are a tritone apart.'],
-   [215,'Six chords of the key are stable enough to arrive on: I, IV and V, and IIm, IIIm and VIm. Each can have its own dominant in front of it.'],
-   [245,'A dominant that leads to a major chord of the key (V7/IV, V7/V) takes Mixolydian: you borrow the target’s key for one chord and are back in your own when you arrive.'],
-   [430,'A major key holds no dominant that leads to a minor chord. Raise the 7th of the target’s minor scale and its V7 appears: that is what harmonic minor is for.'],
-   [515,'A dominant that leads to a minor chord of the key (V7/II, V7/III, V7/VI) takes Mixolydian ♭2 ♭6: the harmonic minor scale of the chord you are going to, from its 5th.'],
-   [650,'The scale follows where a dominant points, not where it goes. In C, E7 followed by F still takes A harmonic minor: the ear does not know the next chord yet.'],
-   [745,'The tritone is the only interval that turns upside down into itself. So the 3rd and ♭7 of G7 are also the ♭7 and 3rd of D♭7.'],
-   [840,'A dominant has two ways home: up a 4th, or down a half step. The second is the tritone substitute, a dominant a half step above its target.'],
-   [910,'Every tritone substitute takes Lydian dominant (1 2 3 ♯4 5 6 ♭7): the fourth mode of the melodic minor scale a 5th above its root.'],
-   [945,'The altered scale on V7 and Lydian dominant on its tritone substitute are the same seven notes.'],
-   [1160,'Reading a chart, any dominant is one of three. It leads to a major chord: Mixolydian. To a minor chord: Mixolydian ♭2 ♭6. It sits a half step above its target: Lydian dominant.']]}],
- sing:[{id:'UN1Ms06hDbI',by:'Marbin Music',t:'This Ear Training Method Will Make You a GREAT Player',len:1243,
-  sum:'Ear training as a playing skill and not a quiz: feel pitch in the body by humming, tie the voice to one string, and sing what you play until picking up the guitar calls up the sound by itself.',
-  tips:[[90,'Cannot tell whether a line goes up or down? Hum it. The sound sinks toward the chest as it falls and climbs into the head as it rises.'],
-   [150,'What you only put on the fretboard fades in days. What you can hear inside stays, like a song you have known for years. Practice is for moving material from the first place to the second.'],
-   [215,'Sing in the real octave of the note you play. Jumping an octave to make it comfortable hides whether you have the pitch.'],
-   [340,'Hum up the neck fret by fret and notice where each pitch sits in your body. A half step is a small move of the hand and a real distance in the voice.'],
-   [470,'Pick the string nearest your voice (for him the A string) and play melodies along that one string: it gets shorter as the pitch rises, and the finger feels it.'],
-   [540,'Lay a scale you know along one string, sing its first note, hear the rest before you play it, then improvise there.'],
-   [615,'Sing a line and finger it without picking. Pick a note now and then to check you are where you think you are.'],
-   [725,'Start over a drone: an open string under you and the same note as a melody note above. No backing track is needed.'],
-   [800,'Over two chords, go through the two scales note by note and find which notes stay and which must move. The ones that move are where to listen hardest.'],
-   [945,'It works both ways. A pattern you found with your fingers is fed to the ear by singing it until you can hear it coming.'],
-   [1085,'A lick you can already hear does not impress you; one you cannot hear does. Learn the second kind by naming every part of it, then drop the names: the ear keeps melody, not labels.'],
-   [1170,'The aim is not to become a singer. It is that picking up the guitar switches on the singer inside, so the hand goes where the sound is.']]}],
- triads:[{id:'qmR-ZXnrMKE',by:'Marbin Music',t:'Play Triads Like a Pianist',len:1294,
-  sum:'Triads laid across all six strings, one note to a string: three diagonal shapes for major, three for minor, one for augmented, three for diminished. Then the triads inside seventh chords, and three substitutions tried on a pop progression.',
-  tips:[[30,'Learning the inversions up one group of strings gives the hand no anchor: from one inversion to the next every finger goes to a new place.'],
-   [70,'On a piano two fingers stay and one note rolls up an octave. The diagonal gives the guitar the same move.'],
-   [230,'The root-position diagonal: one note on each string from string 6, 1 3 5 and then 1 3 5 again an octave higher. The neck falls into two groups of three strings with the same notes.'],
-   [265,'First exercise: play three neighbouring strings of the diagonal, then move over by one string. Root position, first inversion and second inversion roll out by themselves.'],
-   [310,'Skip every other string of a diagonal and you have the spread triads.'],
-   [320,'One chord has three diagonals, named by the note on string 6: the root, the 3rd or the 5th. Each one holds all three inversions.'],
-   [425,'Each diagonal joins two neighbouring CAGED shapes. Five shapes and three diagonals connect the whole neck.'],
-   [468,'Minor: the same three diagonals with the 3rd lowered.'],
-   [560,'Augmented is one shape: the triad is symmetrical, so the fingering repeats.'],
-   [621,'Diminished triads are the gap in most players, good ones included. Take the minor shapes and lower the 5th.'],
-   [700,'You already hold them: any G7 grip without its root is a B diminished triad.'],
-   [745,'An exercise: C major to C diminished and back, in every inversion. Keep the root, lower the 3rd and the 5th.'],
-   [820,'The triads inside seventh chords: CMaj7 is E minor over C, Dm7 is F major over D, G7 is B diminished over G. Run the inner triad’s diagonal over the chord’s root.'],
-   [975,'Substitute 1: on a dominant chord, the augmented triad from the same root.'],
-   [1022,'Substitute 2: on a dominant chord, the diminished triad from its 3rd. It is 3 5 ♭7: the chord without its root.'],
-   [1110,'Substitute 3: on a minor chord, the diminished triad from its 6th gives the minor 6 sound. It fits Dorian and melodic minor.']]}],
- repertoire:[{id:'fXb52WeMWeA',by:'Marbin Music',t:'The Real Skill Checklist to Becoming a Jazz Musician (No BS)',len:851,
-  sum:'A checklist on one tune (Fly Me to the Moon). Each step is a test you pass in time or do not, from the roots of the form up to improvised lines with nobody playing behind you.',
-  tips:[[5,'Memorise the tune’s harmony before anything else. Reading the changes off a chart while you solo does not work.'],
-   [93,'Test 1: the roots of the form in time, as whole notes (half notes where a bar holds two chords).'],
-   [156,'Test 2: roots and 5ths, two to a bar. On a m7♭5 chord the 5th is flat.'],
-   [219,'Test 3: the triad of every chord as an arpeggio in time, each from its root.'],
-   [270,'Test 4: the same in quarter notes with one choice at every chord change: up or down to the nearest note of the next chord.'],
-   [330,'Test 5: eighth notes that outline every chord, with approach notes and enclosures. If you cannot do this, you cannot improvise lines that follow the harmony.'],
-   [410,'Test 6: the melody without thinking.'],
-   [457,'Test 7: the melody with the root of each chord under it.'],
-   [508,'Test 8: comp four to the bar so that it swings, and sing the melody over it.'],
-   [557,'Test 9: comp like a pianist. Think of a drummer’s snare hits and place them: first as rhythm alone, then with chords.'],
-   [693,'Test 10: improvise lines with jazz rhythms alone, with no backing, and do not lose the form.'],
-   [774,'His point: none of it is advanced. Roots, triads, the melody and rhythm on one tune come before any substitution or exotic scale.']]}],
- modes:[{id:'u74vroeYp48',by:'Marbin Music',t:'Triad Pairs: Stop Comping Like a Child',len:1133,
-  sum:'Every triad of a mode, heard over the mode’s root, is either at rest or leaning. Pair one of each and move between them: a triad pair. Shown in Ionian, Mixolydian, Dorian and melodic minor, then through II–V–I.',
-  tips:[[30,'Over one bass note you can play any triad of the scale. Each one does a job.'],
-   [90,'At rest: the triads built on the 1, 3 and 5 of the mode. Moving between them changes the colour, not the tension.'],
-   [135,'Leaning: the triads built on the 2, 4 and 7. They sound like a suspension that wants to settle.'],
-   [250,'The triad on the 6 depends on the mode. Where the 6 is a whole step above the 5 it is at rest; where it is a half step above (Aeolian, Phrygian) it leans.'],
-   [345,'A triad pair: one leaning triad and one resting triad over the same root, played back and forth in any inversion.'],
-   [440,'On a blues: over G7, C major and B diminished. The familiar riff is this pair.'],
-   [530,'Over G7 also F major, leaning, into E minor or D minor, at rest.'],
-   [575,'Dorian: G major to F major over D is the “So What” sound: the triad on the 4 leans, the triad on the ♭3 rests.'],
-   [625,'Two neighbouring triads share no note: six different notes, a scale with one note left out. A pair with a shared note moves less.'],
-   [800,'Melodic minor: the diminished triads on its 6 and 7 over the tonic (E diminished and F♯ diminished over G) give a minor chord that moves.'],
-   [905,'Through II–V–I in C: G and F over Dm7, B♭ minor and A♭ minor over G7 (the altered scale), E minor and D minor over CMaj7.'],
-   [1030,'Think of a triad by where it starts in the mode: from the 5 it can stand for the chord, from the 2 it will always lean.']]}]};
 
 /* ============ VIEWS ============ */
 /* ============ CASTLE MUSIC HALL (Nov 2026): the page background in dark mode ============

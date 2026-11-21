@@ -125,10 +125,6 @@ for(const [k,,semi] of NIV){for(const part of NIV_SHAPE[k].split('; or ')){const
     for(const [m,sl] of [['fedup',{}],['fedup',{mistake:'minor 6th'}],['admire',{n:10}],['cry',{n:7}],['improve',{mistake:''}],['random',{}]]){let last='',named=0;for(let k=0;k<60;k++){const x=budPick(L[m],'t:'+cat+m+JSON.stringify(sl),sl);if(!x||/[{}]/.test(x))gb('voice: bad pick '+m+' '+x);if(x===last)gb('voice: the same line twice running '+m);last=x;if(sl.mistake&&x.includes(sl.mistake)||sl.n&&x.includes(String(sl.n)))named++;}
       if((sl.mistake||sl.n)&&named<15)gb('voice: the named lines hardly come up '+m);}}
   if(budMistake({answerText:'minor 6th'})!=='minor 6th'||budMistake({answer:['C','E','G']})!==''||budMistake({answerText:'This is a long explanation of the answer.'})!=='')gb('voice: budMistake');}
- /* the video library: a real game, a YouTube id, times rising and inside the video, text by the house rules */
- {let nv=0;for(const g in VIDEOS){if(!GBY[g])gb('video: no game '+g);VIDEOS[g].forEach(v=>{nv++;if(!/^[\\w-]{11}$/.test(v.id)||!v.t||!v.by||!(v.len>60)||!v.sum||v.sum.length<60)gb('video: shape '+v.id);if(v.tips.length<5)gb('video: few points '+v.id);
-    v.tips.forEach(([s2,x],i)=>{if(!(s2>=0&&s2<v.len)||(i&&s2<v.tips[i-1][0]))gb('video: time '+v.id+' '+s2);if(x.length<25||x.length>240||/—|undefined|NaN/.test(x)||/\\b(ii|iii|iv|vi|vii)\\b/.test(x))gb('video: text '+v.id+' '+x.slice(0,40));});});}
-  const ids=Object.values(VIDEOS).flat().map(v=>v.id);if(new Set(ids).size!==ids.length)gb('video: the same video in two games');console.log('videos',nv);}
  /* where a step fits: one explanation per step, a valid element, every element used, no stale entry, Berklee numerals, no em dash */
  GOAL_KEYS.forEach(k=>{const W=GOAL_WHY[k];if(!W||!W.parts||W.parts.length<4)return gb('why: parts '+k);const keys=new Set(),seenP=new Set(),pk=new Set(W.parts.map(p=>p[0]));
   W.parts.forEach(p=>{if(p.length!==3||!p[1]||p[2].length<30)gb('why: part '+k+' '+p[0]);});

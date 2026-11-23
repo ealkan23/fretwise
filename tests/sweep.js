@@ -844,6 +844,125 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   for(let i=0;i<60;i++){const q=lv('outer',7)();if(q.target.join()!==bassLine(q.target.map(m=>mod(m,12))).join()){sb('Bass & Top 7: the target is not the bass line as played');break;}}
   for(let i=0;i<40;i++){const q=lv('eariv',11)(),t=q.target;if(micGrade(q,{notes:N([t[0],t[1]-12])}).ok){sb('Play the tension: the simple interval passes');break;}}}
  S.gid='fretboard';}
+/* ===== THE REVIEW OF THE EAR GAMES: BUILD 2 (23 Nov 2026, brief .claude/ear-build-2.md) ===== */
+{const sb=m=>{bad++;if(bad<40)console.log('EAR2',m);},asc2=s=>s.replace(/♯/g,'#').replace(/♭/g,'b');
+ const N=(ms,t0)=>ms.map((m,i)=>({midi:m,mf:m,t:(t0||3000)+i*900,dur:600}));
+ const lv=(id,L,gi)=>{S.gid=id;return GBY[id].levels[L-1].g[gi||0];};
+ const strip=h=>String(h).replace(/<b>[^<]*<\\/b>/g,'#').replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim();
+ /* --- the ladders --- */
+ if(GBY.sing.levels.length!==15||GBY.earprog.levels.length!==24||GBY.outer.levels.length!==10)sb('level counts: sing '+GBY.sing.levels.length+' earprog '+GBY.earprog.levels.length+' outer '+GBY.outer.levels.length);
+ if(GBY.sing.levels[11].n!=='Find the tonic'||GBY.earprog.levels[18].n!=='Harmonise a melody: the whole key'||GBY.outer.levels[7].n!=='Play the top')sb('a new level is not appended');
+ [['sing',12,'k'],['sing',13,'k'],['sing',14,'a'],['earprog',19,'k'],['earprog',20,'a'],['earprog',21,'k'],['earprog',22,'a'],['earprog',23,'k'],['outer',8,'k'],['outer',9,'a']].forEach(([g,i,f])=>{const n=LEVEL_NOTES[g][i];if(!n||!n[f])sb('level note form '+g+' '+(i+1));});
+ {const st=GOALS.B.stages[4].steps.map(x=>x.join()),mo=GOALS.B.more.map(x=>x.slice(0,3).join());if(!st.includes('sing,13,15')||!st.includes('outer,9,10'))sb('goal B stage 5 lacks the new steps');if(!mo.includes('earprog,17,24')||mo.includes('earprog,17,19'))sb('goal B appendix: earprog 17–24');
+  if(!GOAL_WHY.B.steps['sing:13']||!GOAL_WHY.B.steps['outer:9'])sb('GOAL_WHY sing:13 / outer:9');if(!/eight bars/.test(GOALS.B.more.find(x=>x[0]==='earprog')[3])||!/secondary dominants/.test(GOALS.B.more.find(x=>x[0]==='earprog')[3]))sb('the appendix reason does not name the new levels');}
+ for(const g of ['sing','earprog','outer']){const hs=LESSON_NOTES[g].map(c=>c.h);for(const h of {sing:['From the ear to the voice to the hand'],earprog:['Seventh chords of the key','The cycle in sevenths','Secondary dominants by ear','Major or minor II–V–I','Eight bars by ear'],outer:['The bass of a whole section']}[g])if(!hs.includes(h))sb('notes chapter missing: '+g+' '+h);}
+ /* --- Sing It 13: hear it, sing it back --- */
+ S.gid='sing';const TRI=new Set(['1','3','♭3','5']);
+ {const byKey=new Map(),tonics=new Map();[0,1,2].forEach(gi=>{const len=gi+3;let leaps=0;for(let i=0;i<120;i++){const q=lv('sing',13,gi)(),t=q.target,tag='13.'+gi+' '+q.key+' '+q.degs.join(' ');
+   if(t.length!==len||q.degs.length!==len||q.names.length!==len){sb('length '+tag);continue;}
+   if(!/^se-[Mm]-/.test(q.key))sb('key form '+q.key);const minor=q.key[3]==='m';
+   if(!q.hideTarget||!q.contour||!q.voice||!q.octaveFree||q.repeats||q.metro)sb('flags '+tag);
+   if(t.some((m,k)=>k&&m===t[k-1]))sb('the same note twice in a row '+tag);if(!TRI.has(q.degs.at(-1)))sb('does not end on 1, 3 or 5 '+tag);if(Math.max(...t)-Math.min(...t)>12)sb('wider than an octave '+tag);
+   t.forEach((m,k)=>{const d=DEG_SEMI[q.degs[k]];if(mod(m-q.tonicPc,12)!==d)sb('degree label '+tag);if(pc(P(asc2(q.names[k])))!==mod(m,12))sb('note name '+tag);if(k&&Math.abs(m-t[k-1])>2&&!(TRI.has(q.degs[k])&&TRI.has(q.degs[k-1])))sb('a skip outside the tonic triad '+tag);});
+   const sc=minor?[0,2,3,5,7,8,10,11]:[0,2,4,5,7,9,11];if(t.some(m=>!sc.includes(mod(m-q.tonicPc,12))))sb('a note outside the key '+tag);
+   if(strip(q.prompt).includes(q.degs.join(' '))||/\\d – /.test(strip(q.prompt)))sb('the prompt shows the degrees '+tag);
+   const o=byKey.get(q.key);if(o&&o!==q.degs.join(' '))sb('one key, two phrases '+q.key);byKey.set(q.key,q.degs.join(' '));tonics.set(q.key,(tonics.get(q.key)||new Set()).add(q.tonicPc));
+   if(!micGrade(q,{notes:N(t)}).ok||!micGrade(q,{notes:N(t.map(m=>m-12))}).ok||!micGrade(q,{notes:N(t.map(m=>m+12))}).ok)sb('the right take fails '+tag);
+   if(micGrade(q,{notes:N(t.map((m,k)=>k===1?m+1:m))}).ok)sb('a wrong note passes '+tag);
+   const tn=60+q.tonicPc;if(mod(t[0]-tn,12)!==0&&!micGrade(q,{notes:N([tn].concat(t))}).ok)sb('a leading tonic fails '+tag);
+   const j=t.findIndex((m,k)=>k&&Math.abs(m-t[k-1])>=3);if(j>0){leaps++;const r=micGrade(q,{notes:N(t.map((m,k)=>k>=j?m+(t[j]>t[j-1]?-12:12):m))});if(r.ok)sb('a leap turned the other way passes '+tag);else if(!r.shapeWhy)sb('the turned leap is not named '+tag);}}
+   if(leaps<10)sb('13.'+gi+': hardly any phrase with a skip ('+leaps+')');});
+  if(![...tonics.values()].some(s=>s.size>1))sb('13: no phrase came up in two keys (the item key must not hold the key)');
+  if(![...byKey.keys()].some(k=>k[3]==='m')||![...byKey.keys()].some(k=>k[3]==='M'))sb('13: major and minor');}
+ /* --- Sing It 14 and 15: sing it, then play it --- */
+ {if(ST_POOL.length<12)sb('tune phrases for level 15: '+ST_POOL.length);ST_POOL.forEach(([t,i])=>{const ns=tuneNotes(t.ph[i]),sl=tuneSlots(t.ph[i]);if(sl>6||sl<3||mod(ns[0].semi-ns.at(-1).semi,12)===0)sb('tune phrase '+t.id+' '+i);});
+  const seen=new Set();[[14,0],[14,1],[15,0]].forEach(([L,gi])=>{let leaps=0;for(let i=0;i<(L===15?400:120);i++){const q=lv('sing',L,gi)(),n=q.parts&&q.parts.n,t=q.target,tag=L+'.'+gi+' '+q.key;seen.add(q.key);
+   if(!n||t.length!==2*n||t.slice(0,n).join()!==t.slice(n).join()){sb('two parts '+tag);continue;}const ph=t.slice(0,n);
+   if(!(L===14?/^sp-[Mm]-/:/^st-[a-z]+-\\d+$/).test(q.key))sb('key form '+tag);if(L===14&&n!==gi+3)sb('length '+tag);
+   if(L===15){const m=q.key.match(/^st-([a-z]+)-(\\d+)$/),tu=TUNES.find(x=>x.id===m[1]);if(!tu||!tu.ph[+m[2]]||tuneSlots(tu.ph[+m[2]])>6)sb('tune phrase of more than six slots '+tag);else if(tuneNotes(tu.ph[+m[2]]).map(x=>mod(x.semi,12)).join()!==ph.map(x=>mod(x-ph[0]+tuneNotes(tu.ph[+m[2]])[0].semi,12)).join())sb('the phrase is not the stored one '+tag);}
+   if(mod(ph[0]-ph.at(-1),12)===0)sb('the phrase begins and ends on one note name '+tag);if(!q.hideTarget||!q.voice||!q.octaveFree||q.repeats)sb('flags '+tag);
+   ph.forEach((m,k)=>{if(mod(m-q.tonicPc,12)!==DEG_SEMI[q.degs[k]])sb('degree label '+tag);});
+   if(strip(q.prompt).includes(q.degs.slice(0,n).join(' ')))sb('the prompt shows the degrees '+tag);
+   const two=(a,b)=>micGrade(q,{notes:N(a).concat(N(b,3000+a.length*900+2500))}),ok0=two(ph,ph);
+   if(!ok0.ok||!/Both parts are right/.test(ok0.partWhy))sb('the right take fails '+tag);
+   if(!two(ph.map(m=>m-12),ph.map(m=>m+12)).ok||!two(ph.map(m=>m+12),ph.map(m=>m-12)).ok)sb('the two parts in two octaves fail '+tag);
+   const d=ph.filter((m,k)=>!k||m!==ph[k-1]),wr=d.map((m,k)=>k===1?(d[0]!==m+1&&d[2]!==m+1?m+1:m+2):m);
+   const r1=two(d,wr);if(r1.ok||!/sung part is right/.test(r1.partWhy)||!/played part is not/.test(r1.partWhy))sb('a wrong note in the played part: '+r1.ok+' '+r1.partWhy+' '+tag);
+   const r2=two(wr,d);if(r2.ok||!/played part is right/.test(r2.partWhy)||!/sung part is not/.test(r2.partWhy))sb('a wrong note in the sung part: '+r2.ok+' '+r2.partWhy+' '+tag);
+   const r3=micGrade(q,{notes:N(ph)});if(r3.ok||!/played part was not heard/.test(r3.partWhy))sb('sung and not played: '+r3.ok+' '+r3.partWhy+' '+tag);
+   const j=d.findIndex((m,k)=>k&&Math.abs(m-d[k-1])>=3);if(j>0){leaps++;const tu=d.map((m,k)=>k>=j?m+(d[j]>d[j-1]?-12:12):m),r4=two(d,tu),r5=two(tu,d);
+     if(r4.ok||r4.partOk[1]||!r4.partOk[0]||!/shape is not/.test(r4.partWhy))sb('a leap turned over in the played part: '+r4.ok+' '+r4.partWhy+' '+tag);if(r5.ok||r5.partOk[0]||!r5.partOk[1])sb('a leap turned over in the sung part passes '+tag);}
+   const tn=60+q.tonicPc;if(mod(ph[0]-tn,12)!==0&&!micGrade(q,{notes:N([tn].concat(ph)).concat(N(ph,3000+(n+1)*900+2500))}).ok)sb('a leading tonic before the sung part fails '+tag);}
+   if(leaps<10)sb(L+'.'+gi+': hardly any phrase with a leap');});
+  ST_POOL.forEach(([t,i])=>{if(!seen.has('st-'+t.id+'-'+i))sb('tune phrase never asked: '+t.id+' '+i);});}
+ /* --- Hear the Progression 20–24, Bass & Top 9–10: every numeral read back in the key gives the chord that is played --- */
+ const RN={I:0,II:2,III:4,IV:5,V:7,VI:9,VII:11},RQ={'Maj7':[0,4,7,11],'7':[0,4,7,10],'m7':[0,3,7,10],'m7♭5':[0,3,6,10],'':[0,4,7],'m':[0,3,7],'°':[0,3,6],'7(♭9)':[0,4,7,10,1]};
+ const rd=tok=>{const m=tok.match(/^([♭♯]?)(VII|VI|IV|V|III|II|I)(.*)$/);if(!m||!RQ[m[3]])return null;const r=mod(RN[m[2]]+(m[1]==='♭'?-1:m[1]==='♯'?1:0),12);return {r,pcs:RQ[m[3]].map(x=>mod(r+x,12)).sort((a,b)=>a-b)};};
+ const oN=Piano.note,oC=Piano.chord,oT=Piano.tick;let EV=[],BS=[],TK=[];
+ const heard=(q,n)=>{EV=[];BS=[];TK=[];Piano.chord=(ms,t)=>EV.push({ms,t});Piano.note=(m,t)=>BS.push({m,t});Piano.tick=(t)=>TK.push(t);let dur;try{dur=q.audio();}finally{Piano.note=oN;Piano.chord=oC;Piano.tick=oT;}
+   EV.sort((a,b)=>a.t-b.t);const ch=EV.slice(-n);return {dur,ch:ch.map(e=>{const b=BS.filter(x=>Math.abs(x.t-(e.t-0.01))<0.005);return {t:e.t,bass:b.length===1?b[0].m:null,pcs:[...new Set(e.ms.concat(b.map(x=>x.m)).map(m=>mod(m,12)))].sort((a,b)=>a-b)};}),ticks:TK.slice(),all:EV.length};};
+ const same=(a,b)=>a.join()===b.join();
+ const readBack=(q,toks,tag)=>{const H=heard(q,toks.length);if(H.ch.length!==toks.length){sb('chords played '+H.ch.length+' for '+toks.length+' numerals '+tag);return H;}
+   toks.forEach((tk,i)=>{const x=rd(tk),c=H.ch[i];if(!x){sb('numeral not readable: '+tk+' '+tag);return;}if(c.bass===null||mod(c.bass-q.kpc,12)!==x.r)sb('the bass is not the root of '+tk+' '+tag);if(!same(c.pcs,x.pcs.map(p=>mod(p+q.kpc,12)).sort((a,b)=>a-b)))sb(tk+' read back is not the chord played '+tag);});return H;};
+ const rowOk=(q,tag)=>{const row=q.tokens||q.choices,ans=Array.isArray(q.answer)?q.answer:[q.answer];if(new Set(row).size!==row.length)sb('the row holds an answer twice '+tag);ans.forEach(a=>{if(row.filter(x=>x===a).length!==1)sb('the row does not hold '+a+' once '+tag);});};
+ S.gid='earprog';const GEN=[[20,0],[20,1],[21,0],[21,1],[22,0],[22,1],[23,0],[23,1],[24,0]];
+ for(const [L,gi] of GEN){const prompts=new Set(),needs=new Set(),rows=new Map(),answers=new Set(),chordN=new Set();
+  for(let i=0;i<(L===24?300:90);i++){const q=lv('earprog',L,gi)(),tag='earprog '+L+'.'+gi+' '+q.key,toks=q.toks||(Array.isArray(q.answer)?q.answer:[q.answer]),minor=/ minor/.test(q.prompt);
+   if(q.kpc===undefined){sb('no key on '+tag);break;}rowOk(q,tag);prompts.add(strip(q.prompt));needs.add(q.need||1);answers.add(String(q.answer));
+   const rk=(minor?'m':'M');if(rows.has(rk)&&rows.get(rk)!==(q.tokens||q.choices).join(' '))sb('the row changes with the question '+tag);rows.set(rk,(q.tokens||q.choices).join(' '));
+   const H=readBack(q,toks,tag);chordN.add(H.all);
+   if(!(L===23&&gi===0)&&H.all!==toks.length+4)sb('no cadence before the chords '+tag);if(L===23&&gi===0&&H.all!==3)sb('a cadence before the which-cadence question gives it away '+tag);
+   if(L===20&&gi===0&&!DIA_TRI.some(c=>bnum(c[0],c[1])===q.answer))sb('20.0 answer '+tag);
+   if(L===21){const rs=toks.map(t=>rd(t).r);if(rs.some((r,k)=>k&&![5,6].includes(mod(r-rs[k-1],12))))sb('not the cycle '+tag);if(toks.some(t=>RQ[t.match(/(VII|VI|IV|V|III|II|I)(.*)$/)[2]].length<4))sb('a triad in the cycle of sevenths '+tag);
+     const sc=minor?[0,2,3,5,7,8,10,11]:[0,2,4,5,7,9,11];if(toks.some(t=>rd(t).pcs.some(p=>!sc.includes(p))))sb('a cycle chord outside the key '+tag);}
+   if(L===22){const sc=[0,2,4,5,7,9,11],X=toks.map(rd),out=X.map((x,k)=>x.pcs.some(p=>!sc.includes(p))?k:-1).filter(k=>k>=0);
+     if(toks.length!==4||out.length!==1)sb('not exactly one chord from outside the key '+tag);else{const k=out[0],dm=X[k];if(!/7$/.test(toks[k])||!same(dm.pcs,[0,4,7,10].map(x=>mod(dm.r+x,12)).sort((a,b)=>a-b)))sb('the outside chord is not a dominant seventh '+tag);
+       if(k>2||mod(dm.r-X[k+1].r,12)!==7)sb('the dominant does not resolve a 5th down '+tag);if(dm.r===7)sb('the primary dominant asked as secondary '+tag);
+       if(gi===0&&RN[q.answer]!==X[k+1].r)sb('the target named is not the chord after the dominant '+tag);if(X[k+1].pcs.some(p=>!sc.includes(p)))sb('the target is not a chord of the key '+tag);}
+     if(![0,7].includes(X[3].r))sb('does not end on I or V '+tag);if(X.some((x,k)=>k&&x.r===X[k-1].r))sb('two chords in a row on one root '+tag);
+     if(gi===0&&q.choices.join()!=='II,III,IV,V,VI')sb('the row of 22 '+tag);}
+   if(L===23&&gi===0){const X=toks.map(rd);if(!same(X.map(x=>x.r),[2,7,0]))sb('not a II–V–I '+tag);const mn=/^minor/.test(q.answer);if(mn!==(X[0].pcs.includes(8))||mn!==X[1].pcs.includes(8)||mn!==X[2].pcs.includes(3))sb('major/minor label '+tag);}
+   if(L===23&&gi===1){const X=toks.map(rd),a=X.slice(0,3).map(x=>x.r),b=X.slice(3).map(x=>x.r);if(toks.length!==6||!((same(a,[2,7,0])&&same(b,[11,4,9]))||(same(a,[11,4,9])&&same(b,[2,7,0]))))sb('not the two related cadences '+tag);
+     const mi=same(a,[2,7,0])?X.slice(3):X.slice(0,3);if(!mi[0].pcs.includes(5)||!mi[1].pcs.includes(5)||!same(mi[2].pcs,[0,4,9]))sb('the minor cadence of the pair '+tag);}
+   if(L===24){if(toks.length!==8&&!q.e8.bars.some(b=>b.length>1))sb('eight bars, '+toks.length+' numerals '+tag);if(H.ticks.length!==8)sb('clicks: '+H.ticks.length+' '+tag);else{const bt=[];let k=0;q.e8.bars.forEach((b,bi)=>b.forEach((c,j)=>{bt.push([bi,j,b.length]);}));
+       H.ch.forEach((c,i)=>{const [bi,j,nb]=bt[i],bl=H.ticks[1]-H.ticks[0],want=H.ticks[bi]+j*bl/nb;if(Math.abs(c.t-0.01-want)>0.02)sb('chord '+i+' is not where its bar begins '+tag);});if(H.ticks.some((t,i)=>i&&Math.abs(t-H.ticks[i-1]-(H.ticks[1]-H.ticks[0]))>1e-6))sb('uneven clicks '+tag);}
+     if(q.key!=='e8-'+q.e8.id+'-'+q.e8.first)sb('key '+tag);if(strip(q.prompt).toLowerCase().includes(q.e8.name.replace(/^the /,'').toLowerCase()))sb('the prompt names the form '+tag);}}
+  if(prompts.size!==1)sb('earprog '+L+'.'+gi+': the wording changes with the question ('+prompts.size+' wordings)');if(needs.size!==1&&!(L===24&&E8.some(x=>x.bars.some(b=>b.length>1))))sb('earprog '+L+'.'+gi+': the number of chords changes');if(answers.size<2)sb('earprog '+L+'.'+gi+': one answer only');if(chordN.size!==1&&L!==24)sb('earprog '+L+'.'+gi+': chord count varies');}
+ /* the eight-bar material */
+ {if(E8.length<6)sb('fewer than six spans: '+E8.length);const ks=new Set();E8.forEach(sp=>{const k=sp.id+'-'+sp.first;if(ks.has(k))sb('span twice '+k);ks.add(k);if(sp.bars.length!==8)sb('span length '+k);sp.bars.flat().forEach(c=>{if(!e8Kind(c[0],c[1],sp.minor,sp.blues))sb('a chord without a name in '+k);const x=rd(bnum(c[0],c[1]));if(!x||x.r!==c[0]||!same(x.pcs,CH[c[1]].map(v=>mod(c[0]+IV[v][1],12)).sort((a,b)=>a-b)))sb('numeral of '+c+' in '+k);});
+    /* against the stored form: the numerals, read back in the form's own key, are the symbols on its chart */
+    const f=FORMS.find(x=>e8Slug(x.n)===sp.id&&x.bars.length>=sp.first+7&&(x.k.endsWith('m'))===sp.minor);if(f){const t=pc(P(f.k.replace(/m$/,'')));f.bars.slice(sp.first-1,sp.first+7).forEach((b,bi)=>b.split(' ').forEach((s,j)=>{const y=symParse(s),x=rd(bnum(sp.bars[bi][j][0],sp.bars[bi][j][1]));if(!y||mod(pc(y.r)-t,12)!==x.r||!same(CH[y.q].map(v=>mod(pc(y.r)-t+IV[v][1],12)).sort((a,b)=>a-b),x.pcs))sb('span '+k+' bar '+(sp.first+bi)+': '+s+' is not '+bnum(sp.bars[bi][j][0],sp.bars[bi][j][1]));if(/[\\/♯°]/.test(s.replace(/^[A-G][♭♯]?/,'')))sb('a symbol the numerals cannot write is in '+k+': '+s);}));}
+    else if(!sp.blues)sb('no stored form for '+k);else{const bf=Object.keys(BLUES_FORMS).find(n=>e8Slug(n)===sp.id);if(!bf||BLUES_FORMS[bf].slice(0,8).map(c=>c.join()).join(' ')!==sp.bars.map(b=>b[0].join()).join(' '))sb('blues span '+k);}});
+  const got=new Set();S.gid='earprog';for(let i=0;i<600;i++)got.add(lv('earprog',24)().key);E8.forEach(sp=>{if(!got.has('e8-'+sp.id+'-'+sp.first))sb('span never asked '+sp.id+'-'+sp.first);});
+  if(E8_OUT.some(x=>!x.why))sb('a span left out without a reason');
+  for(const m of [false,true]){const row=e8Row(m);if(new Set(row).size!==row.length)sb('e8 row duplicates');}}
+ /* --- Bass & Top 9 and 10 --- */
+ {S.gid='outer';const prompts=new Set();for(let i=0;i<300;i++){const q=lv('outer',9)(),tag='outer 9 '+q.key;rowOk(q,tag);prompts.add(strip(q.prompt));if(q.key!=='ob8-'+q.e8.id+'-'+q.e8.first)sb('key '+tag);
+    const H=heard(q,q.answer.length);if(H.ticks.length!==8||H.all!==q.answer.length+4)sb('eight bars after a cadence '+tag);H.ch.forEach((c,k)=>{if(c.bass===null||DEG_ORDER[mod(c.bass-q.kpc,12)]!==q.answer[k])sb('bass degree '+k+' '+tag);});
+    const bl=H.ch.map(c=>c.bass);if(bl.join()!==bassLine(bl.map(m=>mod(m,12))).join())sb('the bass is not a line '+tag);if(q.tokens.join()!=='1,♭2,2,♭3,3,4,5,♭6,6,♭7,7')sb('row '+tag);}
+   if(prompts.size!==1)sb('outer 9: the wording changes');
+   const P10=new Set();let leaps=0;for(let i=0;i<300;i++){const q=lv('outer',10)(),t=q.target,g=q.grid,tag='outer 10 '+q.key;P10.add(strip(q.prompt).replace(/\\d+/g,'n'));
+    if(q.key!=='ob8p-'+q.e8.id+'-'+q.e8.first||!q.contour||!q.octaveFree||!q.hideTarget||!(q.metro>=60&&q.metro<=72)||t.length!==g.length||t.length<2)sb('flags '+tag);
+    const H=heard(q,q.e8.bars.flat().length),bl=H.ch.map(c=>c.bass),bt=[];q.e8.bars.forEach((b,bi)=>b.forEach((c,j)=>bt.push(bi*4+j*4/b.length)));const want=[],wg=[];bl.forEach((m,k)=>{if(!k||mod(m-bl[k-1],12)!==0){want.push(m);wg.push(bt[k]);}});
+    if(t.map(m=>mod(m,12)).join()!==want.map(m=>mod(m,12)).join()||g.join()!==wg.join())sb('not one note where each chord begins '+tag);if(t.some((m,k)=>k&&mod(m-t[k-1],12)===0))sb('a pitch twice in a row '+tag);
+    if(t.some((m,k)=>k&&m-t[k-1]!==want[k]-want[k-1]))sb('the target is not the shape of the bass as played '+tag);if(Math.min(...t)<=BPO.lowOct)sb('the line reaches the notes that may be heard an octave up '+tag);
+    t.forEach((m,k)=>{if(DEG_ORDER[mod(m-q.kpc,12)]!==q.degs[k]||pc(P(asc2(q.names[k])))!==mod(m,12))sb('label '+tag);});
+    const B=60000/q.metro,bs=4*B+100,tk=(T,sh)=>micGrade(q,{notes:T.map((m,k)=>({midi:m,mf:m,t:bs+(g[k]+(sh||0))*B,dur:400})),beat:B,beatStart:bs,firstAt:bs});
+    if(!tk(t).ok||!tk(t.map(m=>m+12)).ok)sb('the right take fails '+tag);if(tk(t.map((m,k)=>k===1?m+1:m)).ok)sb('a wrong note passes '+tag);const late=tk(t,0.5);if(late.ok||late.timeOk)sb('half a beat late passes '+tag);
+    const j=t.findIndex((m,k)=>k&&Math.abs(m-t[k-1])>=3);if(j>0){leaps++;if(tk(t.map((m,k)=>k>=j?m+(t[j]>t[j-1]?-12:12):m)).ok)sb('a leap turned over passes '+tag);}}
+   if(P10.size!==1)sb('outer 10: the wording changes ('+P10.size+')');if(leaps<100)sb('outer 10: leaps');}
+ /* --- the facts the level notes and chapters state --- */
+ {const rel=CYC7_MIN.map(c=>[mod(c[0]+9,12),c[1]]),rot=CYC7_MAJ.slice(4,7).concat(CYC7_MAJ.slice(0,4)).concat([CYC7_MAJ[4]]),diff=rel.map((c,i)=>c[0]===rot[i][0]&&c[1]===rot[i][1]?-1:i).filter(i=>i>=0);
+  if(diff.length!==1||rel[diff[0]].join()!=='4,7'||rot[diff[0]].join()!=='4,m7')sb('the minor cycle is not the relative major cycle from VIm7 with III7');
+  if(mod(CYC7_MAJ[2][0]-CYC7_MAJ[1][0],12)!==6||mod(CYC7_MIN[5][0]-CYC7_MIN[4][0],12)!==6)sb('the tritone step of the cycle');
+  if(CYC7_MAJ.map(c=>bnum(c[0],c[1])).join(' ')!=='IMaj7 IVMaj7 VIIm7♭5 IIIm7 VIm7 IIm7 V7 IMaj7'||CYC7_MIN.map(c=>bnum(c[0],c[1])).join(' ')!=='Im7 IVm7 ♭VII7 ♭IIIMaj7 ♭VIMaj7 IIm7♭5 V7 Im7')sb('the cycles in sevenths');
+  if(DIA_TRI.map(c=>bnum(c[0],c[1])).join(' ')!=='IMaj7 IIm7 IIIm7 IVMaj7 V7 VIm7 VIIm7♭5')sb('the seventh chords of the key');
+  const third=SD_T.map(T=>outsideOf('C',[mod(T[0]+7,12),'7']));if(third.filter(o=>o.some(x=>/3rd/.test(x))).length!==4||third[2].join()!=='B♭ (its 7th)'||third.some(o=>!o.length))sb('the outside notes of the secondary dominants: '+third.join(' / '));
+  if(SD_T.map(T=>bnum(mod(T[0]+7,12),'7')).join(' ')!=='VI7 VII7 I7 II7 III7')sb('secondary dominants by their roots');
+  if(mod(2+6,12)!==8||mod(7+1,12)!==8||!CH['m7♭5'].includes('d5')||!CH['7♭9'].includes('b9'))sb('the ♭5 of II and the ♭9 of V');
+  if(C251_REL.map(c=>bnum(c[0],c[1])).join(' ')!=='VIIm7♭5 III7(♭9) VIm')sb('the cadence to the relative minor');
+  const e=LESSON_NOTES.earprog.find(c=>c.h==='Eight bars by ear'),tb=e.p.find(x=>x.tbl);if(!tb||tb.tbl[1].length!==E8.length)sb('the notes table of the sections');}
+ S.gid='fretboard';}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

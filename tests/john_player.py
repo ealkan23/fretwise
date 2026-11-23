@@ -4,7 +4,7 @@ Run after build.py:  .venv/bin/python tests/john_player.py game:level[:generator
 import pathlib,sys,time
 from playwright.sync_api import sync_playwright
 root=pathlib.Path(__file__).resolve().parent.parent
-SYN="""async ()=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+4*beat:0.6,ev=q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
+SYN="""async ()=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.cinN||4)*beat:0.6,ev=q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
   const end=ev.at(-1).t+3,sr=22050,oc=new OfflineAudioContext(1,Math.ceil(end*sr),sr);
   ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=i+1<ev.length?ev[i+1].t:x.t+1.5,len=Math.max(.1,Math.min(1.2,nx-x.t-.02)),g=oc.createGain();g.connect(oc.destination);
     g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);

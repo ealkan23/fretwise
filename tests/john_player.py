@@ -4,7 +4,7 @@ Run after build.py:  .venv/bin/python tests/john_player.py game:level[:generator
 import pathlib,sys,time
 from playwright.sync_api import sync_playwright
 root=pathlib.Path(__file__).resolve().parent.parent
-SYN="""async ()=>{const q=S.q,beat=60/q.metro,t0=0.1+4*beat,ev=q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
+SYN="""async ()=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+4*beat:0.6,ev=q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
   const end=ev.at(-1).t+3,sr=22050,oc=new OfflineAudioContext(1,Math.ceil(end*sr),sr);
   ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=i+1<ev.length?ev[i+1].t:x.t+1.5,len=Math.max(.1,Math.min(1.2,nx-x.t-.02)),g=oc.createGain();g.connect(oc.destination);
     g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);
@@ -18,7 +18,7 @@ with sync_playwright() as pw:
     pg=b.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto((root/'dist'/'fretwise.html').as_uri());pg.evaluate('localStorage.clear()');pg.reload()
     pg.evaluate('bpLoad()');pg.wait_for_function('BP.state!=="loading"',timeout=60000)
-    pg.evaluate("([gid,L,gi])=>{const g=G(gid);g.opts=Object.assign({},g.opts||{},{auto:false,vamp:false});g.review=false;g.preview=false;g.unl=Array.from({length:40},(_,i)=>i+1);if(gi>=0){const lv=GBY[gid].levels[L-1];lv.g=[lv.g[gi]];}view={name:'lobby',gid};render();start(gid,L);render();}",[gid,L,gi])
+    pg.evaluate("([gid,L,gi])=>{const g=G(gid);g.opts=Object.assign({},g.opts||{},{auto:false,vamp:false});g.mode='play';g.review=false;g.preview=false;g.unl=Array.from({length:40},(_,i)=>i+1);if(gi>=0){const lv=GBY[gid].levels[L-1];lv.g=[lv.g[gi]];}view={name:'lobby',gid};render();start(gid,L);render();}",[gid,L,gi])
     info=pg.evaluate(SYN)
     pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
     pg.wait_for_function('S&&!S.playing&&!S.loading',timeout=60000);t=time.time();pg.evaluate('micListen()')

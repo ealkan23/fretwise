@@ -24,6 +24,6 @@ with sync_playwright() as pw:
     pg.wait_for_function('S&&!S.playing&&!S.loading',timeout=60000);t=time.time();pg.evaluate('micListen()')
     try:pg.wait_for_function("S&&(S.locked||/Nothing heard/.test(S.micMsg||''))",timeout=120000)
     except Exception as e:print(A,info,'TIMEOUT',errs[:2],flush=True);pg.close();continue
-    r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,why:(r.walkWhy||[]).slice(0,3),heard:(r.per||[]).filter(x=>x.got!=null).length}})()")
+    r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,why:(r.walkWhy||[]).slice(0,3),heard:(r.per||[]).filter(x=>x.got!=null).length,cents:r.cents==null?undefined:Math.round(r.cents*10)/10,ct:((G(S.gid).pl||[]).at(-1)||{}).ct,off:(r.per||[]).filter(x=>x.off!=null).map(x=>Math.round(x.off))}})()")
     print(A,info,r,round(time.time()-t,1),errs[:2],'PASS' if r['ok'] else 'FAIL',flush=True);pg.close()
   b.close()

@@ -269,8 +269,8 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 /* ear and solfège additions: sight-singing lines are in their key, sit where they are written and never repeat a note; a melody dictation fails on one wrong degree;
    sung arpeggios never repeat a note across a chord change; every harmonised bar fits exactly its own chord; an inverted chord has the named tone in the bass */
 {const eb=m=>{bad++;console.log('EAR',m);};
- GBY.sightsing.levels.forEach((lv,li)=>{for(let i=0;i<150;i++){const q=lv.g[0]();if(q.target.some((m,j)=>j&&m===q.target[j-1])){eb('sight repeat L'+(li+1));break;}if(q.target.some((m,j)=>j&&Math.abs(m-q.target[j-1])>7)){eb('sight leap L'+(li+1)+' '+q.target);break;}
-   if(q.names.some((n,j)=>pc(P(n))!==mod(q.target[j],12))){eb('sight name L'+(li+1));break;}if(Math.min(...q.target)<55||Math.max(...q.target)>84){eb('sight range L'+(li+1)+' '+q.target);break;}if(!/<svg class="staff"/.test(q.visual)||/NaN|undefined/.test(q.visual)){eb('sight staff L'+(li+1));break;}}});
+ GBY.sightsing.levels.forEach((lv,li)=>{for(let i=0;i<150;i++){const q=lv.g[0]();if(li!==11&&q.target.some((m,j)=>j&&m===q.target[j-1])){eb('sight repeat L'+(li+1));break;}if(li!==11&&q.target.some((m,j)=>j&&Math.abs(m-q.target[j-1])>(li>=9?9:7))){eb('sight leap L'+(li+1)+' '+q.target);break;}   /* ear build 4: levels 10 and 11 skip up to a 6th; level 12 writes tune phrases, which repeat notes and leap as the tune does */
+   if(q.names.some((n,j)=>pc(P(n))!==mod(q.target[j],12))){eb('sight name L'+(li+1));break;}if(Math.min(...q.target)<55||Math.max(...q.target)>84){eb('sight range L'+(li+1)+' '+q.target);break;}if(!/<svg class="staff/.test(q.visual)||/NaN|undefined/.test(q.visual)){eb('sight staff L'+(li+1));break;}}});
  for(const k of ['C','G','D','A','F','Bb','Eb']){const ns=ssNotes(P(k),[-1,0,1,2,3,4,5,6,7],false);if(Math.abs(ssKeySig(P(k),false))>3)eb('keysig '+k);ns.forEach(x=>{const nat=x.midi-P(x.name).a,st=LET.indexOf(x.name[0])+7*(Math.floor(nat/12)-1)-30;if(st!==x.w.step||mod(nat,12)!==NAT[LET.indexOf(x.name[0])])eb('staff step '+k+' '+x.name);});}
  if(ssKeySig(P('G'),false)!==1||ssKeySig(P('Eb'),false)!==-3||ssKeySig(P('D'),true)!==-1||ssKeySig(P('E'),true)!==1||ssNotes(P('C'),[0],false)[0].w.step!==-2||ssNotes(P('G'),[0],false)[0].w.step!==2||ssNotes(P('F'),[0],false)[0].w.step!==1)eb('reference staff positions');
  [melDictQ({cells:['q','ee','h'],bars:1,lo:0,hi:4,min:3,max:6}),melDictQ({cells:['q','ee','h','qe'],bars:2,lo:-1,hi:7,skips:.3,triad:true,min:5,max:9})].forEach((g,gi)=>{for(let i=0;i<120;i++){const q=g();if(!check(q,q.answer.map(e=>({...e})))){eb('melody self '+gi);break;}
@@ -850,10 +850,10 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  const lv=(id,L,gi)=>{S.gid=id;return GBY[id].levels[L-1].g[gi||0];};
  const strip=h=>String(h).replace(/<b>[^<]*<\\/b>/g,'#').replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim();
  /* --- the ladders --- */
- if(GBY.sing.levels.length!==15||GBY.earprog.levels.length!==24||GBY.outer.levels.length!==10)sb('level counts: sing '+GBY.sing.levels.length+' earprog '+GBY.earprog.levels.length+' outer '+GBY.outer.levels.length);
+ if(GBY.sing.levels.length!==16||GBY.earprog.levels.length!==24||GBY.outer.levels.length!==12)sb('level counts: sing '+GBY.sing.levels.length+' earprog '+GBY.earprog.levels.length+' outer '+GBY.outer.levels.length);
  if(GBY.sing.levels[11].n!=='Find the tonic'||GBY.earprog.levels[18].n!=='Harmonise a melody: the whole key'||GBY.outer.levels[7].n!=='Play the top')sb('a new level is not appended');
  [['sing',12,'k'],['sing',13,'k'],['sing',14,'a'],['earprog',19,'k'],['earprog',20,'a'],['earprog',21,'k'],['earprog',22,'a'],['earprog',23,'k'],['outer',8,'k'],['outer',9,'a']].forEach(([g,i,f])=>{const n=LEVEL_NOTES[g][i];if(!n||!n[f])sb('level note form '+g+' '+(i+1));});
- {const st=GOALS.B.stages[4].steps.map(x=>x.join()),mo=GOALS.B.more.map(x=>x.slice(0,3).join());if(!st.includes('sing,13,15')||!st.includes('outer,9,10'))sb('goal B stage 5 lacks the new steps');if(!mo.includes('earprog,17,24')||mo.includes('earprog,17,19'))sb('goal B appendix: earprog 17–24');
+ {const st=GOALS.B.stages[4].steps.map(x=>x.join()),mo=GOALS.B.more.map(x=>x.slice(0,3).join());if(!st.includes('sing,13,15')||!st.includes('outer,9,12'))sb('goal B stage 5 lacks the new steps');if(!mo.includes('earprog,17,24')||mo.includes('earprog,17,19'))sb('goal B appendix: earprog 17–24');
   if(!GOAL_WHY.B.steps['sing:13']||!GOAL_WHY.B.steps['outer:9'])sb('GOAL_WHY sing:13 / outer:9');if(!/eight bars/.test(GOALS.B.more.find(x=>x[0]==='earprog')[3])||!/secondary dominants/.test(GOALS.B.more.find(x=>x[0]==='earprog')[3]))sb('the appendix reason does not name the new levels');}
  for(const g of ['sing','earprog','outer']){const hs=LESSON_NOTES[g].map(c=>c.h);for(const h of {sing:['From the ear to the voice to the hand'],earprog:['Seventh chords of the key','The cycle in sevenths','Secondary dominants by ear','Major or minor II–V–I','Eight bars by ear'],outer:['The bass of a whole section']}[g])if(!hs.includes(h))sb('notes chapter missing: '+g+' '+h);}
  /* --- Sing It 13: hear it, sing it back --- */
@@ -1083,6 +1083,143 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   ['earchord','cr','tunes','eardeg','eariv','earmode'].forEach(g=>{if(LEVEL_NOTES[g].length!==GBY[g].levels.length)sb('level notes of '+g);});}
  S.gid='fretboard';}
 /*E3SW_END*/
+/*E4SW_BEGIN*//* ============ THE REVIEW OF THE EAR GAMES: BUILD 4 (23 Nov 2026): singing from the page, intonation, the outer voices ============ */
+{const sb=m=>{bad++;if(bad<60)console.log('EAR4',m);},gen=(g,L,i)=>GBY[g].levels[L-1].g[i||0],MAJ=[0,2,4,5,7,9,11],MIN=[0,2,3,5,7,8,10,11],
+  slots=t=>t.filter((m,i)=>!i||m!==t[i-1]),take=(ms,o)=>({notes:ms.map((m,i)=>({midi:m,mf:m,t:500+i*900,dur:700})),firstAt:500}),
+  timed=(q,sh,one)=>({beat:1000,beatStart:4100,lat:0,firstAt:4100,notes:q.target.map((m,i)=>({midi:m,mf:m,t:4100+(q.grid[i]+(one===undefined||one===i?sh:0))*1000,dur:Math.min(600,400)}))});
+ if(GBY.sightsing.levels.length!==13||GBY.sing.levels.length!==16||GBY.outer.levels.length!==12)sb('level counts');
+ /* ---- Sing the Page 10: wider skips ---- */
+ S.gid='sightsing';
+ {const seenCh=new Set();for(let i=0;i<400;i++){const q=gen('sightsing',10)(),idx=q.key.split('-').slice(2).join('-').split('.').map(Number),t=q.target,ton=q.tonicPc;
+   if(!/^ss-10-/.test(q.key)||idx.length!==t.length)sb('L10 key '+q.key);
+   let wide=0;idx.forEach((x,j)=>{if(!j)return;const d=Math.abs(x-idx[j-1]),semi=Math.abs(t[j]-t[j-1]);if(d===0)sb('L10 repeated note');if(d<2)return;
+     const ci=[[0,2,4],[3,5,0],[4,6,1,3]].findIndex(c=>c.includes(mod(x,7))&&c.includes(mod(idx[j-1],7)));if(ci<0)sb('L10 skip outside I, IV and V7 '+idx);if(d>5)sb('L10 skip over a 6th '+idx);if(semi===6)sb('L10 tritone '+idx);if(semi>9)sb('L10 wider than a major 6th');
+     if(d>=3&&ci>0){wide++;seenCh.add(ci);}
+     if(j===idx.length-1||idx[j+1]-x!==-Math.sign(x-idx[j-1]))sb('L10 skip without a step back '+idx);});
+   if(!wide)sb('L10 no skip of a 4th or more outside the tonic triad '+idx);
+   if(t.some(m=>!MAJ.includes(mod(m-ton,12))))sb('L10 note outside the key');if(Math.min(...t)<55||Math.max(...t)>84)sb('L10 range');if(![0,4,7].includes(mod(t.at(-1)-ton,12)))sb('L10 does not end on 1, 3 or 5');
+   if(!/wide skip/.test(q.explain))sb('L10 explanation does not name the skip');
+   if(i<60){if(!micGrade(q,take(t)).ok)sb('L10 right take fails');const w=t.slice();w[2]+=1;if(w[2]===w[3])w[2]+=1;if(micGrade(q,take(w)).ok)sb('L10 wrong note passes');if(!micGrade(q,take(t.map(m=>m-12))).ok)sb('L10 an octave lower fails');}}
+  if(seenCh.size!==2)sb('L10 wide skips never inside IV or never inside V7');}
+ /* ---- Sing the Page 11: four bars ---- */
+ {let nat=0,minWithLead=0;for(const gi of [0,1])for(let i=0;i<250;i++){const q=gen('sightsing',11,gi)(),X=q.ss4,idx=X.idx,t=q.target,ton=q.tonicPc,minor=X.minor;
+   if(minor!==(gi===1)||idx.length!==14||t.length!==14)sb('L11 form');if(!new RegExp(minor?'^ss-11m-':'^ss-11-').test(q.key))sb('L11 key '+q.key);
+   if(X.bars.length!==4||scoreCheck(X.bars,'4/4').length)sb('L11 not four clean bars: '+scoreCheck(X.bars,'4/4').join(';'));
+   if(X.ks!==ssKeySig(P(NOTE_PC[ton].replace('♯','#').replace('♭','b')),minor)&&Math.abs(X.ks)>4)sb('L11 signature');
+   if(t.some((m,j)=>j&&m===t[j-1]))sb('L11 repeated note');if(t.some((m,j)=>j&&Math.abs(m-t[j-1])>9))sb('L11 leap over a 6th');
+   if(mod(t[13]-ton,12)!==0)sb('L11 does not end on the tonic');if(!(minor?[0,3,7]:[0,4,7]).includes(mod(t[6]-ton,12)))sb('L11 first phrase does not end on the tonic triad');
+   if(!idx.some((x,j)=>j&&Math.abs(x-idx[j-1])>1))sb('L11 no skip');
+   if(t.some(m=>!(minor?MIN:MAJ).includes(mod(m-ton,12))))sb('L11 note outside the key '+q.degs);if(Math.min(...t)<55||Math.max(...t)>84)sb('L11 range');
+   if(minor){if(!idx.some(x=>x===5||x===6||x===-1))sb('L11 minor line without ♭6, ♭7 or the raised 7');if(t.some((m,j)=>j&&Math.abs(m-t[j-1])===3&&[8,11].includes(mod(m-ton,12))&&[8,11].includes(mod(t[j-1]-ton,12))))sb('L11 augmented 2nd');
+     t.forEach((m,j)=>{if(mod(m-ton,12)===11&&idx[j]!==-1)sb('L11 raised 7 away from under the tonic');if(mod(m-ton,12)===10&&idx[j]===-1)sb('L11 ♭7 under the tonic');});
+     if(idx.includes(-1)){minWithLead++;const signs=X.bars.flatMap(b=>b.ev.filter(e=>!e.rest&&e.acc!==null&&e.acc!==undefined).map(e=>e.acc));if(!signs.length)sb('L11 raised 7 without a sign');if([0,5].includes(ton)){if(!signs.includes(0))sb('L11 no natural sign in C or F minor');else nat++;}else if(!signs.includes(1))sb('L11 no sharp on the raised 7');}}
+   else{const h=[idx.slice(0,7),idx.slice(7)];if(!h.some(a=>ssHasWide(a)))sb('L11 major line without level 10 material');if(X.bars.some(b=>b.ev.some(e=>!e.rest&&e.acc!==null&&e.acc!==undefined)))sb('L11 major line with an accidental');}
+   if(!/<svg class="staff score"/.test(q.visual)||/NaN|undefined/.test(q.visual))sb('L11 staff');
+   if(i<40){if(!micGrade(q,take(t)).ok)sb('L11 right take fails');const w=t.slice();w[4]+=1;if(w[4]===w[5])w[4]+=1;if(micGrade(q,take(w)).ok)sb('L11 wrong note passes');}}
+  if(!nat)sb('L11 no natural sign seen');if(!minWithLead)sb('L11 no raised 7 seen');}
+ /* ---- Sing the Page 12: tunes from the page ---- */
+ {const pool=sstPool(),seen=new Set();if(pool.length<40)sb('L12 pool '+pool.length);
+  pool.forEach(([t,i,ks])=>ks.forEach(k=>{const X=sstPage(t,i,k),src=tuneNotes(t.ph[i]),ms=X.ns.map(x=>x.midi-12);if(Math.min(...ms)<45||Math.max(...ms)>64)sb('L12 outside A2 to E4 '+t.id+i+k);
+    if(scoreCheck(X.sc.bars,X.meter).length)sb('L12 bars '+t.id+i+k);if(Math.abs(X.sc.ks)>4)sb('L12 signature');
+    X.ns.forEach((x,j)=>{if(mod(x.midi-pc(P(k)),12)!==mod(src[j].semi,12)||x.d!==src[j].deg)sb('L12 degree '+t.id+i);if(pc(P(x.name))!==mod(x.midi,12))sb('L12 name '+t.id+i+k+' '+x.name);if(j&&x.midi-X.ns[j-1].midi!==src[j].semi-src[j-1].semi)sb('L12 shape '+t.id+i);});
+    const data=scoreData(X.sc.bars);if(data.length>X.ns.length||data.some(d=>!X.ns.some(x=>x.midi-12===d.m)))sb('L12 written notes '+t.id+i+k);
+    const m=SR_TUNE[t.id],tm=tuneMeter(t,i),u=m[0]==='6/8'?1.5:1,ev0=X.sc.bars[0].ev,lead=ev0.slice(0,ev0.findIndex(e=>!e.rest)).reduce((a,e)=>a+e.d,0);if(Math.abs(lead-tm.off*u)>0.01)sb('L12 pickup '+t.id+i+k+' rest '+lead+' against '+tm.off*u);}));
+  for(let i=0;i<300;i++){const q=gen('sightsing',12)(),t=q.target,tu=TUNES.find(x=>x.id===q.sst.id);seen.add(q.key);if(q.key!=='sst-'+q.sst.id+'-'+q.sst.i)sb('L12 key');
+   if(q.prompt.includes(tu.n)||q.label.includes(tu.n)||!q.explain.includes(tu.n))sb('L12 the name is shown too early, or never');
+   if(!q.contour||!q.octaveFree||!q.voice)sb('L12 not graded as a line in any octave');if(q.maxNotes!==slots(t).length)sb('L12 slots');
+   if(!/<svg class="staff score"/.test(q.visual)||/NaN|undefined/.test(q.visual))sb('L12 staff');
+   if(i<80){const s=slots(t);if(!micGrade(q,take(s)).ok)sb('L12 right take fails '+q.key);if(!micGrade(q,take(s.map(m=>m-12))).ok)sb('L12 an octave lower fails');const w=s.slice();w[1]+=1;if(w[1]===w[2])w[1]+=1;if(micGrade(q,take(w)).ok)sb('L12 wrong note passes');
+     if(s.length>2){const f=s.slice();const k=f.findIndex((m,j)=>j&&m!==f[j-1]);for(let j=k;j<f.length;j++)f[j]+=f[k]>f[k-1]?-12:12;if(micGrade(q,take(f)).ok)sb('L12 a leap turned over passes');}}}
+  if(seen.size<30)sb('L12 phrases seen '+seen.size);}
+ /* ---- Sing the Page 13: in time ---- */
+ {if(SS_TOL!==0.3||SS_BPM!==60)sb('L13 constants');let eight=0;for(let i=0;i<300;i++){const q=gen('sightsing',13)(),t=q.target,dur=q.ssr.dur,ton=q.tonicPc;
+   if(q.metro!==60||q.beatTol!==0.3||!q.timeAll||q.freeStart)sb('L13 fields');if(dur.some(d=>![0.5,1,2].includes(d))||Math.abs(dur.reduce((a,b)=>a+b,0)-8)>1e-9)sb('L13 values '+dur);
+   let tt=0;dur.forEach((d,j)=>{if(Math.abs(q.grid[j]-tt)>1e-9)sb('L13 grid');if(d===0.5&&tt%1===0&&dur[j+1]!==0.5)sb('L13 a lone eighth');if(d===2&&tt%2!==0)sb('L13 half note off beats 1 and 3');if(tt<4&&tt+d>4)sb('L13 a note over the bar line');tt+=d;});if(dur.includes(0.5))eight++;
+   if(t.some((m,j)=>j&&m===t[j-1]))sb('L13 repeated note');if(t.some(m=>!MAJ.includes(mod(m-ton,12))))sb('L13 key');if(Math.min(...t)<55||Math.max(...t)>84)sb('L13 range');
+   if(q.ssr.bars.length!==2||scoreCheck(q.ssr.bars,'4/4').length)sb('L13 bars');
+   if(i<80){if(!micGrade(q,timed(q,0)).ok)sb('L13 right take fails');if(!micGrade(q,timed(q,0.2)).ok)sb('L13 a fifth of a beat late fails');if(!micGrade(q,timed(q,-0.25)).ok)sb('L13 a quarter of a beat early fails');if(!micGrade(q,timed(q,0.28)).ok)sb('L13 0.28 of a beat late fails');
+     const late=micGrade(q,timed(q,1));if(late.ok||!late.notesOk)sb('L13 a right line a beat late: ok '+late.ok+' notes '+late.notesOk);
+     const one=micGrade(q,timed(q,0.4,2));if(one.ok||!one.notesOk)sb('L13 one note 0.4 of a beat late passes');if(micGrade(q,timed(q,0.4)).ok)sb('L13 the line 0.4 late passes');
+     const w=timed(q,0);w.notes[1].midi+=1;w.notes[1].mf+=1;if(w.notes[1].midi===t[2])w.notes[1].midi+=1;if(micGrade(q,w).ok)sb('L13 wrong note passes');
+     const up=timed(q,0);up.notes.forEach(n=>{n.midi-=12;n.mf-=12;});if(!micGrade(q,up).ok)sb('L13 an octave lower fails');
+     const cin=timed(q,0);cin.notes.unshift({midi:60+ton,mf:60+ton,t:1500,dur:900});if(!micGrade(q,cin).ok)sb('L13 a tonic hummed in the count-in fails the take');}}
+  if(eight!==300)sb('L13 lines without an eighth pair');}
+ /* other levels keep their time rule: a quarter of a beat, three notes in four */
+ {S.gid='tunes';const q=tunePhraseQ({time:true})();if(q.beatTol!==undefined||q.timeAll)sb('time fields leaked');S.gid='sightsing';}
+ /* ---- intonation ---- */
+ S.gid='sing';
+ {if(MATCH_CENTS!==35||CENTS_STD!==20)sb('cents constants');if(!GBY.sing.levels[15].open||GBY.sing.levels[15].n!=='Match the note')sb('Match the note is not level 16, or not open');
+  if(Math.abs(centsOff(57.3,57)-30)>1e-6||Math.abs(centsOff(68.7,57)+30)>1e-6||Math.abs(centsOff(45,57))>1e-6)sb('centsOff');
+  const one=(m,c)=>({notes:[{midi:Math.round(m+c/100),mf:m+c/100,t:600,dur:1500}],firstAt:600}),pcs=new Set();
+  for(let i=0;i<200;i++){const q=gen('sing',16)(),m=q.target[0];pcs.add(q.key);if(q.key!=='sm-'+mod(m,12)||m<45||m>64||q.cents!==35||!q.voice||!q.octaveFree||q.target.length!==1)sb('match question '+q.key);
+   for(const c of [0,30,-30,34])if(!micGrade(q,one(m,c)).ok)sb('match: '+c+' cents fails');
+   for(const c of [40,-40,36,49]){const r=micGrade(q,one(m,c));if(r.ok||!r.centsOut||Math.abs(r.cents-c)>0.01)sb('match: '+c+' cents passes');}
+   if(!micGrade(q,one(m+12,-30)).ok||!micGrade(q,one(m-12,25)).ok)sb('match: another octave fails');if(micGrade(q,one(m+12,40)).ok)sb('match: 40 cents in another octave passes');
+   if(micGrade(q,one(m+1,0)).ok||micGrade(q,one(m+7,0)).ok)sb('match: a wrong note passes');
+   const sl=micGrade(q,{notes:[{midi:m-2,mf:m-2,t:500,dur:500},{midi:m,mf:m+0.1,t:1100,dur:1500}],firstAt:500});if(!sl.ok||Math.abs(sl.cents-10)>0.01)sb('match: a slide into the note');
+   const fb=micFeedbackExtra(q,micGrade(q,one(m,-40)));if(!/40 cents flat/.test(fb)||!/outside the 35 cents/.test(fb))sb('match feedback: '+fb);if(!/30 cents sharp/.test(micFeedbackExtra(q,micGrade(q,one(m,30)))))sb('match feedback sharp');}
+  if(pcs.size!==12)sb('match: pitch classes '+pcs.size);
+  /* other levels keep the nearest half step: 45 cents flat still passes */
+  {const q=gen('sing',2)(),m=q.target[0];if(q.cents!==undefined||!micGrade(q,one(m,-45)).ok)sb('a degree 45 cents flat fails');}
+  /* the stored value is the mean of the take's cents */
+  {const offs=[10,-20,35,-42,5,0,-15,25];for(let i=0;i<40;i++){const q=gen('sing',7,i%2)(),t=q.target,res={notes:t.map((m,j)=>({midi:m,mf:m+offs[j]/100,t:500+j*900,dur:700})),firstAt:500},r=micGrade(q,res),want=t.map((m,j)=>Math.abs(offs[j])).reduce((a,b)=>a+b,0)/t.length,got=takeCents(q,r);
+    if(!r.ok||got===null||Math.abs(got-want)>0.01)sb('takeCents '+got+' against '+want);
+    const keep=S,g={pl:[]},it={};S={gid:'sing',micResult:r,used:new Set()};let e;try{e=perfLog(g,q,it,true);}finally{S=keep;}if(!e||e.ct===undefined||Math.abs(e.ct-want)>0.051||g.pl.at(-1).ct!==e.ct)sb('the log entry does not keep the cents: '+(e&&e.ct)+' against '+want);
+    const up=micGrade(q,{notes:res.notes.map(n=>({midi:n.midi+12,mf:n.mf+12,t:n.t,dur:n.dur})),firstAt:500});if(Math.abs(takeCents(q,up)-want)>0.01)sb('takeCents in another octave');}
+   /* a two-part take: the sung part only */
+   for(let i=0;i<20;i++){const q=gen('sing',14)(),n=q.parts.n,t=q.target,r=micGrade(q,{notes:t.map((m,j)=>({midi:m,mf:m+(j<n?0.2:0),t:500+j*900,dur:700})),firstAt:500});if(!r.ok||Math.abs(takeCents(q,r)-20)>0.01)sb('takeCents of a two-part take '+takeCents(q,r));}
+   {const q=gen('sing',9)(),m=q.target[0],r=micGrade(q,{notes:[{midi:m,mf:m-0.3,t:500,dur:900,atk:true},{midi:m,mf:m,t:1800,dur:900,atk:true}],firstAt:500});if(r.ok&&Math.abs(takeCents(q,r)-30)>0.01)sb('takeCents of sing-then-play '+takeCents(q,r));}
+   /* a guitar game stores no cents */
+   {const keep=S,q=gen('tunes',1)(),r=micGrade(q,{notes:q.target.map((m,j)=>({midi:m,mf:m+0.2,t:500+j*900,dur:700})),firstAt:500}),g={pl:[]};S={gid:'tunes',micResult:r,used:new Set()};let e;try{e=perfLog(g,q,{},true);}finally{S=keep;}if(e&&e.ct!==undefined)sb('a guitar game stores cents');}}
+  }
+ /* ---- Bass & Top: the top voice is a line ---- */
+ S.gid='outer';
+ {const oN=Piano.note,oC=Piano.chord;let NS=[];const heard=f=>{NS=[];Piano.note=(m,t,d,v)=>NS.push({m,t,v});Piano.chord=()=>{};try{f();}finally{Piano.note=oN;Piano.chord=oC;}return NS.slice().sort((a,b)=>a.t-b.t);};
+  let moved=0,held=0,leapt=0,tensN=0,all=0;
+  for(const name of POP_PROGS.concat(SEV_PROGS,MIN_PROGS))for(const k of (PROG_MINOR.has(name)?OUTER_MKEYS:OUTER_KEYS))for(let i=0;i<25;i++){const chs=outerChords(k,name),minor=PROG_MINOR.has(name),ms=chs.map(c=>c.topM),lp=ms.filter((m,j)=>j&&Math.abs(m-ms[j-1])>2).length;
+    if(lp>1)sb('top voice leaps '+lp+' times in '+name+' '+ms);leapt+=lp;
+    chs.forEach((c,j)=>{all++;const semi=mod(c.topM-c.bass,12),tones=CH[c.q].map(x=>mod(IV[x][1],12)),next=chs.slice(j+1).find(x=>x.deg!==c.deg||x.q!==c.q),tens=topTens(c,next,minor);
+      if(!tones.includes(semi)&&!tens.includes(semi))sb('top note outside its chord: '+name+' '+c.q+' +'+semi);if(!tones.includes(semi))tensN++;if(c.top!==mod(c.topM,12)||c.topM<64||c.topM>79)sb('top pitch '+c.topM);if(c.topLab!==chordToneLab(semi,c.q))sb('top label');
+      if(voiceTop(c.pcs,c.top,c.topM).top!==c.topM)sb('voiceTop moves the top note');if(j){if(c.topM===ms[j-1])held++;else moved++;}
+      if(c.as6&&(c.q!=='maj7'||semi!==0))sb('6 chord without the root on top');if(c.q==='maj7'&&semi===0&&!c.as6)sb('root on a Maj7 not played as a 6');});
+    if(i===0){const got=heard(()=>playOuter(chs,1)).filter(x=>x.v>0.9).map(x=>x.m);if(got.join()!==ms.join())sb('the top line that sounds is not the line: '+got+' / '+ms);}}
+  if(!held||!moved||!leapt||!tensN)sb('top line: held '+held+' moved '+moved+' leaps '+leapt+' tensions '+tensN);if(tensN/all>0.5)sb('top line: too many tensions '+tensN+'/'+all);
+  for(const [L,gi] of [[8,0],[4,0],[4,1],[6,1]])for(let i=0;i<150;i++){const q=gen('outer',L,gi)();if(L===8){if(q.target.filter((m,j)=>j&&Math.abs(m-q.target[j-1])>2).length>1)sb('level 8 target leaps twice');if(q.target.some(m=>m<64||m>79))sb('level 8 range');if(!micGrade(q,{notes:slots(q.target).map((m,j)=>({midi:m,mf:m,t:500+j*900,dur:700})),firstAt:500}).ok)sb('level 8 right take fails');}}
+  /* ---- 11: the bass is not always the root ---- */
+  if(OB_INV.length<8||OB_INV.length+OB_PED.length!==12||new Set(OB_INV.concat(OB_PED).map(p=>p.id)).size!==12)sb('level 11 list');
+  if(OB_INV.some(p=>!p.c.some(c=>c[2]===1||c[2]===2)||p.c.some(c=>typeof c[2]!=='number'))||OB_PED.some(p=>!p.c.some(c=>c[2]==='T'||c[2]==='D')))sb('level 11: a list in the wrong pool');
+  for(const pr of OB_INV.concat(OB_PED))for(const k of OUTER_KEYS){const X=obMake(pr,k),t=pc(P(k));
+    pr.c.forEach((c,j)=>{const ch=X.seq[j],tones=CH[c[1]].map(x=>mod(t+c[0]+IV[x][1],12));if(typeof c[2]==='number'){if(ch.bass!==tones[c[2]])sb('level 11 bass is not the written chord tone '+pr.id);}else if(ch.bass!==mod(t+(c[2]==='T'?0:7),12))sb('level 11 pedal '+pr.id);
+      if(mod(X.bassM[j],12)!==ch.bass)sb('level 11 the bass that sounds');if(X.bassD[j]!==DEG_ORDER[mod(ch.bass-t,12)]||!OB_DEG.includes(X.bassD[j]))sb('level 11 degree '+X.bassD[j]);if(j&&Math.abs(X.bassM[j]-X.bassM[j-1])>6)sb('level 11 bass leap');
+      const tok=X.toks[j],want=typeof c[2]==='number'?bnum(c[0],c[1])+(c[2]?'/'+(c[2]===1?3:5):''):null;if(want!==null&&tok!==want)sb('level 11 token '+tok);if(want===null&&!(tones.includes(ch.bass)?/[/][35]$/.test(tok)||tok===bnum(c[0],c[1]):/ over [15]$/.test(tok)))sb('level 11 pedal token '+tok);
+      const semi=mod(ch.topM-ch.root,12);if(!CH[c[1]].map(x=>mod(IV[x][1],12)).includes(semi)&&!topTens(ch,X.seq.slice(j+1).find(x=>x.deg!==ch.deg||x.q!==ch.q),false).includes(semi))sb('level 11 top note outside its chord');});
+    if(X.seq.map(c=>c.topM).filter((m,j,a)=>j&&Math.abs(m-a[j-1])>2).length>1)sb('level 11 top leaps');}
+  {const ids=[new Set(),new Set()];for(const gi of [0,1])for(let i=0;i<300;i++){const q=gen('outer',11,gi)(),X=q.ob,t=pc(P(X.k));ids[gi].add(q.key);
+    if(q.ui!=='spell'||q.need!==X.seq.length||q.answer.length!==q.need||q.answer.some(a=>!q.tokens.includes(a)))sb('level 11 question');
+    if(gi===0){if(q.tokens.join()!=='1,2,3,4,5,6,7'||q.key!=='oi-'+X.id||q.answer.join()!==X.seq.map(c=>DEG_ORDER[mod(c.bass-t,12)]).join())sb('level 11 degrees');}
+    else{if(q.tokens.join()!=='root,3rd,5th'||q.key!=='oic-'+X.id||q.answer.join()!==X.seq.map(c=>['root','3rd','5th'][CH[c.q].map(x=>mod(c.root+IV[x][1],12)).indexOf(c.bass)]).join()||!q.answer.some(a=>a!=='root'))sb('level 11 chord tones '+q.answer);if(/[/]|over/.test(q.prompt.replace(/<[^>]+>/g,'')))sb('level 11: the second task shows the bass');}
+    if(i<30){const ns=heard(()=>q.audio()),bs=ns.filter(x=>Math.abs(x.v-0.8)<0.01).map(x=>x.m),tp=ns.filter(x=>x.v>0.9).map(x=>x.m);if(bs.map(m=>mod(m,12)).join()!==X.seq.map(c=>c.bass).join()||bs.some(m=>m>55))sb('level 11: the bass that is played '+bs);if(tp.join()!==X.seq.map(c=>c.topM).join())sb('level 11: the top that is played');}}
+   if(ids[0].size!==12||ids[1].size!==OB_INV.length)sb('level 11 items '+ids[0].size+' '+ids[1].size);}
+  /* ---- 12: how the two lines move ---- */
+  {const fix=[[48,76,53,72,'contrary'],[48,76,45,76,'oblique'],[48,72,48,74,'oblique'],[48,64,50,65,'parallel'],[53,69,55,71,'parallel'],[48,72,55,74,'similar'],[48,64,50,67,'similar'],[55,74,48,72,'similar'],[50,65,48,64,'parallel'],[53,72,48,76,'contrary']];
+   fix.forEach(f=>{if(motionOf(f[0],f[1],f[2],f[3],0)!==f[4])sb('motionOf '+f);});if(motionOf(48,64,48,64,0)!==null)sb('motionOf: nothing moves');
+   const cnt={},steps=(lo,hi,t)=>{let n=0;for(let m=lo+1;m<=hi;m++)if(MAJ.includes(mod(m-t,12)))n++;return n;};
+   for(let i=0;i<600;i++){const q=gen('outer',12)(),o=q.om,t=pc(P(o.k)),b=o.b,tp=o.tp,db=b[1]-b[0],dt=tp[1]-tp[0];cnt[q.answer]=(cnt[q.answer]||0)+1;
+    const want=(!db||!dt)?'oblique':Math.sign(db)!==Math.sign(dt)?'contrary':steps(b[0],tp[0],t)===steps(b[1],tp[1],t)?'parallel':'similar';
+    if(!db&&!dt)sb('level 12: nothing moves');if(q.answer!==want)sb('level 12 motion '+q.answer+' / '+want+' '+b+' '+tp);if(q.choices.join()!=='contrary,similar,parallel,oblique'||q.key.indexOf('om-'+q.answer+'-')!==0)sb('level 12 row or key');
+    o.chs.forEach((c,j)=>{if(mod(b[j],12)!==c.bass||!c.pcs.includes(c.bass)||!c.pcs.includes(mod(tp[j],12))||c.topM!==tp[j])sb('level 12 chord');if(b[j]<36||b[j]>55||tp[j]<64||tp[j]>79)sb('level 12 range');if(c.pcs.some(p=>!MAJ.includes(mod(p-t,12))))sb('level 12 chord outside the key');});
+    if(q.answer==='parallel'&&![2,5].includes(mod(steps(b[0],tp[0],t),7)))sb('level 12 parallel motion that is not 3rds, 6ths or 10ths');
+    if(!new RegExp('<b>'+q.answer+'</b>').test(q.explain))sb('level 12 explanation');
+    if(i<40){const ns=heard(()=>q.audio()),bs=ns.filter(x=>Math.abs(x.v-0.8)<0.01).map(x=>x.m),top=ns.filter(x=>x.v>0.9).map(x=>x.m);if(bs.join()!==b.join()||top.join()!==tp.join())sb('level 12: what sounds is not what is graded '+bs+' '+top);}}
+   if(['contrary','similar','parallel','oblique'].some(k=>!(cnt[k]>60)))sb('level 12 answers '+JSON.stringify(cnt));}}
+ /* ---- goals, notes ---- */
+ {const st=GOALS.B.stages[4].steps.map(x=>x.join()),mo=GOALS.B.more.map(x=>x.slice(0,3).join());if(!st.includes('outer,9,12'))sb('goal B: Bass & Top 9 to 12');if(!mo.includes('sightsing,1,13')||mo.includes('sightsing,1,9'))sb('goal B appendix: Sing the Page 1 to 13');
+  if(!/levels 11 and 12/.test(GOAL_WHY.B.steps['outer:9'][1]))sb('the reason of outer:9 was not extended');
+  for(const [g,from,to] of [['sightsing',10,13],['sing',16,16],['outer',11,12]])for(let L=from;L<=to;L++){const n=LEVEL_NOTES[g][L-1];if(!n||!(n.k||n.a))sb('level note '+g+' '+L);}
+  for(const [g,L] of [['sightsing',10],['sightsing',11],['sightsing',12],['sightsing',13],['sing',16]])if(!/real voice/.test(JSON.stringify(LEVEL_NOTES[g][L-1])))sb('the note of '+g+' '+L+' does not say it is untested with a voice');
+  for(const [g,hs] of [['sightsing',['Wider skips: inside IV and V7','Four bars','Tunes from the page','In time']],['sing',['In tune: cents, and Match the note']],['outer',['The bass is not always the root']]])hs.forEach(h=>{if(!LESSON_NOTES[g].some(c=>c.h===h))sb('chapter missing: '+h);});}
+ S.gid='fretboard';}
+/*E4SW_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

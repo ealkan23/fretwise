@@ -310,7 +310,7 @@ svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
 .nb-dot{fill:#1c1a22}.nb-t{fill:#fff;font-weight:700;font-family:var(--f-body);text-anchor:middle}.nb-open{fill:#fbfaf4;stroke:#1c1a22;stroke-width:1.6}.nb-ot{fill:#1c1a22;font-weight:700;font-family:var(--f-body);text-anchor:middle}
 .nn-wood{fill:#efe6d0}.nn-fret{stroke:#9a927f;stroke-width:1.6}.nn-nut{stroke:#15131a;stroke-width:5}.nn-str{stroke:#5d5868}.nn-inlay{fill:#d6cbb0}.nn-lab,.nn-num{fill:#55505f;font:600 11px var(--f-body);text-anchor:middle}
 .nn-dot{fill:#1c1a22}.nn-root{fill:#c2831a}.nn-hl{fill:#2f6fd6}.nn-t{fill:#fff;font-weight:700;font-family:var(--f-body);text-anchor:middle}
-.nfstaff .st-head{stroke-width:2.6}.ns-lab{fill:#15131a;font:600 12px var(--f-body);text-anchor:middle}
+.nfstaff .st-head{stroke-width:2.6}.ns-lab{fill:#15131a;font:600 12px var(--f-body);text-anchor:middle}.ns-up{font-weight:700;font-size:13.5px;text-anchor:start}.nn-title{font:700 13.5px var(--f-body);fill:#15131a;text-anchor:middle}
 .nc-ring{fill:none;stroke:#b9b3a3;stroke-width:1.5}.nc-maj{fill:#1c1a22}.nc-min{fill:#5c5866}.nc-dim{fill:#fbfaf4;stroke:#5c5866;stroke-width:1.4}.nc-maj-t,.nc-min-t{fill:#fff;font-weight:700;font-family:var(--f-body);text-anchor:middle}.nc-dim-t{fill:#1c1a22;font-weight:700;font-family:var(--f-body);text-anchor:middle}
 .nc-sig{fill:#55505f;font:600 12px var(--f-body);text-anchor:middle}.nc-fs{font:700 9px var(--f-body);letter-spacing:.14em;fill:#55505f;text-anchor:middle}.nc-off{opacity:.25}.nc-on{fill:#c2831a;stroke:none}.nc-num{fill:#fff;font-weight:800;font-family:var(--f-body);text-anchor:middle}
 .nft{width:auto;border-collapse:collapse;font-size:14px;line-height:1.4}.nft th,.nft td{border:1px solid var(--line);padding:5px 11px;text-align:left;vertical-align:top}.nft th{background:rgba(255,255,255,.06);font-size:12.5px;letter-spacing:.03em}
@@ -5815,10 +5815,10 @@ const GAMES=[
   {n:'Bends in the key',d:'Whole-step bends named by what they do: 4 up to 5, ♭7 up to the root, 2 up to the major 3rd, 5 up to 6, ♭3 up to 4; then with only the chord heard first',g:[bendDegQ(['w45','w71']),bendDegQ(['w45','w71','w23','w56','b34']),bendDegQ(['w45','w71','w23','w56','b34'],{cue:false})]},
   {n:'The blue notes',d:'4 up to the ♭5, the curl on the ♭3; then bend and release, a bend held with vibrato and the ♭3 bent a half step to the major 3rd, all aimed at notes of the key; then with only the chord heard first',g:[bendDegQ(['h4b5','c3']),bendDegQ(['r45','v71','h4b5','c3','b33']),bendDegQ(['r45','v71','h4b5','c3','b33'],{cue:false})]}]},
  {id:'arp',cat:'neck',mic:true,name:'Arpeggio Runner',area:'Chord tones · guitar',desc:'Play the arpeggio of a named chord inside one position; every note is checked, then in time with a click, then the whole position from the root, then through II–V (V7 down from its 3rd, a half step under the last note) and II–V–I; connect the arpeggios in your own line by going to the nearest note at every change; the turn around a chord tone (the note above, the tone, the half step below, the tone) and the enclosure (the note above and the note below, then the target), plain and chromatic; the bebop dominant run, and outlines: fixed eighth-note lines through II–V–I in which each 7th steps down to the next 3rd, in major and minor.',levels:[
-  {n:'Root position',d:'maj7 · m7 · 7, then m7♭5 and dim7: ascending from the root',g:[arpTask(['maj7','m7','7'],[0],4,false,false),arpTask(['maj7','m7','7','m7♭5','dim7'],[0],4,false,false)]},
+  {n:'Root position',d:'Maj7 · m7 · 7, then m7♭5 and dim7: ascending from the root',g:[arpTask(['maj7','m7','7'],[0],4,false,false),arpTask(['maj7','m7','7','m7♭5','dim7'],[0],4,false,false)]},
   {n:'From any chord tone, up and down',d:'Start on the 3rd, 5th or 7th; then seven notes, there and back',g:[arpTask(['maj7','m7','7','m7♭5'],[1,2,3],4,false,false),arpTask(['maj7','m7','7','m7♭5'],[0,1,2,3],4,true,false)]},
   {n:'In time',d:'With a click: one note per beat after a count-in; then m7♭5 and dim7 as well',g:[arpTask(['maj7','m7','7'],[0,1,2],4,false,true),arpTask(['maj7','m7','7','m7♭5','dim7'],[0,1,2],4,false,true)]},
-  {n:'The whole position',d:'One chord in five frets: every chord tone the window holds, from the lowest root up to the top, down to the bottom and back to the root. Quarter notes on maj7, m7 and 7; then m7♭5 and dim7 too; then eighth notes',g:[arpPosQ({quals:['maj7','m7','7']}),arpPosQ({quals:['maj7','m7','7','m7♭5','dim7']}),arpPosQ({quals:['maj7','m7','7','m7♭5','dim7'],div:2})]},
+  {n:'The whole position',d:'One chord in five frets: every chord tone the window holds, from the lowest root up to the top, down to the bottom and back to the root. Quarter notes on Maj7, m7 and 7; then m7♭5 and dim7 too; then eighth notes',g:[arpPosQ({quals:['maj7','m7','7']}),arpPosQ({quals:['maj7','m7','7','m7♭5','dim7']}),arpPosQ({quals:['maj7','m7','7','m7♭5','dim7'],div:2})]},
   {n:'II–V and II–V–I',d:'IIm7 up, then V7 down from its 3rd, a half step under the last note; then the three arpeggios of the cadence in one position, in time',g:[arpTask(['m7'],[0],4,false,true,true),arpIIVIQ()]},
   {n:'Connect the triads',d:'Dm | G | C in your own line, one note a beat: chord tones only, and at every new chord its nearest note, above or below. C first, then other keys',g:[connectQ(CON.tri,{keys:['C']}),connectQ(CON.tri)]},
   {n:'Connect the sevenths',d:'Dm7 | G7 | CMaj7, then the minor cadence Dm7♭5 | G7 | Cm6, by the same rules: a fourth note gives smaller steps at the join',g:[connectQ(CON.sev,{keys:['C']}),connectQ(CON.min,{keys:['C']}),connectQ(CON.sev),connectQ(CON.min)]},
@@ -6287,6 +6287,15 @@ const G=id=>{if(id==='sightread'&&!(((STORE.games.sight||{}).mig||{}).sr1))G('si
     if(g.opts&&g.opts.bpmL)g.opts.bpmL=sh(g.opts.bpmL);if(g.altN)g.altN=sh(g.altN);if(g.unl0)g.unl0=[...new Set(g.unl0.map(mp))].sort((a,b)=>a-b);migrateReorder(id,g,R27,'r53');
     const F=mp(was);if(g.lvl>F){const top=g.lvl;g.lvl=F;g.unl=[...new Set([...(g.unl||[]),...Array.from({length:top-F},(_,i)=>F+1+i)])].sort((a,b)=>a-b);}
     g.skip=[...new Set([...os.map(mp),...R27.nw.filter(L=>L<g.lvl)])].sort((a,b)=>a-b);saveLocal();}
+  /* fb1 (24 Nov 2026, user: Hear the Degree stood at level 5 with levels 2 to 4 never played): until 9 Nov a rule moved the frontier past a level the current
+     input could not ask and wrote the levels it passed into g.skip. The rule went; frontiers it had moved stayed. Once per game: when the lowest level in g.skip
+     that is not passed by its own record has nothing played above it, the frontier goes back to it. A frontier that has answers on it, or above an inserted
+     level (the reorders), is left alone. No answer is touched. */
+  if(!(g.mig&&g.mig.fb1)){const sk=(g.skip||[]).slice().sort((a,b)=>a-b),own=L=>{const h=(g.hist||{})[L]||[];return h.length>=NEED&&h.reduce((x,y)=>x+y,0)/h.length>=PASS;},
+      played=L=>{const c=(g.lc||{})[L];return !!(c&&((c.s||0)+(c.g||0))>0)||((g.hist||{})[L]||[]).length>0||Object.values(g.items||{}).some(i=>i.lv===L&&i.n>0);},F0=sk.find(L=>L<g.lvl&&!own(L));
+    if(F0!==undefined&&GBY[id]){let any=false;for(let L=F0+1;L<=GBY[id].levels.length;L++)if(played(L)){any=true;break;}
+      if(!any){g.lvl=F0;g.skip=sk.filter(L=>L<F0);if(g.unl)g.unl=g.unl.filter(L=>L>g.lvl);if((g.last||1)>g.lvl)g.last=g.lvl;}}
+    g.mig={...(g.mig||{}),fb1:1};saveLocal();}
   if(PL_REC[id]&&!(g.mig&&g.mig.pr1)){plRecover(id,g);g.mig={...(g.mig||{}),pr1:1};saveLocal();}
   if(id==='fretboard'&&!(g.mig&&g.mig.hm1)){mergeHunt(g);g.mig={...(g.mig||{}),hm1:1};saveLocal();}
   if(id==='eariv'&&g.mig&&g.mig.r31&&!g.mig.lc31){countBackfill(id,g);g.mig={...g.mig,lc31:1};saveLocal();}   /* r31 shifted the levels but not the per-level answer counts: rebuild them from the (shifted) rounds */
@@ -7081,10 +7090,10 @@ const NF={err:[],
  grips(list){return `<div class="nfrow">${list.map(g=>NF.grip(...g)).join('')}</div>`;},
  /* two or three figures side by side stay on one line and shrink together: their captions say “Left”, “Right”, “Centre” (19 Nov 2026) */
  row(...h){return `<div class="nfrow${h.length<=3?' nfpair':''}">${h.join('')}</div>`;},
- /* a stretch of neck with chosen spots. spec: 'string/fret=label' tokens; a trailing * = root colour, ! = highlight. '6/8=C* 5/7=E 4/5=G!' */
+ /* a stretch of neck with chosen spots. spec: 'string/fret=label' tokens; a trailing * = root colour, ! = highlight. '6/8=C* 5/7=E 4/5=G!'. o.title (24 Nov 2026): a title above the diagram, so every diagram of a row can carry its own name; also taken by NF.scale and NF.where */
  neck(spec,o={}){const D=(Array.isArray(spec)?spec:String(spec).trim().split(/\s+/)).map(t=>{const m=/^([1-6])\/(\d+)(?:=([^!*]*))?([!*]*)$/.exec(t);if(!m){NF.err.push('neck token '+t);return null;}return {s:+m[1],f:+m[2],t:m[3]||'',cls:m[4].includes('*')?'nn-root':m[4].includes('!')?'nn-hl':'nn-dot'};}).filter(Boolean);return NF.neckSVG(D,o);},
- neckSVG(D,o={}){if(!D.length)return NF.bad('empty neck');const fs=D.map(d=>d.f).filter(f=>f>0),mn=fs.length?Math.min(...fs):1,mx=fs.length?Math.max(...fs):4,lo=Math.max(1,o.lo!=null?o.lo:mn),hi=Math.max(o.hi!=null?o.hi:mx,lo+3),nf=hi-lo+1,FW=nf>13?34:nf>9?40:48,X0=46,Y0=20,SY=24,W=X0+nf*FW+14,H=Y0+5*SY+34,x=f=>f===0?X0-15:X0+(f-lo+.5)*FW,y=s=>Y0+(s-1)*SY,ON=['','e','B','G','D','A','E'];
-  let h=`<svg class="nfneck" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${nfEsc(o.label||'Fretboard diagram, string 1 on top')}"><rect class="nn-wood" x="${X0}" y="${Y0-8}" width="${nf*FW}" height="${5*SY+16}"/>`;
+ neckSVG(D,o={}){if(!D.length)return NF.bad('empty neck');const fs=D.map(d=>d.f).filter(f=>f>0),mn=fs.length?Math.min(...fs):1,mx=fs.length?Math.max(...fs):4,lo=Math.max(1,o.lo!=null?o.lo:mn),hi=Math.max(o.hi!=null?o.hi:mx,lo+3),nf=hi-lo+1,FW=nf>13?34:nf>9?40:48,X0=46,Y0=o.title?42:20,SY=24,W=X0+nf*FW+14,H=Y0+5*SY+34,x=f=>f===0?X0-15:X0+(f-lo+.5)*FW,y=s=>Y0+(s-1)*SY,ON=['','e','B','G','D','A','E'];
+  let h=`<svg class="nfneck" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${nfEsc(o.label||'Fretboard diagram, string 1 on top')}">${o.title?`<text class="nn-title" x="${X0+nf*FW/2}" y="16">${nfEsc(o.title)}</text>`:''}<rect class="nn-wood" x="${X0}" y="${Y0-8}" width="${nf*FW}" height="${5*SY+16}"/>`;
   [3,5,7,9,15,17].forEach(f=>{if(f>=lo&&f<=hi)h+=`<circle class="nn-inlay" cx="${x(f)}" cy="${Y0+2.5*SY}" r="4.5"/>`;});if(12>=lo&&12<=hi)h+=`<circle class="nn-inlay" cx="${x(12)}" cy="${Y0+1.5*SY}" r="4.5"/><circle class="nn-inlay" cx="${x(12)}" cy="${Y0+3.5*SY}" r="4.5"/>`;
   for(let i=0;i<=nf;i++)h+=`<line class="${i===0&&lo===1?'nn-nut':'nn-fret'}" x1="${X0+i*FW}" x2="${X0+i*FW}" y1="${Y0-8}" y2="${Y0+5*SY+8}"/>`;
   for(let s=1;s<=6;s++)h+=`<line class="nn-str" x1="${X0}" x2="${X0+nf*FW}" y1="${y(s)}" y2="${y(s)}" style="stroke-width:${0.9+s*0.22}"/><text class="nn-lab" x="9" y="${y(s)+4}">${ON[s]}</text>`;
@@ -7095,20 +7104,20 @@ const NF={err:[],
  scale(root,formula,lo,hi,o={}){const R0=P(root),rp=pc(R0),degs=String(formula).trim().split(/\s+/).map(NF.lab),hl=o.hl?String(o.hl).trim().split(/\s+/).map(NF.lab):[],D=[];degs.concat(hl).forEach(d=>{if(NF_SEMI[d]==null)NF.err.push('scale degree '+d);});
   for(const s of (o.strings||[1,2,3,4,5,6]))for(let f=lo;f<=hi;f++){const v=mod(OPEN[s]+f-rp,12),d=degs.find(z=>NF_SEMI[z]===v);if(!d)continue;const num=d==='R'?1:((+(d.match(/\d+/)||[1])[0]-1)%7)+1;
     D.push({s,f,t:o.names?nm(tr(R0,num,v)):d,cls:v===0?'nn-root':hl.includes(d)?'nn-hl':'nn-dot'});}
-  return NF.neckSVG(D,{lo:Math.max(1,lo),hi,label:`${root}: ${formula} on the neck`});},
+  return NF.neckSVG(D,{lo:Math.max(1,lo),hi,label:`${root}: ${formula} on the neck`,title:o.title});},
  /* every place of some notes between two frets: NF.where('C',0,12) or NF.where('C E G',0,5,{root:1}) */
  where(notes,lo,hi,o={}){const N=String(notes).trim().split(/\s+/).map(n=>({n:nm(P(n)),p:pc(P(n))})),D=[];for(let s=1;s<=6;s++)for(let f=lo;f<=hi;f++){const k=N.findIndex(z=>z.p===mod(OPEN[s]+f,12));if(k<0||(o.strings&&!o.strings.includes(s)))continue;D.push({s,f,t:N[k].n,cls:o.root&&k===0?'nn-root':'nn-dot'});}
-  return NF.neckSVG(D,{lo:Math.max(1,lo),hi,label:`${notes} on the neck`});},
- /* notes on the treble staff, as written for guitar (sounding an octave lower). spec: 'C4 E4 G4 | C4+E4+G4=C', a token is a note or notes joined by + (a chord), '=text' puts a label under it, | is a bar line. o.ks: key signature, sharps > 0, flats < 0 */
+  return NF.neckSVG(D,{lo:Math.max(1,lo),hi,label:`${notes} on the neck`,title:o.title});},
+ /* notes on the treble staff, as written for guitar (sounding an octave lower). spec: 'C4 E4 G4 | C4+E4+G4=C', a token is a note or notes joined by + (a chord), '=text' puts a label under it, '^text' before it a chord symbol above the staff from that note on ('D4^Dm7=R', 24 Nov 2026), | is a bar line. o.ks: key signature, sharps > 0, flats < 0 */
  staff(spec,o={}){const S=7,BL=104,y=s=>BL-s*S,ks=o.ks||0,KW=ks?Math.abs(ks)*12+10:0,GAP=o.gap||50,X0=84+KW,inKs=l=>ks>0?[3,0,4,1,5,2,6].slice(0,ks).includes(l)?1:0:ks<0?[6,2,5,1,4,0,3].slice(0,-ks).includes(l)?-1:0:0;let x=X0;const it=[];
-  String(spec).trim().split(/\s+/).forEach(t=>{if(t==='|'){it.push({bar:x-GAP/2+2});x+=12;return;}const q=t.indexOf('='),body=q<0?t:t.slice(0,q),lab=q<0?'':t.slice(q+1).replace(/_/g,' '),ns=body.split('+').map(n=>{const m=/^([A-G])([#b♯♭]*)(\d)$/.exec(n);if(!m){NF.err.push('staff note '+n);return null;}const l=LET.indexOf(m[1]),a=[...m[2]].reduce((z,c)=>z+(c==='#'||c==='♯'?1:-1),0);return {step:l+7*(+m[3])-30,a,l};}).filter(Boolean).sort((p,q)=>p.step-q.step);if(ns.length){it.push({x,ns,lab});x+=GAP;}});
-  const all=it.flatMap(i=>i.ns||[]);if(!all.length)return NF.bad('empty staff');const lo=Math.min(0,...all.map(n=>n.step)),hi=Math.max(8,...all.map(n=>n.step)),hasLab=it.some(i=>i.lab),top=y(hi)-16,bot=y(lo)+(hasLab?34:16),W=x-GAP/2+18;
+  String(spec).trim().split(/\s+/).forEach(t=>{if(t==='|'){it.push({bar:x-GAP/2+2});x+=12;return;}const q=t.indexOf('='),b0=q<0?t:t.slice(0,q),c=b0.indexOf('^'),body=c<0?b0:b0.slice(0,c),up=c<0?'':b0.slice(c+1).replace(/_/g,' '),lab=q<0?'':t.slice(q+1).replace(/_/g,' '),ns=body.split('+').map(n=>{const m=/^([A-G])([#b♯♭]*)(\d)$/.exec(n);if(!m){NF.err.push('staff note '+n);return null;}const l=LET.indexOf(m[1]),a=[...m[2]].reduce((z,c)=>z+(c==='#'||c==='♯'?1:-1),0);return {step:l+7*(+m[3])-30,a,l};}).filter(Boolean).sort((p,q)=>p.step-q.step);if(ns.length){it.push({x,ns,lab,up});x+=GAP;}});
+  const all=it.flatMap(i=>i.ns||[]);if(!all.length)return NF.bad('empty staff');const lo=Math.min(0,...all.map(n=>n.step)),hi=Math.max(8,...all.map(n=>n.step)),hasLab=it.some(i=>i.lab),hasUp=it.some(i=>i.up),top=y(hi)-16-(hasUp?22:0),bot=y(lo)+(hasLab?34:16),W=x-GAP/2+18;
   let h=`<svg class="nfstaff" viewBox="0 ${top} ${W} ${bot-top}" width="${W}" height="${bot-top}" role="img" aria-label="${nfEsc(o.label||'Notes on the treble staff')}">`;for(let i=0;i<5;i++)h+=`<line class="st-line" x1="6" x2="${W-6}" y1="${y(i*2)}" y2="${y(i*2)}"/>`;
   h+=`<text class="st-glyph" x="10" y="${y(2)}" font-size="56">𝄞</text>`;if(ks){const pos=ks>0?SH_POS:FL_POS;for(let i=0;i<Math.abs(ks);i++)h+=accSVG(ks>0?'♯':'♭',64+i*12,y(pos[i]));}
   it.forEach(i=>{if(i.bar!=null){h+=`<line class="st-line" x1="${i.bar}" x2="${i.bar}" y1="${y(8)}" y2="${y(0)}"/>`;return;}const mn=i.ns[0].step,mx=i.ns.at(-1).step;for(let s=-2;s>=mn;s-=2)h+=`<line class="st-line" x1="${i.x-15}" x2="${i.x+15}" y1="${y(s)}" y2="${y(s)}"/>`;for(let s=10;s<=mx;s+=2)h+=`<line class="st-line" x1="${i.x-15}" x2="${i.x+15}" y1="${y(s)}" y2="${y(s)}"/>`;
     let shift=false,ax=0;i.ns.forEach((n,k)=>{shift=k>0&&n.step-i.ns[k-1].step===1&&!shift;const nx=i.x+(shift?14:0),d=n.a-inKs(n.l);if(d){const g=n.a===1?'♯':n.a===-1?'♭':n.a===0?'♮':null;if(!g)NF.err.push('staff: double accidental');else{h+=g==='♮'?`<g class="st-acc"><line x1="${i.x-24-ax}" x2="${i.x-24-ax}" y1="${y(n.step)-11}" y2="${y(n.step)+5}"/><line x1="${i.x-19-ax}" x2="${i.x-19-ax}" y1="${y(n.step)-5}" y2="${y(n.step)+11}"/><line class="bar" x1="${i.x-24-ax}" x2="${i.x-19-ax}" y1="${y(n.step)-3}" y2="${y(n.step)-5}"/><line class="bar" x1="${i.x-24-ax}" x2="${i.x-19-ax}" y1="${y(n.step)+5}" y2="${y(n.step)+3}"/></g>`:accSVG(g,i.x-21-ax,y(n.step));ax=ax?0:11;}}
       h+=`<ellipse class="st-head" cx="${nx}" cy="${y(n.step)}" rx="7.6" ry="5" transform="rotate(-22 ${nx} ${y(n.step)})"/>`;});
-    if(i.lab)h+=`<text class="ns-lab" x="${i.x}" y="${bot-8}">${nfEsc(i.lab)}</text>`;});
+    if(i.lab)h+=`<text class="ns-lab" x="${i.x}" y="${bot-8}">${nfEsc(i.lab)}</text>`;if(i.up)h+=`<text class="ns-lab ns-up" x="${i.x-9}" y="${top+15}">${nfEsc(i.up)}</text>`;});
   return h+'</svg>';},
  /* rhythm notation from the app's cells: NF.rhy('q ee qe | trip q h'), a bar per |; o.meter (beats a bar), o.ts ('6/8'), o.swing, o.noTup */
  rhy(spec,o={}){const M=o.meter||4,bars=String(spec).split('|').map(b=>b.trim()).filter(Boolean),ev=[];let tup=0;bars.forEach((b,bi)=>{let t=0;b.split(/\s+/).forEach(c=>{const C=RCELL[c];if(!C){NF.err.push('rhythm cell '+c);return;}C.ev.forEach(e=>{const z={...e,t:bi*M+t+e.t};if(e.tup)z.tup=tup+1;ev.push(z);});if(C.ev.some(e=>e.tup))tup++;t+=C.b;});if(Math.abs(t-M)>1e-6)NF.err.push(`rhythm bar “${b}” has ${t} beats, not ${M}`);});
@@ -9078,161 +9087,532 @@ LESSON_NOTES.analysis=[
    {sub:'The pedal point'},
    `A pedal is a bass note held under changing chords, most often the tonic or the dominant of the key. Analyse the chords above it as usual and name the pedal: "over a V pedal". The bass note does not make each chord an inversion. It is heard and written in Bass & Top (level ${1+GBY_LV('outer','The bass is not always the root')}).`]}
 ];
-LESSON_NOTES.arp=[
- {h:'What an arpeggio is',p:[
-   'An arpeggio is a chord played one note at a time. A seventh chord has four notes, the root, 3rd, 5th and 7th, so its arpeggio is those four in order, then the root again an octave higher.',
-   'A scale tells you which notes are available over a chord. The arpeggio tells you which of them <b>are</b> the chord. A line that lands on arpeggio notes spells the harmony even with no accompaniment; a line that only runs the scale does not. That is why arpeggios in every position are the first vocabulary of playing over changes.',
-   {tbl:[['Chord','Symbol','Formula','From C'],[['Major 7th','Cmaj7','1 3 5 7','C E G B'],['Dominant 7th','C7','1 3 5 ♭7','C E G B♭'],['Minor 7th','Cm7','1 ♭3 5 ♭7','C E♭ G B♭'],['Half-diminished','Cm7♭5','1 ♭3 ♭5 ♭7','C E♭ G♭ B♭'],['Diminished 7th','C°7 or Cdim7','1 ♭3 ♭5 𝄫7','C E♭ G♭ B𝄫 (the fret of A)'],['Minor 6th','Cm6',CH.m6.map(x=>DEG[x]).join(' '),chord(P('C'),'m6').map(nm).join(' ')]]],cap:'The five seventh chords of the game, and the minor 6th chord, the I of the minor cadence in the connect levels. Each seventh chord differs from the one above by one note lowered a half step. Their spelling in every key is taught in the notes of Chord Spelling.'},
-   {fig:()=>NF.staff('C4=Cmaj7 E4 G4 B4 | C4=C7 E4 G4 Bb4 | C4=Cm7 Eb4 G4 Bb4 | C4=Cm7♭5 Eb4 Gb4 Bb4 | B3=B°7 D4 F4 Ab4',{gap:42}),cap:'Four arpeggios on C, and the diminished 7th on B, where it needs no double flat: B D F A♭. Seventh chords in root position are four neighbouring lines or four neighbouring spaces.'}]},
- {h:'One octave from the root',p:[
-   'Start with the smallest complete shape: root, 3rd, 5th, 7th and the octave, in one hand position. From a root on string 5 or string 6 the five qualities are the same five shapes.',
-   {fig:()=>NF.row(NF.neck('5/3=R* 4/2=3 4/5=5 3/4=7 3/5=R*',{lo:2,hi:6}),NF.neck('5/3=R* 4/2=3 4/5=5 3/3=♭7 3/5=R*',{lo:2,hi:6}),NF.neck('5/3=R* 5/6=♭3 4/5=5 3/3=♭7 3/5=R*',{lo:2,hi:6}),NF.neck('5/3=R* 5/6=♭3 4/4=♭5 3/3=♭7 3/5=R*',{lo:2,hi:6}),NF.neck('5/3=R* 5/6=♭3 4/4=♭5 3/2=°7 3/5=R*',{lo:2,hi:6})),cap:'From C on string 5, in order: Cmaj7, C7, Cm7, Cm7♭5, C°7. One note drops a half step each time: the 7th, then the 3rd (drawn on the root’s string), then the 5th, then the 7th again.'},
-   {fig:()=>NF.row(NF.neck('6/8=R* 5/7=3 5/10=5 4/9=7 4/10=R*',{lo:7,hi:11}),NF.neck('6/8=R* 5/7=3 5/10=5 4/8=♭7 4/10=R*',{lo:7,hi:11}),NF.neck('6/8=R* 6/11=♭3 5/10=5 4/8=♭7 4/10=R*',{lo:7,hi:11}),NF.neck('6/8=R* 6/11=♭3 5/9=♭5 4/8=♭7 4/10=R*',{lo:7,hi:11}),NF.neck('6/8=R* 6/11=♭3 5/9=♭5 4/7=°7 4/10=R*',{lo:7,hi:11})),cap:'The same five from C on string 6. The shapes are identical to those from string 5, because strings 6, 5 and 4 are tuned like strings 5, 4 and 3.'},
-   ['The minor 3rd can be played three frets up on the root’s string, as drawn, or on the next string two frets back. Learn both; the position decides.',
-    'Say the degree aloud on every note: “root, three, five, seven”. The aim is to know what each note is, not to run a pattern.',
-    'Play up and straight back down: 1 3 5 7 5 3 1. The way down is a separate skill for the picking hand.'],
-   {tip:'Practise the five qualities in a row from one root without stopping: maj7, 7, m7, m7♭5, dim7. Only one finger changes each time, so you hear exactly what each lowered note does to the sound. Then start from the diminished and go back up.'}]},
- {h:'The whole position',p:[
-   'The game asks for arpeggios inside one position: a span of five frets, shaded on the neck, in which you find every chord tone on all six strings. A position holds about two octaves of the arpeggio. The exact pitches are checked, in order, so the octave counts.',
-   {fig:()=>NF.row(NF.scale('C','1 3 5 7',7,11),NF.scale('C','1 3 5 b7',7,11),NF.scale('C','1 b3 5 b7',7,11)),cap:'Cmaj7, C7 and Cm7 between frets 7 and 11. Gold is the root. Read each one from the lowest note to the highest: that is the full arpeggio in this position.'},
-   {fig:()=>NF.row(NF.scale('C','1 b3 b5 b7',7,11),NF.scale('C','1 b3 b5 °7',7,11)),cap:'Cm7♭5 and C°7 in the same frets. The diminished 7th is all minor 3rds, so its pattern repeats every three frets and on every string pair.'},
+/* Arpeggio Runner's full notes (24 Nov 2026, brief .claude/arp-notes-brief.md): a text on arpeggios for guitarists that says, at the end of every chapter, which levels practise it.
+   Everything a figure or a table shows is computed here from the music core and the game's own line builders; nothing is typed. Helpers:
+   XQ/QS/sy/sem/form/spn (a chord: its formula, symbol and spelling) · dotOf/shape/oct1 (a fixed fingering: [string, chord tone, octave], the fret follows from the pitch) ·
+   posDots/posMap (every chord tone between two frets) · neckT/cmpFig (titled diagrams; a comparison row carries its dots in `cmp` for the sweep) · tok/stf (a staff token from a
+   sounding pitch, written an octave higher) · ig (the “In the games” line, level names read from GAMES) · lineOf/guideLine/formWork (a form worked through). */
+LESSON_NOTES.arp=(()=>{
+ const XQ=Object.assign({},CH,{'maj7♯5':['P1','M3','A5','M7'],'maj13♯11':['P1','M3','P5','M7','9','#11','13']});
+ const QS={maj7:'Maj7','7':'7',m7:'m7','m7♭5':'m7♭5',dim7:'°7','m(maj7)':'m(Maj7)','6':'6',m6:'m6','maj7♯5':'Maj7♯5','7sus4':'7sus4','':'',m:'m',dim:'°',aug:'+','9':'9',maj9:'Maj9',m9:'m9','11':'11',m11:'m11','13':'13','13(no 11)':'13','7♭9':'7♭9','maj13♯11':'Maj13♯11'};
+ const ERR=[],bad=m=>{ERR.push(m);NF.err.push('arp notes: '+m);return '?';};   /* a fault found while the text is built: kept in LESSON_NOTES.arp.err, which the sweep reads */
+ const sy=(r,q)=>nm(P(r))+(QS[q]!=null?QS[q]:bad('no symbol for '+q));
+ const sem=q=>XQ[q].map(k=>IV[k][1]);                       /* half steps above the root */
+ const dl=k=>k==='P1'?'R':DEG[k];                           /* the label in a dot */
+ const form=q=>XQ[q].map(k=>DEG[k]).join(' ');              /* '1 3 5 ♭7' */
+ const sp=(r,q)=>XQ[q].map(k=>tr(P(r),...IV[k]));           /* the notes, spelled */
+ const spn=(r,q)=>sp(r,q).map(nm).join(' ');
+ const same=(a,b)=>{const A=a.map(pc).sort((x,y)=>x-y),B=b.map(pc).sort((x,y)=>x-y);return A.length===B.length&&A.every((x,i)=>x===B[i]);};
+ const maj=r=>SC.major.map((s,i)=>nm(tr(P(r),i+1,s)));     /* the major scale of a root, as names */
+ const idx=(r,q,m)=>sem(q).findIndex(x=>mod(x-(m-pc(P(r))),12)===0);
+ const dotOf=(r,q,s,m,i)=>{const k=i!=null?i:idx(r,q,m),f=m-OPEN[s];if(k<0||f<0||f>19)bad(`${sy(r,q)}: no chord tone at string ${s} fret ${f}`);return {s,f,m,i:k,t:k<0?'?':dl(XQ[q][k]),n:k<0?'?':nm(sp(r,q)[k]),cls:k===0?'nn-root':'nn-dot'};};
+ /* a fixed fingering: lay = [[string, chord-tone index, octave above R0], …]; R0 = the sounding pitch of the lowest root */
+ const shape=(r,q,R0,lay)=>lay.map(([s,i,o])=>dotOf(r,q,s,R0+sem(q)[i]+12*(o||0),i));
+ const LAY={cmp6:[[6,0,0],[5,1,0],[5,2,0],[4,3,0],[4,0,1]],
+            up:s=>[[s,0,0],[s-1,1,0],[s-1,2,0],[s-2,3,0],[s-2,0,1]],     /* the 3rd on the next string */
+            in:s=>[[s,0,0],[s,1,0],[s-1,2,0],[s-2,3,0],[s-2,0,1]]};      /* the 3rd on the root's string */
+ const neckT=(title,D,lo,hi)=>NF.neckSVG(D,{lo,hi,title,label:title+': fretboard diagram, string 1 on top'});
+ const rows=(...R)=>R.map(r=>NF.row(...r)).join('<div style="height:10px"></div>');
+ /* a comparison figure: rows of diagrams in one fixed fingering. R = [[ [title,dots], … ], …]; the dots travel with the item so the sweep can prove that neighbours differ by one dot, one fret */
+ const cmpFig=(R,lo,hi,cap)=>({fig:()=>rows(...R.map(r=>r.map(([t,D])=>neckT(t,D,lo,hi)))),cap,cmp:R.map(r=>r.map(([t,D])=>D.map(d=>({s:d.s,f:d.f}))))});
+ const C6=q=>[sy('C',q),shape('C',q,48,LAY.cmp6)];
+ /* every chord tone between two frets, low to high, each pitch once (the lower string where a pitch lies twice) */
+ const posDots=(r,q,lo,hi)=>{const D=[];for(let s=6;s>=1;s--)for(let f=lo;f<=hi;f++){const m=OPEN[s]+f;if(idx(r,q,m)>=0)D.push(dotOf(r,q,s,m));}return D;};
+ const posUniq=(r,q,lo,hi)=>{const U=[];posDots(r,q,lo,hi).sort((a,b)=>a.m-b.m||b.s-a.s).forEach(d=>{if(!U.length||U.at(-1).m!==d.m)U.push(d);});return U;};
+ const posMap=(r,q,lo,hi,title)=>neckT(title||sy(r,q),posDots(r,q,lo,hi),lo,hi);
+ /* the run through a position: from the lowest root up to the top, down to the bottom, back to the root (the run of arpPosQ) */
+ const posRun=(r,q,lo,hi)=>{const U=posUniq(r,q,lo,hi),r0=U.findIndex(d=>d.i===0),ix=[];for(let i=r0;i<U.length;i++)ix.push(i);for(let i=U.length-2;i>=0;i--)ix.push(i);for(let i=1;i<=r0;i++)ix.push(i);return ix.map(i=>U[i]);};
+ const at=d=>`fret ${d.f} of string ${d.s}`;
+ /* the place of a pitch in a window, the lowest fret first (as fitWindow places a line) */
+ const spot=(m,lo,hi)=>{let b=null;for(let s=6;s>=1;s--){const f=m-OPEN[s];if(f>=lo&&f<=hi&&(!b||f<b.f))b={s,f};}if(!b){bad(`no place for pitch ${m} in frets ${lo}–${hi}`);b={s:1,f:lo};}return b;};
+ const lineDots=(r,q,ms,lo,hi)=>ms.map(m=>{const x=spot(m,lo,hi);return dotOf(r,q,x.s,m);});
+ /* staff: a sounding pitch and its spelling → a token, written an octave above the sound */
+ const tok=(m,n)=>{if(Math.abs(n.a)>1)bad('double accidental on the staff');return LET[n.l]+(n.a>0?'#':n.a<0?'b':'')+(Math.floor((m+12-n.a)/12)-1);};
+ const ntOf=(r,q,m)=>{const k=idx(r,q,m);return k<0?(bad(`${m} is not in ${sy(r,q)}`),P('C')):sp(r,q)[k];};
+ /* bars = [{sym, notes:[[midi, noteObject, labelBelow?], …]}] → one staff, the chord symbol above the first note of each bar */
+ const stf=(bars,o)=>NF.staff(bars.map(b=>b.notes.map(([m,n,l],k)=>tok(m,n)+(k||!b.sym?'':'^'+b.sym.replace(/ /g,'_'))+(l?'='+l:'')).join(' ')).join(' | '),Object.assign({gap:40},o||{}));
+ const arpBar=(r,q,ms,labs)=>({sym:sy(r,q),notes:ms.map(m=>[m,ntOf(r,q,m),labs?dl(XQ[q][idx(r,q,m)]):''])});
+ const stack=L=>L.map(([t,h])=>`<div style="font:700 13px var(--f-body);margin:8px 0 2px">${t}</div>${h}`).join('');
+ /* the “In the games” line: [[gameId, level, level, …], …]; names come from GAMES, so a renamed or missing level shows at once */
+ const ig=(L,extra)=>'<b>In the games</b>: '+L.map(([g,...ns])=>{const x=GBY[g];return x.name+' '+ns.map(n=>x.levels[n-1]?`${n} “${x.levels[n-1].n}”`:bad(`${g} has no level ${n}`)).join(', ');}).join(' · ')+'.'+(extra?' '+extra:'');
+ const B=s=>`<b>${s}</b>`,list=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a.at(-1);
+ const stepTxt=n=>({1:'a half step',2:'a whole step',3:'a minor 3rd',4:'a major 3rd',5:'a 4th',6:'a tritone',7:'a 5th'})[Math.abs(n)]||bad('interval '+n);
+ const numW=n=>['no','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][n]||String(n);
+ const fretsTxt=n=>n===1?'one fret':['','','two','three','four','five'][n]+' frets';
+ /* ---- a form worked through: its chords (formQual reads the stored symbols), a line that takes the nearer note at every change (written by the game's own nearLine), a guide-tone line ---- */
+ const formOf=(name,nb)=>{const f=FORMS.find(z=>z.n===name);if(!f){bad('no stored form '+name);return {bars:[],chs:[]};}const bars=f.bars.slice(0,nb||f.bars.length);if(bars.some(b=>b.includes(' ')))bad(name+': two chords in a bar');
+   return {f,bars,chs:bars.map(b=>{const fq=formQual(b);return Object.assign(conChord(fq.r,fq.q),{src:b});})};};
+ const lineOf=(chs,lo,hi,start)=>{const dirs=[0];for(let b=1;b<chs.length;b++){const ln=nearLine(chs.slice(0,b),chs.slice(0,b).map(()=>4),1,dirs,lo,hi,start),pv=ln.at(-1),[dn,up]=nearTones(pv,chs[b]);
+     dirs[b]=chs[b].src===chs[b-1].src?0:(pv-dn<up-pv&&dn>=lo)?-1:(up-pv<pv-dn&&up<=hi)?1:0;}
+   return nearLine(chs,chs.map(()=>4),1,dirs,lo,hi,start);};
+ /* one guide tone a bar: start on the 3rd; at every new chord its 3rd or 7th, whichever is nearer (the same pitch counts as nearest: the note stays) */
+ const guideLine=(chs,start)=>{const out=[];let pv=start;chs.forEach((C,b)=>{if(b){let best=null;for(const g of C.gt)for(let m=pv-6;m<=pv+6;m++)if(mod(m,12)===g&&(best===null||Math.abs(m-pv)<Math.abs(best-pv)))best=m;pv=best;}out.push(pv);});return out;};
+ const gtDeg=(C,m)=>mod(m,12)===C.gt[0]?DEG[CH[C.q][1]]:DEG[CH[C.q].at(-1)];
+ const cName=(C,m)=>C.name(m);
+ const lineStaff=(chs,ln,from,to,o)=>stf(chs.slice(from,to).map((C,b)=>({sym:C.sym,notes:ln.slice((from+b)*4,(from+b)*4+4).map(m=>[m,P(C.name(m)),''])})),o);
+ const moveTxt=(a,b)=>a===b?'stays':(b<a?'falls ':'rises ')+stepTxt(b-a);
+ const T={need:'What you need first',what:'What an arpeggio is, and what it is for',five:'The seventh-chord arpeggio: five qualities, one shape',other:'The other four-note chords',hands:'The hands: fretting and picking',
+   oct:'One octave from the root',inv:'From the 3rd, the 5th and the 7th',pos:'The whole position',dim:'Shapes that repeat: the diminished 7th and the augmented triad',neck:'Over the whole neck: the five areas of one chord',
+   leave:'Leaving the position: three octaves, and one string',time:'In time: quarters, eighths, triplets',pat:'Patterns: the arpeggio out of order',key:'The arpeggios of a major key',minor:'The arpeggios of a minor key',
+   iiv:'II–V: the half step at the bar line',iivi:'II–V–I in one position',mincad:'The minor cadence',con:'Connecting: the nearest note at the change',con7:'Connecting seventh chords, and in eighth notes',
+   out:'Outlines: from each 7th to the next 3rd',turn:'Around the chord tone: approach note, neighbour tone, the turn',turncad:'The turn through II–V–I',enc:'The enclosure, the chromatic figures, and the beat',
+   bebop:'The bebop dominant run',over:'One arpeggio over another chord',big:'Bigger chords: 9, 11 and 13',blues:'A blues, worked through',tune:'Eight bars of a tune, worked through',games:'In the games',routine:'A practice routine, and common faults'};
+ const see=k=>`“${T[k]}”`;
+ const N=[];
+ /* ---------------- 1 ---------------- */
+ N.push({h:T.need,p:[
+   'These notes begin where arpeggios begin, not where music begins. A few things are taken as known. Each has its own home, in the notes of another game, and that is where to read it up:',
+   ['Triads, their inversions and their shapes on the neck: '+B('Triad Shapes')+'.',
+    'Chord formulas, and how any chord is spelled in any key: '+B('Chord Spelling')+'.',
+    'What a position is, and the stretches that belong to it: '+B('Scale Runner')+'.',
+    'The chords of a key, the II–V–I, and what function means: '+B('Harmony &amp; Analysis')+'.',
+    'Guide tones through a cadence, in full: '+B('Guide-Tone Voice Leading')+'.',
+    'The scales that go with a chord: '+B('Modes')+' and '+B('Chord–Scale Reflex')+'.',
+    'Approach notes inside a line of your own: '+B('Improvise')+'.'],
+   {sub:'A reminder: how to read a formula'},
+   'Every chord in these notes is given as a formula, such as '+form('7')+'. A formula is read against the major scale of the root. Count up that scale: each number is the note at that place, a ♭ in front of a number lowers that note by one fret, and a ♯ raises it by one fret.',
+   'Take G7. The major scale of G is '+maj('G').join(' ')+'. The formula is '+form('7')+'. Notes 1, 3 and 5 of the scale are '+maj('G')[0]+', '+maj('G')[2]+' and '+maj('G')[4]+'. Note 7 is '+maj('G')[6]+', and ♭7 lowers it one fret, to '+nm(sp('G','7')[3])+'. So G7 is '+spn('G','7')+'.',
+   {sub:'How to read the figures'},
+   'In every neck diagram string 1 is on top, as the neck looks when you lean over it, and the numbers under it are frets. The root is gold. Every dot carries its place in the chord: R for the root, then 3, ♭3, 5, ♭5, 7, ♭7 and so on. Each diagram has its chord symbol above it. Staff examples are written as guitar music is written, an octave above where it sounds, with the chord symbol over the bar.',
+   'Every chapter ends with a line “In the games”. It says, by game, number and name, where to practise what the chapter has just explained.',
+   ig([['spelling',6,7],['triads',5],['scales',1],['analysis',3]],'These four are where the things taken as known here are drilled.')]});
+ /* ---------------- 2 ---------------- */
+ N.push({h:T.what,p:[
+   'An arpeggio is a chord played one note at a time. Hold a chord and pick its strings one after another and you have played one; but on the guitar the word usually means more than that: the notes of the chord fingered as a line, each note stopped as the next begins, in any order and over any stretch of the neck.',
+   'What is it for? A scale tells you which notes are available over a chord. The arpeggio tells you which of those notes '+B('are')+' the chord. That is the difference between a line that fits and a line that says something about the harmony.',
+   'Take the chord CMaj7. The scale that goes with it is C major, seven notes: '+maj('C').join(' ')+'. Four of them, '+spn('C','maj7')+', are the chord. The other three, '+[1,3,5].map(i=>maj('C')[i]).join(', ')+', lie between the chord notes. Play a line that comes to rest on C, E, G or B and a listener hears CMaj7, with no accompaniment at all. Play a line that runs the scale and stops wherever it happens to stop, and the listener hears the key but not the chord.',
+   {fig:()=>NF.scale('C','R 2 3 4 5 6 7',7,10,{hl:'3 5 7',title:'C major, frets 7 to 10'}),cap:'The C major scale in one place on the neck. Gold and blue are the four notes of CMaj7; the dark dots are the three scale notes between them.'},
+   'This is why arpeggios are the first vocabulary of playing over chord changes. When the chord changes, the scale often stays the same, but the four notes that matter change. A player who knows where they are can make the changes heard in a single line.',
+   'Three things have to be learned about every arpeggio, and the chapters follow that order. First '+B('where')+' it is: one octave, then a whole position (the four frets under the hand), then the whole neck. Then '+B('when')+': in time, in eighth notes, in patterns. Then '+B('where it goes next')+': how one arpeggio joins the next when the chord changes, which is where arpeggios turn into music.',
+   {tip:'Before you play any arpeggio, strum the chord once and listen. The arpeggio should sound like that chord taken apart. If it sounds like a finger exercise, play it slower and listen to each note against the memory of the chord.'},
+   ig([['arp',1],['improv',1],['earchord',3]])]});
+ /* ---------------- 3 ---------------- */
+ const FIVE=['maj7','7','m7','m7♭5','dim7'],c5=FIVE.map(q=>sp('C',q).map(nm));
+ N.push({h:T.five,p:[
+   'A seventh chord is a triad with one more 3rd on top: root, 3rd, 5th and 7th. It has four notes, so its arpeggio is those four in order and then the root again an octave higher. Jazz harmony is built from five kinds of seventh chord, and you do not need five unrelated shapes for them. Start from the major 7th chord and lower one note by one fret at a time, and you pass through all five.',
+   'In C: '+sy('C','maj7')+' is '+c5[0].join(' ')+'. Lower the 7th one fret, '+c5[0][3]+' to '+c5[1][3]+', and it is '+sy('C','7')+', the dominant 7th. Lower the 3rd, '+c5[1][1]+' to '+c5[2][1]+', and it is '+sy('C','m7')+', the minor 7th. Lower the 5th, '+c5[2][2]+' to '+c5[3][2]+', and it is '+sy('C','m7♭5')+', the half-diminished chord. Lower the 7th once more, '+c5[3][3]+' to '+c5[4][3]+' (the fret of A), and it is '+sy('C','dim7')+', the diminished 7th.',
+   cmpFig([[C6('maj7'),C6('7'),C6('m7')]],6,10,'From the C at fret 8 of string 6, every note kept on its own string. From each diagram to the next one dot moves one fret: first the 7th, then the 3rd.'),
+   cmpFig([[C6('m7'),C6('m7♭5'),C6('dim7')]],6,10,'The same fingering continued from Cm7. Again one dot moves one fret each time: the 5th, then the 7th a second time.'),
+   'These two rows are drawn for comparing, with each chord note held on one string so that the eye sees the single fret that changes. For playing, the minor 3rd is usually more comfortable on the root’s own string, three frets above the root; the next chapters show the shapes as they are played.',
+   'Each of the five has a sound and a place. The major 7th is a chord at rest, bright and a little sweet. The dominant 7th is restless: its 3rd and ♭7 are a tritone apart and want to move. The minor 7th is soft and stable. The half-diminished chord is dark and unsettled, and nearly always leads to a dominant. The diminished 7th is the tensest of the five, and the most even: every note is a minor 3rd from the next.',
+   {fig:()=>stf(FIVE.slice(0,4).map(q=>arpBar('C',q,sem(q).map(x=>48+x)))),cap:'The first four on the staff, from the C on string 5. A seventh chord in root position sits on four neighbouring lines or four neighbouring spaces. C°7 written from C would need a double flat, B𝄫.'},
+   {tbl:[['Chord','Symbol','Formula','From C','Where it occurs'],
+     [['Major 7th','maj7','I and IV of a major key'],['Dominant 7th','7','V of a major or minor key; every chord of a blues'],['Minor 7th','m7','II, III and VI of a major key'],['Half-diminished','m7♭5','VII of a major key; II of a minor key'],['Diminished 7th','dim7','VII of a minor key with its raised 7th; a passing chord between two chords a whole step apart']]
+      .map(([n,q,w])=>[n,sy('C',q),form(q),spn('C',q),w])],cap:'The five seventh chords. Each differs from the one above by one note lowered a half step.'},
+   {tip:'Play the five in a row from one root without stopping: Maj7, 7, m7, m7♭5, °7. One finger changes each time, so you hear exactly what each lowered note does to the sound. Then start from the diminished chord and climb back.'},
+   ig([['arp',1],['spelling',6,7],['earchord',3,4]])]});
+ /* ---------------- 4 ---------------- */
+ N.push({h:T.other,p:[
+   'A chart writes more four-note chords than those five. The common ones are each one fret away from a chord you already have, so they are learned as changes to a known shape, not as new shapes.',
+   B('The 6th chords.')+' Lower the ♭7 of a dominant chord one more fret and it becomes a 6th: '+sy('C','6')+' is '+spn('C','6')+'. The 6 chord is a major chord at rest, with no 7th in it to rub against a melody that sits on the root. Do the same to a minor 7th and you have '+sy('C','m6')+', '+spn('C','m6')+', the usual last chord of a tune in a minor key. Both have a second name: '+sy('C','6')+' has the notes of '+(same(sp('C','6'),sp('A','m7'))?sy('A','m7'):bad('C6/Am7'))+', and '+sy('C','m6')+' the notes of '+(same(sp('C','m6'),sp('A','m7♭5'))?sy('A','m7♭5'):bad('Cm6/Am7b5'))+'.',
+   cmpFig([[C6('maj7'),C6('7'),C6('6')]],6,10,'The top note of the chord walks down a fret at a time: the 7th, the ♭7, the 6th. Nothing else moves.'),
+   B('The minor chord with a major 7th.')+' Raise the ♭7 of a minor 7th one fret and it is '+sy('C','m(maj7)')+', '+spn('C','m(maj7)')+': a minor chord with the leading note of its key on top, tense and unresolved. It is the I chord of a minor key when the melody holds the raised 7th, and it is the second chord of a well-known falling line in which only the top note moves: '+['m','m(maj7)','m7','m6'].map(q=>sy('C',q)).join(', ')+'.',
+   cmpFig([[C6('m(maj7)'),C6('m7'),C6('m6')]],6,10,'The same walk on a minor chord: 7, ♭7, 6. Played in this order the three are the falling line described above.'),
+   B('The major 7th with a raised 5th, and the augmented triad.')+' Raise the 5th of a major 7th one fret: '+sy('C','maj7♯5')+', '+spn('C','maj7♯5')+'. Its lower three notes are the augmented triad, '+spn('C','aug')+', written C+. The augmented triad is most often a dominant with its 5th pushed up on the way to the next chord, and the Maj7♯5 chord is the III chord of a minor key with its raised 7th.',
+   B('The dominant 7th with a suspended 4th.')+' Raise the 3rd of a dominant chord one fret and it becomes the 4th: '+sy('C','7sus4')+', '+spn('C','7sus4')+'. Without a 3rd there is no tritone, so the chord floats where a dominant pushes. It either resolves into the plain dominant, the 4th falling back to the 3rd, or it stands on its own for bars at a time.',
+   cmpFig([[C6('maj7'),C6('maj7♯5')],[C6('7sus4'),C6('7')]],6,11,'Above: the 5th of CMaj7 rises one fret. Below: the 4th of C7sus4 falls one fret to the 3rd of C7.'),
+   {tbl:[['Chord','Symbol','Formula','From C','One fret from'],
+     [['Major 6th','6','7: the ♭7 lowered'],['Minor 6th','m6','m7: the ♭7 lowered'],['Minor with a major 7th','m(maj7)','m7: the ♭7 raised'],['Major 7th, raised 5th','maj7♯5','Maj7: the 5th raised'],['Augmented triad','aug','the major triad: the 5th raised'],['Dominant 7th, suspended 4th','7sus4','7: the 3rd raised']]
+      .map(([n,q,w])=>[n,sy('C',q),form(q),spn('C',q),w])],cap:'Six more chords, each as a one-fret change to a chord of the last chapter.'},
+   ig([['spelling',7,11],['earchord',4,5],['arp',7],['modes',8]],'In Arpeggio Runner the minor 6th is the last chord of the minor cadence.')]});
+ /* ---------------- 5 ---------------- */
+ const pickRows=(()=>{const up=shape('C','maj7',48,LAY.up(5)),seq=up.concat(up.slice(0,-1).reverse()),alt=seq.map((_,i)=>i%2?'up':'down'),eco=[];
+   seq.forEach((d,i)=>{if(!i){eco.push('down');return;}const pv=seq[i-1];eco.push(d.s<pv.s?'down':d.s>pv.s?'up':eco[i-1]==='down'?'up':'down');});
+   return {seq,rows:seq.map((d,i)=>[String(i+1),d.n,d.t==='R'?'root':d.t,'string '+d.s+', fret '+d.f,alt[i],eco[i]+(i&&eco[i]===eco[i-1]?' *':'')]),carry:eco.filter((e,i)=>i&&e===eco[i-1]).length};})();
+ N.push({h:T.hands,p:[
+   'An arpeggio is harder for the hands than a scale. A scale moves to the next fret or the next string; an arpeggio skips frets and often has one note on a string, so both hands change string far more often. Two habits in each hand deal with nearly all of it, and they are worth having before any long exercise.',
+   {sub:'The fretting hand'},
+   'Keep one finger to a fret. A position, the four frets under the four fingers, holds most of any arpeggio; a note one fret outside it is reached by stretching the first finger down or the fourth finger up, while the hand stays where it is.',
+   'When two notes in a row lie at the same fret on neighbouring strings, do not lift the finger and put it down again. Roll it: from its tip on the lower string onto its pad on the higher string, so that the first note stops just as the second begins. Going down, roll back from the pad to the tip.',
+   'Let each note go as the next one sounds. An arpeggio is a line. If the notes ring into each other it turns back into a strummed chord, and the listener hears a blur where the line should be. Keep the fingers close to the strings as well: a finger that flies away from the neck takes too long to come back for a note two strings off.',
+   {sub:'The picking hand'},
+   B('Alternate picking')+' is strictly down, up, down, up, whatever the string. The hand keeps time like a pendulum, which makes it the safe choice for anything played with a click, and for eighth notes above all.',
+   B('Economy picking')+' follows the strings. When the next note is on the next string in the direction the pick is already travelling, the pick carries on through with the same stroke. A passage with one note on each string, going up, becomes one slow downstroke across the strings. It is smoother and can be faster, and it is harder to keep even.',
+   'Use alternate picking while you learn a shape and whenever the time is the point. Bring in economy picking where a shape has one note on a string several times in a row. Where a shape has two notes on most strings there is little to carry through, as the table shows.',
+   {tbl:[['Note','Name','Degree','Where','Alternate','Economy'],pickRows.rows],cap:'CMaj7 from the C on string 5, up one octave and back. A stroke marked * is carried through from the string before in the same direction: '+numW(pickRows.carry)+' of '+numW(pickRows.rows.length)+' strokes here. After it the two ways run opposite to each other, and each keeps strict alternation.'},
+   {tip:'Play every arpeggio at a tempo at which all the notes are the same length and the same loudness. Speed in arpeggios comes from small movements, not from effort. If one string crossing is clumsy, take the two notes on either side of it and repeat only those.'},
+   ig([['arp',1,2]])]});
+ /* ---------------- 6 ---------------- */
+ const R0S={6:48,5:48,4:60,3:60},o6=shape('C','maj7',48,LAY.up(6)),o3=shape('C','maj7',60,LAY.up(3));
+ N.push({h:T.oct,p:[
+   'Start with the smallest complete shape: root, 3rd, 5th, 7th and the root above, one octave, with the hand in one place. Everything larger is this shape joined to a copy of itself.',
+   'Take CMaj7 from the C at '+at(o6[0])+'. The 3rd, '+o6[1].n+', is on the next string, one fret back, at fret '+o6[1].f+'. The 5th, '+o6[2].n+', is on that same string at fret '+o6[2].f+'. The 7th, '+o6[3].n+', is on string '+o6[3].s+' at fret '+o6[3].f+', and the octave C lies beside it at fret '+o6[4].f+'. Two notes on each of the upper strings, one on the lowest.',
+   {fig:()=>rows([6,5].map(s=>neckT(`CMaj7 · root on string ${s}`,shape('C','maj7',R0S[s],LAY.up(s)),s===6?6:1,s===6?10:5)),[4,3].map(s=>neckT(`CMaj7 · root on string ${s}`,shape('C','maj7',R0S[s],LAY.up(s)),s===4?9:5,s===4?13:9))),cap:'One octave of CMaj7 from each of the four strings that can carry its root. Compare the upper pair with the lower pair.'},
+   'From string 6 and from string 5 the shape is the same, because strings 6, 5 and 4 are tuned exactly like strings 5, 4 and 3. From string 4 and from string 3 the shape runs onto string 2, which is tuned a half step lower against its neighbour than the other strings are. Every note that lands on string 2 or string 1 therefore sits one fret higher than the shape from string 6 would have it: from string 3 the 7th and the octave are at frets '+o3[3].f+' and '+o3[4].f+', not '+(o3[3].f-1)+' and '+(o3[4].f-1)+'. (Why that string is different is in the notes of Fretboard.)',
+   'The minor 3rd has two places. It can stay on the next string, as in the comparison rows of '+see('five')+', or it can be played on the root’s own string, three frets above the root. The second way keeps the hand more closed, and it is the one most players use for the three chords with a ♭3:',
+   {fig:()=>NF.row(...['m7','m7♭5','dim7'].map(q=>neckT(sy('C',q),shape('C',q,48,LAY.in(5)),2,6))),cap:'Cm7, Cm7♭5 and C°7 from the C on string 5, with the ♭3 on the root’s string.'},
+   'Play each shape up and straight back down, nine notes: 1 3 5 7 8 7 5 3 1. The way down is a separate skill for the picking hand, and the turn at the top is where it goes wrong first.',
+   'Say the degree aloud on every note, “root, three, five, seven”, and then say the note names. The aim is to know what each note is. A shape that the fingers know and the head does not is of no use when the chord changes.',
+   ig([['arp',1]])]});
+ /* ---------------- 7 ---------------- */
+ const invDots=k=>{const U=posUniq('C','maj7',7,10),a=U.findIndex(d=>d.i===k&&d.m>=52);return U.slice(a,a+4);};
+ const gap71=q=>12-sem(q)[3];
+ N.push({h:T.inv,p:[
+   'Lines rarely start on the root. Begin the same four notes on the 3rd, the 5th or the 7th and you have the same chord in another order. These are the inversions of the arpeggio (an inversion is the same chord with another of its notes at the bottom). Four notes give four orders.',
+   'In CMaj7: from the root, '+spn('C','maj7')+'. From the 3rd, '+rot(sp('C','maj7'),1).map(nm).join(' ')+'. From the 5th, '+rot(sp('C','maj7'),2).map(nm).join(' ')+'. From the 7th, '+rot(sp('C','maj7'),3).map(nm).join(' ')+'. In the last three the root is no longer the lowest note; it turns up inside the shape, and that is the note to keep your eye on.',
+   {fig:()=>NF.row(...[1,2,3].map(k=>{const D=invDots(k);return neckT(`CMaj7 from the ${['','3rd','5th','7th'][k]}: ${D.map(d=>d.n).join(' ')}`,D,7,10);})),cap:'CMaj7 in frets 7 to 10, begun on each of its other three notes. Find the gold root in each.'},
+   'The landmark inside every shape is the step from the 7th up to the root. In a Maj7 chord it is '+fretsTxt(gap71('maj7'))+'. In a 7, a m7 and a m7♭5 it is '+fretsTxt(gap71('7'))+'. In a °7 it is '+fretsTxt(gap71('dim7'))+', like every other gap in that chord. All the other gaps in a seventh chord are three or four frets, so this small step tells you at once where the root is.',
+   'Practise each order up and back, seven notes: from the 3rd, 3 5 7 1 7 5 3. The turn at the top is again the hard part; play the top three notes alone a few times.',
+   {tbl:[['Start on','Degrees'].concat(['maj7','m7','7'].map((q,i)=>sy(['C','D','G'][i],q))),[0,1,2,3].map(k=>[['root','3rd','5th','7th'][k],rot(['1','3','5','7'],k).join(' ')].concat(['maj7','m7','7'].map((q,i)=>rot(sp(['C','D','G'][i],q),k).map(nm).join(' '))))],cap:'The four orders of three chords, ascending. The degrees are named by number only; whether a 3rd or 7th is major or minor depends on the chord.'},
+   'One of these orders has a use of its own. Carry on past the octave from the 3rd, one more note, and you have 3 5 7 9. That is taken up in '+see('over')+'.',
+   {tip:'Know where the root is inside the shape even when you do not start on it. Before you play, touch the root in the position, then begin on the note you were asked for. An arpeggio from the 5th that you cannot relate to its root is only a pattern, and patterns do not survive a chord change.'},
+   ig([['arp',2],['along',4]],'In Along the Neck the four orders are played two notes to a string.')]});
+ /* ---------------- 8 ---------------- */
+ const pr=posRun('C','maj7',7,11),pu=posUniq('C','maj7',7,11),roots=pu.filter(d=>d.i===0);
+ N.push({h:T.pos,p:[
+   'One octave is a fragment. In one position (the four frets under the four fingers, with a fifth fret in reach by a stretch) every chord has its notes on all six strings, about two octaves of them. To know an arpeggio in a position is to know every one of those notes, not only the octave you learned first.',
+   'CMaj7 with the hand at fret 7: there are '+numW(pu.length)+' chord notes under the fingers, from the '+pu[0].n+' at '+at(pu[0])+' up to the '+pu.at(-1).n+' at '+at(pu.at(-1))+'. In order they are '+pu.map(d=>d.n).join(' ')+'. The root is there '+['','once','twice','three times'][roots.length]+', on strings '+list(roots.map(d=>String(d.s)))+'.',
+   {fig:()=>NF.row(posMap('C','maj7',7,11),posMap('C','7',7,11),posMap('C','m7',7,11)),cap:'Every chord tone of CMaj7, C7 and Cm7 between frets 7 and 11. Read each from its lowest dot to its highest: that is the whole arpeggio in this position.'},
    {sub:'How to learn a position'},
-   ['Find the roots first. There are two or three in any position; they are the anchors.',
-    'From the lowest root, play up to the highest chord tone in the position, down to the lowest, and back to the root.',
-    'Then do what the game does: start from the lowest 3rd, the lowest 5th, the lowest 7th.',
-    'Move the position two or three frets and do it again. The notes are the same, the fingering is new.'],
-   'Level 4 asks exactly the second step with the click after a count-in: one chord, one window of five frets, every chord tone of the window once, from the lowest root up to the top, down to the bottom and back to the root. Quarter notes on maj7, m7 and 7, then m7♭5 and dim7 as well, then eighth notes; one note in sixteen may go unheard, a wrong note fails.',
-   'Where a chord tone appears on two strings inside the span, at the same pitch, either place is the same note to the ear. Take the one that keeps the hand still.',
-   {sub:'The diminished 7th repeats'},
-   ['Every note of a dim7 is a minor 3rd from the next, so any shape moved up or down three frets is the same chord. C°7, E♭°7, G♭°7 and A°7 are the same four notes.',
-    'A dim7 arpeggio from the 3rd of a dominant chord gives its 3rd, 5th, ♭7 and ♭9: B°7 over G is G7♭9. This is its most common use in lines.']]},
- {h:'From any chord tone',p:[
-   'Lines rarely start on the root. Starting the arpeggio from the 3rd, 5th or 7th gives four orders of the same four notes, the inversions of the arpeggio.',
-   {tbl:[['Start on','Degrees','Cmaj7','Dm7','G7'],[['root','1 3 5 7','C E G B','D F A C','G B D F'],['3rd','3 5 7 1','E G B C','F A C D','B D F G'],['5th','5 7 1 3','G B C E','A C D F','D F G B'],['7th','7 1 3 5','B C E G','C D F A','F G B D']]],cap:'Four notes ascending from each chord tone.'},
-   ['The step between the 7th and the root is the landmark inside the shape. In a maj7 it is one fret; in 7, m7 and m7♭5 two frets; in dim7 three, like every other gap.',
-    'Up and back is seven notes: 3 5 7 1 7 5 3. The turn at the top is where the picking goes wrong; practise the top three notes alone.',
-    'Carry on past the octave from the 3rd and you get 3 5 7 9: the arpeggio most used in bebop lines (see the last chapters).'],
-   {tip:'Know where the root is inside the shape even when you do not start on it. Before you play, touch the root in the position, then begin on the asked note. An arpeggio from the 5th that you cannot relate to its root is a pattern, and patterns do not survive a chord change.'}]},
- {h:'Fretting and picking',p:[
-   {sub:'Fretting hand'},
-   ['One finger to a fret across four frets. The fifth fret of the span is a stretch of the first finger down or the fourth finger up; the hand does not shift.',
-    'Two consecutive notes at the same fret on neighbouring strings: do not lift and replace the finger. Roll it, from the tip on the lower string to the pad on the higher, so that the first note stops as the second begins.',
-    'Release each finger as the next note sounds. An arpeggio is a line. If the notes ring into each other it becomes a strummed chord, and the microphone, like a listener, hears a blur.',
-    'Keep the fingers close to the strings. Arpeggios skip frets and strings, and a finger that flies off takes too long to come back.'],
-   {sub:'Picking hand'},
-   ['<b>Alternate picking</b>: strictly down, up, down, up, whatever the string. It keeps the time in the hand and is the safe choice for eighth notes with the click.',
-    '<b>Economy picking</b>: when the next note is on the next string in the direction the pick is already moving, carry on through with the same stroke. Ascending one-note-per-string passages become a single slow downstroke. It is smoother and faster, and harder to keep even.',
-    'Whichever you use, the notes must be equal in length and volume. Record yourself: uneven arpeggios are heard at once on playback.'],
-   {tip:'Play every arpeggio at a tempo where you can make all the notes the same. Speed in arpeggios comes from small movements, not from effort. If a string crossing is clumsy, isolate the two notes around it and repeat only those.'}]},
- {h:'In time',p:[
-   'In most tunes a chord lasts two or four beats, and the arpeggio has to be found inside that time. The game adds a click: one note on each beat after a count-in, each within a quarter of a beat of its click.',
-   {fig:()=>NF.rhy('q q q q | ee ee ee ee',{}),cap:'First one note to a beat, as the game asks. Then two to a beat: four eighths cover the chord in half a bar, eight go up and down in one.'},
-   ['Find all the notes during the count-in. See the root and the starting note before the first click.',
-    'Keep going. A wrong note in time is a small mistake; stopping loses the form.',
-    'When quarters are easy, play eighths with the click on beats 2 and 4 only. The click becomes the hi-hat and you supply beats 1 and 3.',
-    'Swing the eighths: long on the beat, short on the “and”, with a light accent on the off-beat notes.']]},
- {h:'The arpeggios of a key',p:[
-   'The seven seventh chords of a major key use only the notes of its scale, so all seven arpeggios lie inside any one position of that scale.',
-   {tbl:[['Degree','IMaj7','IIm7','IIIm7','IVMaj7','V7','VIm7','VIIm7♭5'],[['In C','Cmaj7','Dm7','Em7','Fmaj7','G7','Am7','Bm7♭5'],['Notes','C E G B','D F A C','E G B D','F A C E','G B D F','A C E G','B D F A']]],cap:'The diatonic seventh chords of C major.'},
-   'The exercise: in one scale position, play each of the seven arpeggios in turn, up one and down the next. It joins the scale you know to the chords of the key. A chord change inside a key is a change of which scale notes you lean on, not a change of position.']},
- {h:'II–V',p:[
-   'IIm7 to V7 is the most common chord pair in jazz. The two chords share two notes, and the note that changes is the one to hear: the ♭7 of the IIm7 falls a half step to the 3rd of the V7.',
-   {tbl:[['','Root','3rd','5th','7th'],[['Dm7','D','F','A','<b>C</b>'],['G7','G','<b>B</b>','D','F']]],cap:'Dm7 and G7 share D and F. C falls to B: that half step is the sound of the II–V.'},
-   {fig:()=>{const a=[0,1,2,3].map(k=>60+[2,5,9,12][k]),b=[];let m=a[3]-1;b.push(m);const G7=[7,11,2,5];for(let k=1;k<4;k++){m--;while(!G7.includes(mod(m,12)))m--;b.push(m);}const nmW=x=>{const w=writtenOf(x-12,-1);return LET[w.l]+(w.a<0?'b':w.a>0?'#':'')+w.oct;};return NF.staff(a.map((x,k)=>nmW(x)+'='+['R','♭3','5','♭7'][k]).join(' ')+' | '+b.map((x,k)=>nmW(x)+'='+['3','R','♭7','5'][k]).join(' '),{gap:46});},cap:'The first II–V exercise of the game: Dm7 up from its root, then G7 down from its 3rd: B G F D, eight notes. C falls a half step to B across the bar line: the join is the sound of the II–V.'},
-   ['The direction changes with the chord. Up one arpeggio and down the next is how real lines move: they do not restart from the root at every bar.',
-    'Aim the join. The last note of the first arpeggio and the first of the second should be close. The game asks the closest one: the 7th of IIm7 falls a half step to the 3rd of V7, C to B in C, and the V7 goes on down from there: B G F D.',
-    'Say the name of the new chord on its first note. The hand must know where the bar line is.']]},
- {h:'II–V–I in one position',p:[
-   'The cadence IIm7, V7, IMaj7 comes from one major scale, so all three arpeggios lie under the hand without a shift. The game asks for each from its root upward, one note on each click, twelve notes, at 80 beats a minute or slower.',
-   {fig:()=>NF.staff('D4=Dm7 F4 A4 C5 | G4=G7 B4 D5 F5 | C5=Cmaj7 E5 G5 B5',{gap:42}),cap:'Dm7, G7 and Cmaj7, each from the root up.'},
-   {fig:()=>NF.row(NF.neck('5/5=R* 4/3=♭3 4/7=5 3/5=♭7',{lo:3,hi:7}),NF.neck('4/5=R* 3/4=3 2/3=5 2/6=♭7',{lo:3,hi:7}),NF.neck('3/5=R* 2/5=3 1/3=5 1/7=7',{lo:3,hi:7})),cap:'The same twelve notes in frets 3 to 7, as the game places them in C. The three roots are all at fret 5, on strings 5, 4 and 3: each root is a 4th above the last, which on these strings is the next string at the same fret.'},
-   {fig:()=>NF.row(NF.scale('D','1 b3 5 b7',3,7),NF.scale('G','1 3 5 b7',3,7),NF.scale('C','1 3 5 7',3,7)),cap:'Every chord tone of Dm7, G7 and Cmaj7 in that position. Compare the three maps: most dots stay, a few move by one fret. Those few are the changes.'},
-   {sub:'Guide tones'},
-   'The 3rd and the 7th are the guide tones: they define the chord. Through a II–V–I each ♭7 falls a half step to the 3rd of the next chord and each 3rd stays to become the next 7th: in C, the C of Dm7 falls to B, and the F of G7 falls to E. They are taught in full in the notes of Guide-Tone Voice Leading.',
-   ['After the root-up version, play the cadence as one line: go up Dm7, come down G7 from the nearest chord tone, go up Cmaj7 from the nearest.',
-    'Then force the guide tone: whatever you play, put the 3rd of each new chord on its first beat.',
-    'In another key the shapes are the same at a different fret. The game uses C, F, G, D, A, B♭ and E♭.'],
-   {tip:'When a line over changes sounds vague, the cause is nearly always the first beat of the bar. Put a 3rd or a 7th there and the same notes sound like the harmony. Sing the guide-tone line of a tune before you play over it.'}]},
- {h:'Connecting the arpeggios',p:[
-   'Playing every arpeggio from its root states the chords one by one. Music wants them joined. Voice leading in a line is what happens at the join: when the chord changes, the line goes to the nearest note of the new chord, as a singer would, and does not jump back to the new root.',
-   {fig:()=>conExample().staff(),cap:conExample().cap},
-   {sub:'The rules the game checks'},
+   'First find the roots. There are two or three in any position, and they are the anchors: everything else is found from them.',
+   'Then play the run that covers the position without leaving anything out: from the lowest root up to the highest chord tone, down to the lowest chord tone, and back up to the root you started from. For CMaj7 at fret 7 that is '+pr.length+' notes: '+pr.map(d=>d.n).join(' ')+'.',
+   'Then begin it from the lowest 3rd, the lowest 5th and the lowest 7th. Last, move the hand two or three frets and do it all again. The notes are the same; the fingering is new.',
+   'Where a chord tone can be played in two places inside the span, at the same pitch on two strings, the two are the same note to the ear. Take the one that keeps the hand still.',
+   ig([['arp',4],['fretboard',16]])]});
+ /* ---------------- 9 ---------------- */
+ const dimSame=['C','Eb','Gb','A'].filter(r=>same(sp(r,'dim7'),sp('C','dim7'))),augSame=['C','E','Ab'].filter(r=>same(sp(r,'aug'),sp('C','aug')));
+ if(dimSame.length!==4||augSame.length!==3)bad('symmetric chords');
+ N.push({h:T.dim,p:[
+   'Two chords are built from one interval only, and that gives their arpeggios a property no other chord has: the shape repeats up the neck at a fixed distance.',
+   'The diminished 7th is all minor 3rds: from each note to the next is three frets, and from the top note back to the root is three frets again. So any fingering of it, moved up or down three frets, gives the same four notes in another order. '+dimSame.map(r=>sy(r,'dim7')).join(', ')+' are one and the same set of notes, '+sp('C','dim7').map(n=>nm(n)).join(' ')+' in the spelling of C. There are only three different diminished 7th chords in all.',
+   {fig:()=>posMap('C','dim7',1,12,'C°7 from fret 1 to fret 12'),cap:'Every note of C°7 on the lower twelve frets. Pick any group of dots and look three frets to its right: the same group is there again.'},
+   'Compare it with its neighbour, the half-diminished chord, in one position. The two differ in the 7th alone, and the half-diminished shape does not repeat.',
+   {fig:()=>NF.row(posMap('C','m7♭5',7,11),posMap('C','dim7',7,11)),cap:'Cm7♭5 and C°7 between frets 7 and 11.'},
+   'The augmented triad, '+form('aug')+', is all major 3rds: four frets from each note to the next. Its shapes repeat every four frets, '+augSame.map(r=>sy(r,'aug')).join(', ')+' are the same three notes, and there are only four augmented triads in all.',
+   'For the hands this is a gift: learn one fingering and you can slide it. For the ear it is the reason these chords sound as if they could go anywhere. The diminished 7th has one use that outweighs the rest: played from the 3rd of a dominant chord it gives that chord its 3rd, 5th, ♭7 and ♭9. That is in '+see('over')+'.',
+   {tip:'Play C°7 one octave from string 5, slide the hand up three frets and play the same fingering again, and again, without stopping, four times. You have played the same chord from each of its notes and travelled twelve frets.'},
+   ig([['arp',1,3,4],['triads',12],['modes',10]],'In Arpeggio Runner 1, 3 and 4 the half-diminished and diminished chords join in the later rounds.')]});
+ /* ---------------- 10 ---------------- */
+ const AREAS=[[0,3],[2,5],[5,8],[7,10],[9,13]],areaRows=AREAS.map(([lo,hi],k)=>{const U=posUniq('C','maj7',lo,hi),rt=posDots('C','maj7',lo,hi).filter(d=>d.i===0),nx=AREAS[k+1],sh=nx?posDots('C','maj7',nx[0],hi):[];
+   return [lo===0?'open to 3':lo+' to '+hi,rt.map(d=>`string ${d.s}, ${d.f?'fret '+d.f:'open'}`).join('; '),U[0].n+' up to '+U.at(-1).n+' ('+U.length+' notes)',nx?list(sh.sort((a,b)=>a.m-b.m).map(d=>d.n))+' at '+(nx[0]===hi?'fret '+hi:'frets '+nx[0]+' and '+hi):'the pattern begins again at fret 12'];});
+ const rootTxt=(()=>{const by={};posDots('C','maj7',0,11).filter(d=>d.i===0).forEach(d=>(by[d.f]=by[d.f]||[]).push(d.s));return list(Object.keys(by).map(Number).sort((a,b)=>a-b).map(f=>`fret ${f} of string${by[f].length>1?'s':''} ${list(by[f].sort((a,b)=>b-a).map(String))}`));})();
+ N.push({h:T.neck,p:[
+   'A chord does not live in one position. Its four notes lie all over the neck, and from the nut to fret 12 they fall into five overlapping areas, each one a hand position wide. Above fret 12 the five repeat. To play a chord anywhere, you learn the five areas and then the joins between neighbours.',
+   {fig:()=>posMap('C','maj7',0,12,'CMaj7 from the open strings to fret 12'),cap:'Every note of CMaj7 on the lower half of the neck. The open strings 1, 2 and 3 are chord notes too.'},
+   'Find the roots first, as always. Below fret 12 the C of CMaj7 is at '+rootTxt+'. Each area is built round two or three of these.',
+   {tbl:[['Frets','Roots in this area','From its lowest note to its highest','Shared with the next area'],areaRows],cap:'The five areas of CMaj7. The last column is the join: the notes two neighbouring areas have in common.'},
+   'Neighbouring areas overlap by a fret or two, and the notes on those frets belong to both. They are the doors. To move from one area to the next, play up the first, arrive on a shared note, and carry on in the second without stopping; then come back the same way.',
+   'For another chord quality the map changes by the same single frets as in '+see('five')+': lower every 7 on the map by one fret and it is the map of C7, and so on. For another root the whole map slides along the neck.',
+   {tip:'Take one chord for a week. Each day play it in one area only, then in that area and its neighbour, crossing at a shared note. By the end of the week there is no place on the neck where you cannot find it.'},
+   ig([['arp',4],['fretboard',16],['triads',14]],'In Arpeggio Runner 4 the position can lie anywhere from fret 1 to fret 13.')]});
+ /* ---------------- 11 ---------------- */
+ const am=(alPairSpots(pc(P('A')),sem('m7'),2)||(bad('Am7 in pairs'),[])).map(d=>dotOf('A','m7',d.s,d.m)),fm=(alPairSpots(pc(P('F')),sem('maj7'),2)||(bad('FMaj7 in pairs'),[])).map(d=>dotOf('F','maj7',d.s,d.m));
+ const pairUp=S=>[0,1,2,3].map(i=>[S[4+i].f-S[i].f,S[8+i].f-S[4+i].f]);if(am.length&&!pairUp(am).concat(pairUp(fm)).every(([a,b])=>a===2&&b===3))bad('the pair shape does not move 2 then 3 frets');
+ const one=posDots('C','maj7',1,13).filter(d=>d.s===2),oneGaps=one.slice(1).map((d,i)=>d.f-one[i].f);if(oneGaps.join()!=='4,3,4,1')bad('CMaj7 on string 2');
+ N.push({h:T.leave,p:[
+   'Inside a position an arpeggio covers about two octaves. To play three, or to travel while you play, the hand has to move. There are two tidy ways to do it.',
+   {sub:'Two notes a string: one shape, three octaves'},
+   'Finger one octave of the arpeggio on two neighbouring strings, two notes on each. The next octave is the same fingering on the next pair of strings, and the third octave the same again. Only the place changes: the shape on strings 4 and 3 lies two frets higher than on strings 6 and 5, and on strings 2 and 1 three frets higher again.',
+   am.length?'Am7 shows it best. On string 6 play '+am[0].n+' and '+am[1].n+' at frets '+am[0].f+' and '+am[1].f+'; on string 5, '+am[2].n+' and '+am[3].n+' at frets '+am[2].f+' and '+am[3].f+'. The same four notes an octave higher are on strings 4 and 3 at frets '+am[4].f+', '+am[5].f+' and '+am[6].f+', '+am[7].f+'; and an octave higher again on strings 2 and 1 at frets '+am[8].f+', '+am[9].f+' and '+am[10].f+', '+am[11].f+'. The hand shifts twice and the fingers never change what they do.':'',
+   {fig:()=>rows([neckT('Am7 · two notes a string, three octaves',am,5,15)],[neckT('FMaj7 · two notes a string, three octaves',fm,1,12)]),cap:'One octave on each pair of strings. Look at the two dots on string 6 and the two on string 5, then find the same four dots on strings 4 and 3 and on strings 2 and 1.'},
+   'Begin the shape on the 3rd, the 5th or the 7th and it gives the other three orders of '+see('inv')+' in the same way.',
+   {sub:'Along one string'},
+   'The other way is the slowest and the most instructive: the whole arpeggio on a single string. There the formula becomes distances you can see. On string 2, CMaj7 is at frets '+one.map(d=>d.f).join(', ')+': '+one.map(d=>d.n).join(' ')+'. The gaps are '+oneGaps.join(', ')+' frets: a major 3rd, a minor 3rd, a major 3rd, and the single fret from the 7th to the root.',
+   {fig:()=>neckT('CMaj7 along string 2',one,1,13),cap:'One string, one chord. Count the frets between the dots.'},
+   'Nobody plays a solo this way, but a player who has done it knows what a 3rd and a 5th feel like under one finger sliding, and never again depends on a shape to find them.',
+   ig([['along',4],['triads',6,7]],'Triad Shapes 6 and 7 do the same for triads with one note on every string.')]});
+ /* ---------------- 12 ---------------- */
+ N.push({h:T.time,p:[
+   'In a tune a chord lasts four beats, or two, and the arpeggio has to be found inside that time. Knowing where the notes are is half of it; the other half is getting to them on the beat. Three rhythms cover nearly everything.',
+   B('Quarter notes')+', one note to a beat: four notes fill a bar, so a seventh chord from its root takes exactly one bar. '+B('Eighth notes')+', two to a beat: the four notes take half a bar, and up and back, 1 3 5 7 8 7 5 3, takes one bar and brings you round to the root on the next first beat. '+B('Triplets')+', three to a beat: twelve notes to the bar, so the four-note arpeggio goes round three times.',
+   {fig:()=>NF.rhy('q q q q | ee ee ee ee | trip trip trip trip',{}),cap:'One bar each of quarter notes, eighth notes and eighth-note triplets against the same four beats.'},
+   'Work in this order. Find every note before you start: in a count-in of four clicks, look at the root and at your first note. Then play one note to a click, slowly enough that no note is late. Once you start, keep going. A wrong note in time is a small mistake; a stop loses the bar, and in a band it loses the tune.',
+   'When quarter notes are easy, play eighth notes. Then move the click: set it to half the tempo and hear it as beats 2 and 4. The click has become the hi-hat of a drummer, and beats 1 and 3 are now yours to supply. An arpeggio that holds together with the click on 2 and 4 is one you really know in time.',
+   'Jazz eighth notes are swung: the note on the beat is long and the note on the “and” is short, about two to one at a middling tempo, with a light accent on the short note. An arpeggio played in stiff, even eighths is correct; the same notes swung sound like the music. Where the click belongs, and how swing is measured, are treated in the notes of Pulse &amp; Feel.',
+   ig([['arp',3,4],['scales',13,14],['pulse',6,12]],'Arpeggio Runner 4 ends in eighth notes; Scale Runner 13 has triads in triplets.')]});
+ /* ---------------- 13 ---------------- */
+ const ORD=[[0,1,2,3],[3,2,1,0],[0,2,1,3],[1,0,2,3],[0,3,2,1]],ordN=o=>o.map(i=>['1','3','5','7'][i]).join(' '),ordS=(r,q,o)=>o.map(i=>nm(sp(r,q)[i])).join(' ');
+ const g3=[0,1,2,3].map(k=>[0,1,2].map(j=>(k+j)%4)),cnt8=e=>(e%2?'the “and” of '+(Math.floor((e%8)/2)+1):'beat '+(Math.floor((e%8)/2)+1))+(e>=8?' in the next bar':''),cntT=i=>'the '+['first','second','third'][i%3]+' note of beat '+(Math.floor(i/3)+1);
+ N.push({h:T.pat,p:[
+   'So far every arpeggio has gone straight up or straight down. A melody does not. A pattern takes the same four notes in another order, or in overlapping groups, and it is the bridge from the exercise to the line: most phrases in a solo are an arpeggio out of order with a few notes added between.',
+   {sub:'Broken orders'},
+   'Skip inside the chord. Play the root, jump to the 5th, come back to the 3rd, go up to the 7th: 1 5 3 7. Or start on the 3rd, drop to the root, and go up: 3 1 5 7. On CMaj7 those are '+ordS('C','maj7',ORD[2])+' and '+ordS('C','maj7',ORD[3])+'. The notes are the ones you know; the fingers and the pick have to learn the new route.',
+   {fig:()=>stf([ORD[2],ORD[3]].map(o=>({sym:sy('C','maj7'),notes:o.map(i=>[48+sem('maj7')[i],sp('C','maj7')[i],['1','3','5','7'][i]])}))),cap:'CMaj7 as 1 5 3 7 and as 3 1 5 7.'},
+   {tbl:[['Order'].concat(['maj7','m7','7'].map((q,i)=>sy(['C','D','G'][i],q))),ORD.map(o=>[ordN(o)].concat(['maj7','m7','7'].map((q,i)=>ordS(['C','D','G'][i],q,o))))],cap:'Five orders of the same four notes on three chords.'},
+   {sub:'Groups that cross the beat'},
+   B('Groups of three in eighth notes.')+' Play three chord notes from each chord note in turn: '+g3.map(g=>ordN(g)).join(', ')+'. On CMaj7 that is '+g3.map(g=>ordS('C','maj7',g)).join(', ')+'. Each group is three eighth notes long, so the groups begin on '+list([0,3,6,9].map(cnt8))+'. The accent of the group walks across the beat.',
+   B('Groups of four in triplets.')+' Play the four-note arpeggio over and over in triplets. Each group is four triplet notes long, so in one bar it begins on '+list([0,4,8].map(cntT))+', and is back on beat 1 of the next bar. The hand plays in fours while the foot taps in threes.',
+   'Patterns of this kind are worth the trouble for two reasons. They free the notes from the one order in which you learned them, and they teach you to keep your place in the bar while the shape of the line pulls against it, which is exactly what a real phrase does.',
+   ig([['scales',13,14],['improv',1]],'Scale Runner 13 and 14 play triads and seventh chords from every scale degree, up, down and alternating; in Improvise 1 the order of the four chord notes is your own.')]});
+ /* ---------------- 14 ---------------- */
+ const SEVQ=['maj7','7','m7','m7♭5','dim7','m(maj7)','maj7♯5'];
+ const diat=(k,sc)=>sc.map((s,d)=>{const rel=[0,2,4,6].map(j=>mod(sc[(d+j)%7]-s,12)),q=SEVQ.find(z=>sem(z).every((x,i)=>x===rel[i]))||bad('no seventh chord on degree '+(d+1)),r=nm(tr(P(k),d+1,s));return {r,q,d,num:(s<SC.major[d]?'♭':'')+['I','II','III','IV','V','VI','VII'][d]+QS[q]};});
+ const CM=diat('C',SC.major),cyc=[0,3,6,2,5,1,4,0];
+ N.push({h:T.key,p:[
+   'The seven seventh chords of a major key use only the notes of its scale. So all seven arpeggios lie inside any one position of that scale, and a change from one chord of the key to another is not a change of place on the neck. It is a change of which scale notes you lean on.',
+   'In C major the chord on each note of the scale is found by taking every other note from there: from C, C E G B; from D, D F A C; and so on up the scale. The qualities come out in a fixed order that is the same in every major key: '+CM.map(c=>c.num).join(', ')+'.',
+   {tbl:[['Degree'].concat(CM.map(c=>c.num)),[['In C'].concat(CM.map(c=>sy(c.r,c.q))),['Notes'].concat(CM.map(c=>spn(c.r,c.q)))]],cap:'The seventh chords of C major.'},
+   'The exercise that joins the scale to its chords: stay in one scale position and play the seven arpeggios in turn, up one and down the next. '+sy('C','maj7')+' up, '+sy('D','m7')+' down, '+sy('E','m7')+' up, '+sy('F','maj7')+' down, and on up the key.',
+   {fig:()=>stf([0,1,2,3].map(d=>{const c=CM[d],b=48+SC.major[d],up=sem(c.q).map(x=>b+x);return arpBar(c.r,c.q,d%2?up.slice().reverse():up);})),cap:'The first four arpeggios of C major, alternately up and down.'},
+   {sub:'Round the cycle of fourths'},
+   'Chords in tunes do not usually move up the scale. They move by fourths: each root is a 4th above the last. Inside one key that order is '+cyc.map(d=>CM[d].num).join(', ')+', in C '+cyc.map(d=>sy(CM[d].r,CM[d].q)).join(', ')+'. One of those steps, from IV to VII, is an augmented 4th; the key has no other way to stay inside its seven notes. Play the seven arpeggios in that order, each from its root and then each from the nearest note, and you have rehearsed the commonest chord movement there is. Its last three chords are the II–V–I of the next chapters.',
+   {tip:'When a tune stays in one key for four or eight bars, do not move the hand. Find the scale position, and let the chord symbols tell you only which notes of it to aim for.'},
+   ig([['scales',13,14,15],['analysis',3]],'Scale Runner 15 keeps the hand in one position while the key changes.')]});
+ /* ---------------- 15 ---------------- */
+ const AN=diat('A',SC.natural),AH=diat('A',SC.harmonic),mrows=AN.map((c,d)=>{const h=AH[d],ch=h.q!==c.q||h.r!==c.r;return [c.num,sy(c.r,c.q),spn(c.r,c.q),ch?sy(h.r,h.q)+': '+spn(h.r,h.q):'the same'];});
+ const L5=[[5,0,0],[4,1,0],[4,2,0],[3,3,0],[3,0,1]],L64=[[6,0,0],[5,1,0],[5,2,0],[4,3,0]];
+ N.push({h:T.minor,p:[
+   'A minor key has more arpeggios than a major key, because its scale comes in three forms and tunes use all three. The way through is to start from the natural minor scale and then learn the few chords that the other two forms change.',
+   'A natural minor has the notes of C major, counted from A. Its seven arpeggios are therefore the seven you already know, with new numbers: '+AN.map(c=>c.num).join(', ')+'.',
+   'The trouble with natural minor is its V chord, '+sy(AN[4].r,AN[4].q)+': a minor 7th chord does not pull to the I. So at a cadence the 7th note of the key is raised a half step, here G to G♯. That is the harmonic minor scale, and it changes every chord that contains the note. The V becomes '+sy(AH[4].r,AH[4].q)+', a real dominant, and the chord on the raised note itself is '+sy(AH[6].r,AH[6].q)+', a diminished 7th.',
+   {tbl:[['Degree','In natural minor','Notes','With the 7th of the key raised'],mrows],cap:'The seventh chords of A minor. The last column is the harmonic minor scale: only the chords that contain G change.'},
+   cmpFig([[[sy('E','m7'),shape('E','m7',52,L5)],[sy('E','7'),shape('E','7',52,L5)]],[[sy('G','7'),shape('G','7',43,L64)],[sy('G♯','dim7'),shape('G♯','dim7',44,L64)]]],2,9,'One raised note, two new chords. Above: G becomes G♯, and the V chord Em7 becomes E7. Below: the same note is the root of G7, and raising it turns G7 into G♯°7.'),
+   'The third form, melodic minor, raises the 6th note of the key as well, F to F♯. Its use for arpeggios is on the I chord. When a tune in a minor key comes to rest, the I is not usually a minor 7th: it is '+sy('A','m6')+', '+spn('A','m6')+', or '+sy('A','m(maj7)')+', '+spn('A','m(maj7)')+'. Both were met in '+see('other')+'.',
+   'In practice, then: natural-minor arpeggios for most of a minor tune; '+AH[4].num+' and '+AH[6].num+' from harmonic minor at the cadence; Im6 or Im(Maj7) on the last chord. The II chord, '+sy(AN[1].r,AN[1].q)+', is the same in natural and harmonic minor, which is why the minor cadence is written IIm7♭5, V7, Im.',
+   ig([['analysis',5,7],['scales',17],['arp',7,15]])]});
+ /* ---------------- 16 ---------------- */
+ const d7=sp('D','m7'),g7=sp('G','7'),shared=d7.filter(a=>g7.some(b=>pc(a)===pc(b))).map(nm),dmUp=[50,53,57,60],gJoin=arpJoin(60,P('G'),'7',[3,7])||(bad('the II–V join'),{seq:[]}),gDn=gJoin.seq.map(x=>x.m);
+ N.push({h:T.iiv,p:[
+   'IIm7 going to V7 is the most common pair of chords in jazz: Dm7 to G7 in the key of C. The two arpeggios have two notes in common, and the whole sound of the change is in one of the notes that differ.',
+   'Dm7 is '+d7.map(nm).join(' ')+'. G7 is '+g7.map(nm).join(' ')+'. They share '+list(shared)+'. Now look at the 7th of Dm7, '+nm(d7[3])+'. One fret below it is '+nm(g7[1])+', the 3rd of G7, the note that makes G7 a dominant chord. When a line moves from that C to that B as the chord changes, the listener hears the II–V with nothing else playing. That half step is the thing to aim for.',
+   {tbl:[['','Root','3rd','5th','7th'],[[sy('D','m7')].concat(d7.map((n,i)=>i===3?B(nm(n)):nm(n))),[sy('G','7')].concat(g7.map((n,i)=>i===1?B(nm(n)):nm(n)))]],cap:'The two chords note by note. The 7th of the first and the 3rd of the second are a half step apart.'},
+   'The simplest line that uses it: play Dm7 up from its root, four notes, ending on '+nm(d7[3])+'. Step down one fret to '+nm(g7[1])+' and play G7 downward from there: '+gJoin.seq.map(x=>x.n).join(' ')+'. Eight notes, one direction for each chord.',
+   {fig:()=>stf([arpBar('D','m7',dmUp,1),arpBar('G','7',gDn,1)],{gap:46}),cap:'Dm7 up from the root, G7 down from its 3rd. The join is at the bar line.'},
+   {fig:()=>NF.row(neckT('Dm7 · up from the root',lineDots('D','m7',dmUp,3,7),3,7),neckT('G7 · down from its 3rd',gJoin.seq.map(x=>dotOf('G','7',x.s,x.m)),3,7)),cap:'The same eight notes on the neck. Find the ♭7 of Dm7 and the 3rd of G7: same string, one fret apart.'},
+   'Three things in that small exercise carry over to everything later. The direction changes with the chord: up one arpeggio and down the next is how lines move, they do not start again from the root in every bar. The join is aimed: the last note of one chord and the first note of the next are as close as they can be. And the bar line is felt: say the name of the new chord on its first note until the hand knows where it is without being told.',
+   ig([['arp',5],['improv',2],['cr',9],['spelling',12]])]});
+ /* ---------------- 17 ---------------- */
+ const cadM=[['D','m7',50],['G','7',55],['C','maj7',60]],cadMids=cadM.flatMap(([r,q,b])=>sem(q).map(x=>b+x)),cadW=fitWindow(cadMids)||(bad('II–V–I does not fit one position'),{win:[3,7],seq:[]}),cadRoots=cadW.seq.filter((x,i)=>i%4===0);
+ const gtMove=(a,ia,b,ib)=>mod(pc(a[ia])-pc(b[ib]),12);if(gtMove(g7,3,sp('C','maj7'),1)!==1||!same([d7[1]],[g7[3]])||!same([g7[1]],[sp('C','maj7')[3]]))bad('guide tones of the cadence');
+ N.push({h:T.iivi,p:[
+   'Add the chord the II–V leads to and you have the cadence IIm7, V7, IMaj7, the sentence most of jazz harmony is made of. All three chords come from one major scale, so all three arpeggios lie under the hand in one position without a shift.',
+   'In C the three are '+cadM.map(([r,q])=>sy(r,q)+', '+spn(r,q)).join('; ')+'. Play each from its root upward, one bar each, twelve notes. In frets '+cadW.win[0]+' to '+cadW.win[1]+' the three roots are at fret '+cadRoots.map(x=>x.f).join(', ').replace(/^(\d+), \1, \1$/,'$1')+', on strings '+list(cadRoots.map(x=>String(x.s)))+': each root is a 4th above the last, and on those strings a 4th is the next string at the same fret.',
+   {fig:()=>stf(cadM.map(([r,q,b])=>arpBar(r,q,sem(q).map(x=>b+x))),{gap:42}),cap:'Dm7, G7 and CMaj7, each from its root.'},
+   {fig:()=>NF.row(...cadM.map(([r,q,b],i)=>neckT(sy(r,q)+' · from the root',cadW.seq.slice(i*4,i*4+4).map(x=>dotOf(r,q,x.s,x.m)),cadW.win[0],cadW.win[1]))),cap:'The same twelve notes in one position.'},
+   'That is the cadence stated chord by chord. Now look at everything the position holds for each chord:',
+   {fig:()=>NF.row(...cadM.map(([r,q])=>posMap(r,q,cadW.win[0],cadW.win[1]))),cap:'Every chord tone of Dm7, G7 and CMaj7 in those five frets. Most dots stay where they are from one diagram to the next; a few move by one fret.'},
+   'The dots that move are the changes, and two of them matter most. The 3rd and the 7th of a chord are its '+B('guide tones')+': the two notes that fix what kind of chord it is. Through the cadence the 7th of each chord falls '+stepTxt(gtMove(d7,3,g7,1))+' to the 3rd of the next, '+nm(d7[3])+' to '+nm(g7[1])+' and then '+nm(g7[3])+' to '+nm(sp('C','maj7')[1])+', while the 3rd of each chord stays where it is and becomes the next 7th. Guide tones are taught in full, as lines and as two-note shapes, in the notes of Guide-Tone Voice Leading.',
+   'After the root-up version, play the cadence as one line: up Dm7, down G7 from the nearest note, up CMaj7 from the nearest note. Then put the 3rd of each chord on the first beat of its bar, whatever else you play. In another key the shapes are the same at another fret.',
+   {tip:'When a line over changes sounds vague, the cause is nearly always the first beat of the bar. Put a 3rd or a 7th there and the same notes sound like the harmony. Sing the guide tones of a tune, one note a bar, before you play over it.'},
+   ig([['arp',5],['voicelead',1,2,6],['improv',4],['spelling',12]])]});
+ /* ---------------- 18 ---------------- */
+ const cadN=[['D','m7♭5',50],['G','7',55],['C','m6',60]],nD=sp('D','m7♭5'),nC=sp('C','m6');
+ N.push({h:T.mincad,p:[
+   'The cadence into a minor chord has the same three steps with darker chords: IIm7♭5, V7, Im. In C minor that is '+cadN.map(([r,q])=>sy(r,q)).join(', ')+'. The II chord is half-diminished, the V is the dominant that the raised 7th of the key provides, and the I, when it is the end of a phrase, is a minor 6th chord.',
+   'The notes: '+cadN.map(([r,q])=>sy(r,q)+' is '+spn(r,q)).join('; ')+'. Compare them with the major cadence of the last chapter. Three notes are new: the ♭5 of the II chord, '+nm(nD[2])+' where the major cadence had '+nm(d7[2])+'; the ♭3 of the I chord, '+nm(nC[1])+' where it had '+nm(sp('C','maj7')[1])+'; and the 6th on top of the I chord, '+nm(nC[3])+' where it had the 7th, '+nm(sp('C','maj7')[3])+'.',
+   {fig:()=>stf(cadN.map(([r,q,b])=>arpBar(r,q,sem(q).map(x=>b+x))),{gap:42}),cap:'Dm7♭5, G7 and Cm6, each from its root.'},
+   {fig:()=>NF.row(...cadN.map(([r,q])=>posMap(r,q,cadW.win[0],cadW.win[1]))),cap:'The minor cadence in the same five frets as the major one. Compare each diagram with its partner in the last chapter.'},
+   'The joins are a little different. From II to V the 7th still falls '+stepTxt(gtMove(nD,3,g7,1))+' to the 3rd, '+nm(nD[3])+' to '+nm(g7[1])+', exactly as in major. From V to I the 7th of G7, '+nm(g7[3])+', now falls '+stepTxt(gtMove(g7,3,nC,1))+' to the minor 3rd, '+nm(nC[1])+'. And there is a new half step to use: the ♭5 of the II chord, '+nm(nD[2])+', lies one fret above '+nm(g7[0])+', the root of the V.',
+   'That '+nm(nD[2])+' does not have to go away when the V arrives. Held over G7 it is the ♭9 of the chord, and G7♭9 is the usual dominant of a minor key. Its arpeggio from the 3rd upward, '+rot(sp('G','7♭9'),1).slice(0,4).map(nm).join(' ')+', is a diminished 7th chord: see '+see('over')+'.',
+   'Practise it as you did the major cadence: each chord from its root, then as one line by the nearest note, then with the 3rd of each chord on the first beat. Then play the two cadences one after the other in one position, major and then minor, and listen for the notes that change.',
+   ig([['arp',7,15],['voicelead',3],['improv',7]],'In Arpeggio Runner 7 the minor cadence comes after the major one.')]});
+ /* ---------------- 19 ---------------- */
+ const CE=conExample(),triC=CE.chs,md=(A,Bc)=>{let mx=0;A.ct.forEach(p=>{const m=60+p,[dn,up]=nearTones(m,Bc);mx=Math.max(mx,m-dn,up-m);});return mx;},mdAll=L=>Math.max(...L.slice(1).map((c,i)=>md(L[i],c)));
+ const conStaff=(chs,ln,div,o)=>stf(chs.map((C,b)=>({sym:C.sym,notes:ln.slice(b*4*div,(b+1)*4*div).map(m=>[m,P(C.name(m)),''])})),o);
+ N.push({h:T.con,p:[
+   'Playing every arpeggio from its root states the chords one by one, like a list. Music wants them joined. The join is made at the moment the chord changes: the line goes to the '+B('nearest note of the new chord')+', as a singer would, and does not jump back to the new root. This is voice leading in a single line, and it is the step between knowing arpeggios and improvising with them.',
+   'Start with triads, where there are only three notes to think about: Dm, G and C, one bar each, one note to a beat. (The triads themselves, their shapes and inversions, are in the notes of Triad Shapes.) Here is one line.',
+   {fig:()=>conStaff(triC,CE.ln,1,{gap:42}),cap:'Dm, G and C joined by the nearest note at each bar line.'},
+   CE.cap.replace(/^Dm, G and C connected\. /,'')+' In both places the line had two good choices and took one of them.',
+   {sub:'The rules of the exercise'},
    ['Chord tones only.',
-    'Inside a chord the next note is the next chord tone up or the next one down. None is skipped.',
-    'At the first note of a new chord, play its nearest note just above or just below the note you are on. Either is right. The same note again is not asked: the microphone does not hear a note struck twice.',
-    'At least three different notes in every bar.'],
-   {tbl:[['You are on (Dm)','Nearest note of G below','Nearest note of G above'],conRows(['D','m'],['G',''])],cap:'From each note of Dm into G (G B D).'},
-   {tbl:[['You are on (G)','Nearest note of C below','Nearest note of C above'],conRows(['G',''],['C',''])],cap:'From each note of G into C (C E G).'},
-   'The line is your own. Go up or down as you like and turn where you like; the game checks the rules and tells you which one a note broke and which two notes would have been right.',
-   {sub:'Triads, then sevenths, then eighth notes'},
-   ['<b>Triads</b>: Dm, G, C. With three notes in a chord a nearest note can be as far as a 4th away, and the change is plain to hear.',
-    '<b>Seventh chords</b>: Dm7, G7, CMaj7, then the minor cadence Dm7♭5, G7, Cm6 (Cm6 is C E♭ G A). A fourth note makes the gaps smaller: a nearest note is never more than a major 3rd away. In the major cadence the 7th of each chord has the 3rd of the next a half step below it.',
-    '<b>Eighth notes</b>: eight notes to a chord. On the eighth note of the bar you are already preparing the step into the next chord.'],
-   'The same idea with whole scales in place of arpeggios is the scale-line levels of Improvise.',
-   {tip:'Run the arpeggios of a tune only upward, taking the nearest note at each change, then only downward, then mixed: one bar a chord in quarter notes, later in eighths. It is the best preparation for improvising on that tune.'}]},
- {h:'Enclosures',p:[
-   'A plain arpeggio through the changes is correct and sounds like an exercise. An <b>enclosure</b> surrounds a chord tone with the notes on either side of it and lands on it last: the note above, the note below, then the target. The first step towards it is the <b>turn</b>: the note above, the tone, the note below, the tone. Two notes do the work in both:',
-   ['<b>The approach note</b>: the note a half step below the chord tone, whatever the key.',
-    '<b>The neighbour tone</b>: the note of the chord’s scale just above the chord tone. So the scale of the chord has to be known, and it is a choice.'],
-   'The turn is four eighth notes: neighbour, tone, approach, tone. On the root, in degrees, that is '+encFigTxt('C','maj',1,'plain','lab')+'. The game starts with it because the chord tone is heard twice: once inside the figure and once at its end.',
-   {tbl:[['Chord tone of C','Neighbour (above)','Approach (below)','The figure'],[1,3,5].map(n=>{const X=encTone(P('C'),'maj',n);return [X.ct.n+' ('+X.ct.lab+')',X.nb.n,X.ap.n,encFigTxt('C','maj',n,'plain')];})],cap:'A C triad with the major scale: the turn on each chord tone.'},
-   {fig:()=>encStaff('C','maj',['plain','plain','plain','plain']),cap:'The first line the game asks, figure by figure: on the root, the 3rd, the 5th and the root above. Each group is four eighth notes, two beats; the whole line is two bars. Written as guitar music is, an octave above where it sounds.'},
-   'In C minor with the Dorian scale the neighbour tones are the same three notes, D, F and A, and the approach notes are B, D and F♯: the line is '+[1,3,5].map(n=>encFigTxt('C','dor',n,'plain')).join(' · ')+'.',
-   {sub:'Through II–V–I'},
-   'Each chord brings its own scale, and so its own neighbour tones. The approach notes follow from the chord tones alone.',
-   {tbl:[['Chord and scale','Chord tones','Approach notes (below)','Neighbour tones (above)'],[['Dm, D Dorian'].concat(encRow('D','dor')),['G7, G Mixolydian'].concat(encRow('G','mix')),['C, C major'].concat(encRow('C','maj')),['Dm with a ♭6'].concat(encRow('D','aeo')),['G7, Mixolydian ♭9 ♭13'].concat(encRow('G','mixb'))]],cap:'II–V–I in C. The last two rows are darker choices of scale: compare their neighbour tones with the rows above.'},
-   ['The game puts the turn on the root and the 3rd of each chord, one bar a chord, and lands on the root of C: '+['D','G','C'].map((r,i)=>encFigTxt(r,['dor','mix','maj'][i],1,'plain')+', '+encFigTxt(r,['dor','mix','maj'][i],3,'plain')).join(' | ')+' | C.',
-    'With the darker scales only the neighbour tones can change. In that line one does: above the root of G7 the neighbour is '+encTone(P('G'),'mixb',1).nb.n+' in place of '+encTone(P('G'),'mix',1).nb.n+'.',
-    'Change one chord’s scale, play the line again, and listen to what moved.'],
-   {sub:'Chromatic enclosures on a major chord at rest'},
-   'Here the target comes last, as in the enclosure proper. On the I chord, with the major scale, the neighbour tone of the root and of the 5th lies a whole step above, so a chromatic note fits between the two.',
-   {tbl:[['Figure','Degrees on the root','On the root of C','On the 5th of C'],[['the turn','plain'],['chromatic, from above','above'],['chromatic, from below first','below'],['the chromatic note first','cnf']].map(([t,k])=>[t,encFigTxt('C','maj',1,k,'lab'),encFigTxt('C','maj',1,k),encFigTxt('C','maj',5,k)])],cap:'The figures on the root and on the 5th.'},
-   'The 3rd is different. The note above E is F, only a half step away, so nothing fits between them. The 3rd takes a double approach from below: '+encFigTxt('C','maj',3,'dbl')+' ('+encFigTxt('C','maj',3,'dbl','lab')+').',
-   ['The rule for a figure that works: the upper note it leans on belongs to the scale.',
-    'These figures are for a major chord heard as home, the chord a II–V–I resolves to.'],
-   {sub:'On the beat'},
-   'Each figure above starts on a beat, so the chord tone the turn aims at lands on an “and”. The second form of each enclosure level keeps the notes and moves the line: count one bar after the count-in and come in on the “and” of 4 (the turn) or on the “and” of 3 (the chromatic figures). Then every chord tone of the turn falls on a beat, and every target of a chromatic figure on beat 1 or 3. In the cadence the closing root goes to the next beat 1. In C major the turn on the root then reads '+encFigTxt('C','maj',1,'plain')+' counted 4& 1 1& 2.',
-   {tip:'Improvise on one major chord for a minute using only the figures, sometimes starting from the neighbour tone and sometimes from the approach note. Then put one figure on the last two beats before a chord change.'}]},
- {h:'The bebop dominant scale',p:[
-   'A seven-note scale played in eighth notes does not fit a bar of four beats. Start on the root on beat 1 and after one octave the chord tones have slipped onto the “ands”. The bebop dominant scale fixes this by adding one passing note to Mixolydian: the major 7th, between the root and the ♭7. Eight notes now fill the bar exactly.',
-   {tbl:[['','1','and','2','and','3','and','4','and','1'],[['Degree','<b>1</b>','7','<b>♭7</b>','6','<b>5</b>','4','<b>3</b>','2','<b>1</b>'],['C7','<b>C</b>','B','<b>B♭</b>','A','<b>G</b>','F','<b>E</b>','D','<b>C</b>']]],cap:'The bebop dominant scale descending from the root. Every beat carries a chord tone, 1 ♭7 5 3, and every “and” a passing note.'},
-   {fig:()=>NF.row(NF.rhy('ee ee ee ee | q r hr',{swing:true}),NF.scale('C','1 2 3 4 5 6 b7 7',7,10,{hl:'7'})),cap:'The run the game asks for: nine notes down from the root in swing eighths, ending on the root on the next downbeat. On the neck, the C bebop dominant scale in frets 7 to 10: blue is the added major 7th, gold is the root. The scale is C Mixolydian, the notes of F major, plus B.'},
-   ['The rule: start on a chord tone, on a beat, and play eighths. The chord tones then stay on the beats for as long as you keep going, in either direction.',
-    'It is used descending far more than ascending. Root, a half step down, another half step down, then the plain scale.',
-    'Start from the 3rd, 5th or ♭7 on a beat and the same thing happens. Start on a passing note or on an “and” and it is turned inside out; then leave the extra note out.',
-    'The added note is a passing note only. Do not stop on it and do not put it on a beat.']]},
- {h:'Outlines: from each 7th to the next 3rd',p:[
-   'An arpeggio states one chord. An outline connects two: a fixed line of eighth notes through II–V–I in which the 7th of each chord falls a step to the 3rd of the next. Four eighths on the IIm7, four on the V7, and the 3rd of I on the next beat 1. Levels 13 to 15 ask three of these lines, which Bert Ligon teaches as outlines; here they are named by their shape.',
-   {tbl:[['Shape','Dm7 (four eighths)','G7 (four eighths)','C (land)'],[['Down the scale from the 3rd','F E D C (♭3 2 1 ♭7)','B A G F (3 2 1 ♭7)','E (3)'],['Up the arpeggio from the root','D F A C (1 ♭3 5 ♭7)','B A G F','E'],['Down the arpeggio from the 5th','A F D C (5 ♭3 1 ♭7)','B A G F','E']]],cap:'The three lines in C. Only the IIm7 half changes; the V7 half is always 3 2 1 ♭7 and the line always lands on the 3rd of I.'},
-   {fig:()=>NF.staff('D4=Dm7 F4 A4 C5 | B4=G7 A4 G4 F4 | E4=C',{gap:42}),cap:'Up the arpeggio from the root. C, the 7th of Dm7, falls a half step to B, the 3rd of G7; F, the 7th of G7, falls a half step to E, the 3rd of C.'},
-   ['The two moments that matter are the bar lines: C to B, then F to E. Each is a half step down, and each puts the new chord’s 3rd on beat 1. That is why the line sounds like the changes even with no chord under it.',
-    'The game asks each line in one position, in straight eighths with the click, first in C only (level 13), then in all twelve keys (level 14).',
-    'The V7 half starts on its 3rd and walks down the scale: 3 2 1 ♭7. Over a dominant that is also the bebop habit of putting chord tones on the beats.'],
+    'Inside a chord, go to the next chord tone up or the next one down. None is skipped.',
+    'At the first note of a new chord, play its nearest note, either the one just above the note you are on or the one just below. Both are right. Staying on the same note does not count: the line has to move.',
+    'Use at least three different notes in every bar.'],
+   'Within those rules the line is yours. Go up or down as you like and turn where you like. What the rules forbid is the leap back to the root, and what they train is the habit of looking, one beat before the bar line, for the note of the next chord that lies closest to your finger.',
+   {tbl:[['You are on (Dm)','Nearest note of G below','Nearest note of G above'],conRows(['D','m'],['G',''])],cap:'From each note of Dm into G ('+triC[1].tones.join(' ')+').'},
+   {tbl:[['You are on (G)','Nearest note of C below','Nearest note of C above'],conRows(['G',''],['C',''])],cap:'From each note of G into C ('+triC[2].tones.join(' ')+').'},
+   'With three notes in a chord the nearest note can be as far as '+stepTxt(mdAll(triC))+' away, so the change is plain to hear. That is the reason to begin with triads.',
+   ig([['arp',6],['triads',9]],'Triad Shapes 9 makes the same move with whole chords: to the nearest inversion.')]});
+ /* ---------------- 20 ---------------- */
+ const sevC=[['D','m7'],['G','7'],['C','maj7']].map(([r,q])=>conChord(P(r),q)),minC=[['D','m7♭5'],['G','7'],['C','m6']].map(([r,q])=>conChord(P(r),q)),sevLn=nearLine(sevC,[4,4,4],1,[0,-1,1],40,80,50),sev8=nearLine(sevC,[4,4,4],2,[0,-1,1],50,72,50);
+ const nt2=(C,from)=>{const m=60+pc(P(from)),[dn,up]=nearTones(m,C);return [C.name(dn),C.name(up)];},mAb=nt2(minC[1],nm(nD[2]));
+ N.push({h:T.con7,p:[
+   'Seventh chords are connected by the same rules. A fourth note in each chord fills one of the gaps, so the joins become smaller: in Dm7, G7, CMaj7 no nearest note is more than '+stepTxt(mdAll(sevC))+' away, and several are a single fret.',
+   {fig:()=>conStaff(sevC,sevLn,1,{gap:42}),cap:'Dm7, G7 and CMaj7 connected, one note to a beat.'},
+   'In that line the first join is the half step you met in '+see('iiv')+': '+sevC[0].name(sevLn[3])+', the 7th of Dm7, to '+sevC[1].name(sevLn[4])+', the 3rd of G7. The second join goes up, from '+sevC[1].name(sevLn[7])+' to '+sevC[2].name(sevLn[8])+'. Now the tables show every choice.',
+   {tbl:[['You are on (Dm7)','Nearest note of G7 below','Nearest note of G7 above'],conRows(['D','m7'],['G','7'])],cap:'From each note of Dm7 into G7 ('+sevC[1].tones.join(' ')+').'},
+   {tbl:[['You are on (G7)','Nearest note of CMaj7 below','Nearest note of CMaj7 above'],conRows(['G','7'],['C','maj7'])],cap:'From each note of G7 into CMaj7 ('+sevC[2].tones.join(' ')+').'},
+   'Read the tables for the half steps. From the 7th of each chord the nearest note below is the 3rd of the next, one fret down. Those are the guide tones again, found this time by the hand looking for the closest note.',
+   'The minor cadence, Dm7♭5, G7, Cm6, is connected the same way, with one more half step to find: from '+nm(nD[2])+', the ♭5 of Dm7♭5, the nearest notes of G7 are '+mAb[0]+' just below and '+mAb[1]+' above.',
+   {sub:'In eighth notes'},
+   'Then double the speed: eight notes to each chord. Four chord tones do not fill a bar of eighths going one way, so the line has to turn inside the bar, and you choose where. The rule at the bar line is unchanged; what changes is how early you must see it coming. By the last two eighth notes of a bar you are already steering towards the note you want to arrive on.',
+   {fig:()=>conStaff(sevC,sev8,2,{gap:27}),cap:'The same three chords in eighth notes, eight to a bar.'},
+   'The same idea with whole scales in place of arpeggios, chord tones on the strong beats and scale notes between, is treated in the notes of Improvise.',
+   {tip:'Take the chords of a tune and run their arpeggios only upward, taking the nearest note above at each change; then only downward; then freely. One bar a chord in quarter notes, later in eighths. It is the best single preparation for improvising on that tune.'},
+   ig([['arp',7,8],['improv',2,3]])]});
+ /* ---------------- 21 ---------------- */
+ const cap1=s=>s[0].toUpperCase()+s.slice(1);
+ const olRow=(k,sh,minor)=>{const L=olLine(k,sh,minor),kp=pc(L.root),lab=(i,c)=>olDeg(L.ns[i].semi-(pc(L.chs[c].r)-kp),L.chs[c].q),part=(a,b,c)=>L.ns.slice(a,b).map(x=>nm(x.n)).join(' ')+' ('+L.ns.slice(a,b).map((_,j)=>lab(a+j,c)).join(' ')+')';return [cap1(OL_SH[sh].n),part(0,4,0),part(4,8,1),part(8,9,2)];};
+ const olBars=(k,sh,minor)=>{const L=olLine(k,sh,minor),b=[48,60].map(x=>x+pc(L.root)).find(x=>Math.min(...L.ns.map(n=>x+n.semi))>=48),sm=minor?[sy(nm(L.chs[0].r),'m7♭5'),nm(L.chs[1].r)+'7♭9',nm(L.root)+'m']:[sy(nm(L.chs[0].r),'m7'),sy(nm(L.chs[1].r),'7'),sy(nm(L.root),'maj7')];
+   return [0,1,2].map(c=>({sym:sm[c],notes:L.ns.slice(c*4,c===2?9:c*4+4).map(x=>[b+x.semi,x.n,''])}));};
+ const OLK=Object.keys(OL_SH),olC=olLine('C','arpup',false),olA=olLine('A','arpup',true);
+ N.push({h:T.out,p:[
+   'An arpeggio states one chord. An '+B('outline')+' states the movement from one chord to the next: a fixed line of eighth notes through II–V–I in which the 7th of each chord steps down to the 3rd of the next. Four eighth notes on the IIm7, four on the V7, and the 3rd of the I chord on the following first beat. Bert Ligon teaches lines of this kind as outlines; here the three are named by their shape.',
+   'Take the plainest one in C. Over Dm7, go up the arpeggio from the root: '+olC.ns.slice(0,4).map(x=>nm(x.n)).join(' ')+'. The last note is the 7th. It steps down to '+nm(olC.ns[4].n)+', the 3rd of G7, and the line walks down the scale from there: '+olC.ns.slice(4,8).map(x=>nm(x.n)).join(' ')+'. The last of those is the 7th of G7, and it steps down to '+nm(olC.ns[8].n)+', the 3rd of C, on the first beat of the next bar.',
+   {fig:()=>stack(OLK.map(sh=>[cap1(OL_SH[sh].n),stf(olBars('C',sh,false),{gap:40})])),cap:'The three outlines in C. Each ends on E, the 3rd of the I chord, on the first beat of the third bar.'},
+   {tbl:[['Shape','Dm7 (four eighths)','G7 (four eighths)','CMaj7 (arrive)'],OLK.map(sh=>olRow('C',sh,false))],cap:'The three lines in C, in notes and in degrees of each chord. Only the first half changes.'},
+   'The three differ only over the IIm7: down the scale from its 3rd, up the arpeggio from its root, or down the arpeggio from its 5th. All three end that bar on the 7th. The V7 half is always the same, 3 2 1 ♭7 down the scale, and the arrival is always the 3rd of I.',
+   'The two moments that matter are the bar lines. Each is a step down, and each puts the 3rd of the new chord on beat 1. That is why an outline sounds like the changes with no chord under it. Notice, too, that the V7 half has a chord tone on each beat, 3 and 1, with scale notes between: over a dominant chord that is the habit described in '+see('bebop')+', in its simplest form.',
    {sub:'In minor'},
-   'Level 15 is the minor cadence IIm7♭5, V7♭9, Im. The same three shapes over the IIm7♭5, then 3 ♭9 1 ♭7 over the V7, landing on the minor 3rd of I. The notes are A natural minor except over V, where the raised 7th (G♯) is the chord’s 3rd and F is its ♭9: harmonic minor.',
-   {tbl:[['Shape','Bm7♭5','E7♭9','Am (land)'],[['Down the scale from the 3rd','D C B A (♭3 ♭2 1 ♭7)','G♯ F E D (3 ♭9 1 ♭7)','C (♭3)'],['Up the arpeggio from the root','B D F A (1 ♭3 ♭5 ♭7)','G♯ F E D','C'],['Down the arpeggio from the 5th','F D B A (♭5 ♭3 1 ♭7)','G♯ F E D','C']]],cap:'The three lines in A minor. A falls a half step to G♯; D falls a whole step to C.'},
-   {tip:'Learn one line until your hand plays it without you, then cut it up: the IIm7 half alone, the V7 half alone, the line an octave higher. That is how players use outlines in a solo, as pieces, not as whole recitations.'}]},
- {h:'Using arpeggios in lines',p:[
+   'The same three shapes go through the minor cadence IIm7♭5, V7♭9, Im. Over the V the line is 3 ♭9 1 ♭7: the raised 7th of the key is the 3rd of the chord, and the note above the root is the ♭9. In A minor the 7th of '+sy(nm(olA.chs[0].r),'m7♭5')+', '+nm(olA.ns[3].n)+', falls a half step to '+nm(olA.ns[4].n)+'; the 7th of the V chord, '+nm(olA.ns[7].n)+', falls a whole step to the minor 3rd, '+nm(olA.ns[8].n)+'.',
+   {tbl:[['Shape','Bm7♭5','E7♭9','Am (arrive)'],OLK.map(sh=>olRow('A',sh,true))],cap:'The three lines in A minor.'},
+   {tip:'Learn one line until the hand plays it without you. Then cut it up: the IIm7 half alone, the V7 half alone, the whole line an octave higher. That is how outlines are used in a solo: as pieces, not as recitations.'},
+   ig([['arp',13,14,15],['cr',13],['improv',10]],'Call &amp; Response 13 gives the same lines by ear.')]});
+ /* ---------------- 22 ---------------- */
+ const eC=[1,3,5].map(n=>encTone(P('C'),'maj',n)),turnL=encTriLine(P('C'),'maj',['plain','plain','plain','plain'])||(bad('the turn line'),{ev:[]});
+ const encBars=(L,syms)=>{const g=encGroups(L.ev);return [0,1].map(b=>({sym:b?'':syms,notes:g.slice(b*2,b*2+2).flatMap((gr,i)=>gr.map((e,j)=>[e.m,e.o,j===3?['root','3rd','5th','root'][b*2+i]:'']))}));};
+ N.push({h:T.turn,p:[
+   'A plain arpeggio through the changes is correct, and it sounds like an exercise. What turns chord tones into melody is the notes placed round them. Two notes do nearly all of this work, and each has a simple rule.',
+   B('The approach note')+' is the note a half step below a chord tone. It does not depend on the key or the scale: under '+eC[0].ct.n+' it is '+eC[0].ap.n+', under '+eC[1].ct.n+' it is '+eC[1].ap.n+', under '+eC[2].ct.n+' it is '+eC[2].ap.n+', always one fret down. It may be a note from outside the key; the ear accepts it because it leads so strongly into the chord tone.',
+   B('The neighbour tone')+' is the note of the chord’s scale just above a chord tone. This one does depend on the scale, so the scale has to be known, and where a chord can take more than one scale the neighbour is a choice. With the major scale on a C chord the neighbours of '+list(eC.map(x=>x.ct.n))+' are '+list(eC.map(x=>x.nb.n))+'.',
+   {sub:'The turn'},
+   'The first figure made of the two is the '+B('turn')+': neighbour, chord tone, approach note, chord tone. Four eighth notes that circle the tone and come back to it. On the root, in degrees, it is '+encFigTxt('C','maj',1,'plain','lab')+'; in C, '+encFigTxt('C','maj',1,'plain')+'. It is the place to begin because the chord tone is heard twice, once inside the figure and once at its end, so the ear never loses the chord.',
+   {tbl:[['Chord tone of C','Neighbour (above)','Approach (below)','The turn'],eC.map((X,i)=>[X.ct.n+' ('+X.ct.lab+')',X.nb.n,X.ap.n,encFigTxt('C','maj',X.num,'plain')])],cap:'A C major triad with the major scale: the turn on each chord tone.'},
+   {fig:()=>stf(encBars(turnL,'C')),cap:'The turn on the root, the 3rd, the 5th and the root above: four groups of four eighth notes, two bars. The word under each group marks the chord tone it ends on.'},
+   'On a C minor triad the chord tones are '+[1,3,5].map(n=>encTone(P('C'),'dor',n).ct.n).join(', ')+'. Take the neighbours from the Dorian scale (the minor scale with a major 6th, the usual scale of a minor 7th chord) and they are the same three notes as before, '+list([1,3,5].map(n=>encTone(P('C'),'dor',n).nb.n))+'. The approach notes are '+list([1,3,5].map(n=>encTone(P('C'),'dor',n).ap.n))+'. The line is '+[1,3,5].map(n=>encFigTxt('C','dor',n,'plain')).join(' · ')+'. Under the minor 3rd the approach note happens to be a note of the scale; the rule is the same.',
+   {tip:'Play the turn on one chord tone many times before you string the three together, and sing the chord tone as you land on it. The figure is learned when you can start it without thinking and think only about where it ends.'},
+   ig([['arp',9]])]});
+ /* ---------------- 23 ---------------- */
+ const cadTurn=dark=>{const chs=[{r:P('D'),sy:'Dm',sc:dark?'aeo':'dor'},{r:P('G'),sy:'G7',sc:dark?'mixb':'mix'},{r:P('C'),sy:'C',sc:'maj'}];let best=null;
+   for(const o1 of [48,60])for(const o2 of [48,60])for(const o3 of [48,60]){const ev=[];[o1,o2,o3].forEach((b,i)=>{const c=chs[i],R0=b+pc(c.r);[1,3].forEach(n=>{const X=encTone(c.r,c.sc,n);ev.push(...encFig(R0+X.ct.semi,X,'plain').map(e=>({...e,c:i})));});});
+     const X1=encTone(P('C'),'maj',1);ev.push({m:o3,n:X1.ct.n,o:X1.ct.o,lab:'1',role:'ct',c:2});const ms=ev.map(e=>e.m);if(Math.min(...ms)<48||Math.max(...ms)>79||ms.some((m,i)=>i&&m===ms[i-1]))continue;const a=encFit(ms);if(!a)continue;const spn2=Math.max(...ms)-Math.min(...ms)+(a.win[1]-a.win[0]>4?12:0);if(!best||spn2<best.sp)best={ev,chs,sp:spn2};}
+   return best||(bad('the turn through the cadence'),{ev:[],chs});};   /* the line of encCadQ in C, chosen as that generator chooses it */
+ const cadTxt=T0=>[0,1,2].map(i=>T0.ev.filter(e=>e.c===i).slice(0,8).map(e=>e.n).join(' ')).join(' | ')+' | '+(T0.ev.at(-1)||{}).n;
+ const cadBars=T0=>[0,1,2].map(i=>({sym:T0.chs[i].sy,notes:T0.ev.filter(e=>e.c===i).slice(0,8).map(e=>[e.m,e.o,''])})).concat([{sym:'',notes:[[T0.ev.at(-1).m,T0.ev.at(-1).o,'']]}]);
+ const tPlain=cadTurn(false),tDark=cadTurn(true);if(tPlain.ev.length!==25||tPlain.ev.filter((e,i)=>!tDark.ev[i]||tDark.ev[i].n!==e.n).length!==1)bad('the darker turn line differs in more than one note');
+ const nbP=encTone(P('G'),'mix',1).nb.n,nbD=encTone(P('G'),'mixb',1).nb.n;
+ N.push({h:T.turncad,p:[
+   'Move the turn through a cadence and something new appears. Each chord brings its own scale, and therefore its own neighbour tones. The approach notes need no thought, since they follow from the chord tones alone; the neighbours are where the harmony is heard.',
+   'In the II–V–I of C the usual scales are D Dorian for the Dm chord, G Mixolydian (the major scale with a ♭7, the usual scale of a dominant chord) for G7, and C major for C. All three are the notes of C major, so every neighbour tone is a note of the key.',
+   {tbl:[['Chord and scale','Chord tones','Approach notes (below)','Neighbour tones (above)'],[['Dm, D Dorian'].concat(encRow('D','dor')),['G7, G Mixolydian'].concat(encRow('G','mix')),['C, C major'].concat(encRow('C','maj')),['Dm, with a ♭6'].concat(encRow('D','aeo')),['G7, Mixolydian ♭9 ♭13'].concat(encRow('G','mixb'))]],cap:'The II–V–I of C. The last two rows are darker choices of scale for the first two chords: compare their neighbour tones with the rows above.'},
+   'A line that uses it: the turn on the root and then on the 3rd of each chord, one bar a chord, arriving on the root of C. In notes: '+cadTxt(tPlain)+'.',
+   {fig:()=>stf(cadBars(tPlain),{gap:30}),cap:'The turn on the root and the 3rd of Dm, G7 and C, ending on C.'},
+   {sub:'Darker neighbours'},
+   'Now change the scales. Give the Dm chord a ♭6 and the G7 chord the scale a dominant takes when it leads to a minor chord, Mixolydian ♭9 ♭13. The chord tones have not changed, so the approach notes have not changed. Only neighbour tones can move, and in this line exactly one does: above the root of G7 the neighbour is now '+nbD+' where it was '+nbP+'. The line becomes '+cadTxt(tDark)+'.',
+   'One note in twenty-five, and the cadence sounds as if it were heading for C minor. That is how much weight a neighbour tone carries. (The ♭6 of the Dm chord is the neighbour of its 5th, and this line turns only on roots and 3rds, so it does not appear.) The scales themselves, and when each fits, are in the notes of Modes and of Chord–Scale Reflex.',
+   ig([['arp',10],['cr',13],['modes',9]],'Call &amp; Response 13 has this line by ear, plain and with the darker neighbours.')]});
+ /* ---------------- 24 ---------------- */
+ const cnts=(start,n)=>[...Array(n)].map((_,i)=>{const t=start+i*.5,b=mod(Math.floor(t),4)+1;return b+(t%1?'&':'');}).join(' '),eRoot=eC[0],chrL=encTriLine(P('C'),'maj',['above','dbl','above','above'])||(bad('the chromatic line'),{ev:[]});
+ N.push({h:T.enc,p:[
+   'In the turn the chord tone comes second and fourth. The '+B('enclosure')+' proper holds it back to the end: the note above, the note below, and only then the target. On the root of C that is '+[eRoot.nb,eRoot.ap,eRoot.ct].map(x=>x.n).join(' ')+', in degrees '+[eRoot.nb,eRoot.ap,eRoot.ct].map(x=>x.lab).join(' ')+'. The target is surrounded before it is heard, and the ear waits for it.',
+   {sub:'Chromatic figures'},
+   'On a major chord at rest, with the major scale, the neighbour of the root and the neighbour of the 5th lie a whole step above their chord tones. A whole step leaves room for one more note between, a chromatic note, and it can be placed in three ways.',
+   {tbl:[['Figure','Degrees, on the root','On the root of C','On the 5th of C'],[['the turn','plain'],['chromatic, from above','above'],['chromatic, from below first','below'],['the chromatic note first','cnf']].map(([t,k])=>[t,encFigTxt('C','maj',1,k,'lab'),encFigTxt('C','maj',1,k),encFigTxt('C','maj',5,k)])],cap:'The turn, for comparison, and the three chromatic figures. In all three the chord tone is the last note.'},
+   'The 3rd is different. The note above '+eC[1].ct.n+' is '+eC[1].nb.n+', only a half step away, so nothing fits between them. The 3rd takes a double approach from below instead: '+encFigTxt('C','maj',3,'dbl')+', in degrees '+encFigTxt('C','maj',3,'dbl','lab')+'.',
+   {fig:()=>stf(encBars(chrL,'C')),cap:'Chromatic from above on the root, the double approach on the 3rd, chromatic from above on the 5th and on the root above.'},
+   'One rule decides whether a figure works: the upper note it leans on belongs to the scale of the chord. The lower notes can be chromatic; the upper one cannot be arbitrary. And these chromatic figures belong on a major chord heard as home, the chord a II–V–I arrives at, where there is time to hear them.',
+   {sub:'The target on the beat'},
+   'Where a figure starts decides where its target lands. Start a four-note figure on a beat and its last note falls on an “and”, the weak half of a beat. Start it an eighth note early and the target moves onto the beat, which is where a chord tone tells.',
+   {tbl:[['Figure on the root of C','Notes','Started on beat 1','Started early'],[['the turn',encFigTxt('C','maj',1,'plain'),cnts(0,4),cnts(3.5,4)+' (start on the “and” of 4)'],['chromatic, from above',encFigTxt('C','maj',1,'above'),cnts(0,4),cnts(2.5,4)+' (start on the “and” of 3)']]],cap:'How each note is counted. Started early, the turn puts both its chord tones on beats, and the chromatic figure puts its target on beat 1.'},
+   'So every figure is practised twice: once starting on the beat, to learn the notes, and once displaced, to put the chord tones where they belong. A line of turns begun on the “and” of 4 has a chord tone on every beat. A line of chromatic figures begun on the “and” of 3 has a target on every beat 1 and beat 3.',
+   {tip:'Improvise on one major chord for a minute using only these figures, sometimes entering from the neighbour and sometimes from the approach note. Then place one figure on the last two beats before a chord change, so that its target is the first note of the new chord.'},
+   ig([['arp',9,10,11],['improv',5],['cr',7]],'The displaced forms are the last rounds of Arpeggio Runner 9, 10 and 11.')]});
+ /* ---------------- 25 ---------------- */
+ const bbSteps=[0,-1,-2,-3,-5,-7,-8,-10,-12],bbLab=['1','7','♭7','6','5','4','3','2','1'],mixC=modeNotes(P('C'),4,'maj'),bbN=bbSteps.map(x=>{const d=mixC.find(n=>pc(n)===mod(x,12));return d?nm(d):nm(tr(P('C'),7,11));}),mxSteps=[0,-2,-3,-5,-7,-8,-10,-12],mxLab=['1','♭7','6','5','4','3','2','1'],onB=(L)=>L.filter((_,i)=>i%2===0);
+ N.push({h:T.bebop,p:[
+   'One scale belongs in a text on arpeggios, because it exists to keep an arpeggio on the beat. Play the scale of a dominant chord, Mixolydian, downward from the root in eighth notes. The root is on beat 1. But the scale has seven notes and a bar of eighths has eight places, so by beat 2 the notes on the beats are no longer chord tones: the beats get '+onB(mxLab).slice(0,4).join(', ')+'.',
+   'The '+B('bebop dominant scale')+' cures this with one added note, the major 7th, slipped in between the root and the ♭7. Now there are eight notes to the octave, and going down from the root the beats get '+onB(bbLab).slice(0,4).join(', ')+': the four notes of the arpeggio, in order, with a passing note on every “and”.',
+   {tbl:[['','1','and','2','and','3','and','4','and','1'],[['Degree'].concat(bbLab.map((l,i)=>i%2?l:B(l))),['On C7'].concat(bbN.map((l,i)=>i%2?l:B(l)))]],cap:'The bebop dominant scale down from the root. The notes on the beats are the arpeggio of C7.'},
+   {fig:()=>NF.rhy('ee ee ee ee | q r hr',{swing:true}),cap:'The rhythm of the run: nine notes in swing eighths, the last one on the first beat of the next bar.'},
+   {fig:()=>NF.scale('C','R 2 3 4 5 6 b7 7',7,10,{hl:'7',title:'C bebop dominant scale'}),cap:'C Mixolydian with the added note in blue. The root is gold.'},
+   'The rule for using it is short. Start on a chord tone, on a beat, and play eighth notes; the chord tones then stay on the beats for as long as you keep going. It works from the 3rd, the 5th and the ♭7 as well as from the root. Started on a passing note, or on an “and”, it comes out inside out, and then the added note is left out.',
+   'It is used downward far more than upward: root, a half step down, another half step down, and then the plain scale. The added note is a passing note only. Do not stop on it and do not put it on a beat.',
+   'The scale itself, and the other bebop scales, are treated in the notes of Chord–Scale Reflex.',
+   ig([['arp',12],['chordscale',6],['scales',7]],'Scale Runner 7 makes the same point with the major scale: up to the 7th and back, the chord tones fall on the beats.')]});
+ /* ---------------- 26 ---------------- */
+ const TEN={0:'1',1:'♭9',2:'9',3:'♯9',4:'3',5:'11',6:'♯11',7:'5',8:'♭13',9:'13',10:'♭7',11:'7'};
+ const overLab=(cr,cq,n,alt)=>{const s=mod(pc(n)-pc(P(cr)),12),i=sem(cq).findIndex(x=>mod(x,12)===s);return (alt&&alt[s])||(i>=0?DEG[XQ[cq][i]]:TEN[s]);};
+ const ordTxt=l=>({'3':'3rd','♭3':'♭3','5':'5th','♭5':'♭5','6':'6th'})[l]||bad('from '+l);
+ const OVER=[['C','maj7','E','m7',null,'CMaj9: the 9th on top'],['D','m7','F','maj7',null,'Dm9'],['G','7','B','m7♭5',null,'G9'],['G','7','B','dim7',null,'G7♭9: the dominant of a minor key'],['G','7','Db','7',{6:'♭5'},'an altered dominant: ♭5 and ♭9, with the 3rd and ♭7 kept'],['G','7','D','m7',null,'a suspended sound: G9sus4, no 3rd'],['C','maj7','A','m7',{9:'6'},'C6: the major chord at rest'],['C','maj7','G','maj7',null,'CMaj9♯11: the Lydian colour']];
+ const overRow=([cr,cq,ar,aq,alt,snd])=>[sy(cr,cq),sy(ar,aq)+' ('+spn(ar,aq)+')','its '+ordTxt(overLab(cr,cq,P(ar),alt)),sp(ar,aq).map(n=>overLab(cr,cq,n,alt)).join(' '),snd];
+ if(!CM.every((c,d)=>{const up=CM[(d+2)%7],n=sp(c.r,c.q);return same(sp(up.r,up.q),[n[1],n[2],n[3],P(CM[(d+1)%7].r)]);}))bad('the arpeggio from the 3rd is the chord two degrees up');
+ const o39=[52,55,59,62];
+ N.push({h:T.over,p:[
+   'Every arpeggio you know has a second use. Play it not from the root of the chord you are on but from another of its notes, and the same fingering gives a different slice of the harmony: fewer plain chord tones, and one or two of the colours above them.',
    {sub:'From the 3rd to the 9th'},
-   'Play a seventh arpeggio from the 3rd of the chord instead of the root and its top note is the 9th. The notes 3 5 7 9 are themselves a seventh chord with its own name, so every arpeggio you know has a second use.',
-   {tbl:[['Over','Play','You get'],[['Cmaj7','Em7 (E G B D)','3 5 7 9'],['Dm7','Fmaj7 (F A C E)','♭3 5 ♭7 9'],['G7','Bm7♭5 (B D F A)','3 5 ♭7 9'],['G7♭9','B°7 (B D F A♭)','3 5 ♭7 ♭9']]],cap:'The arpeggio from the 3rd. In a key it is always the diatonic chord two degrees higher.'},
-   {sub:'Approach notes'},
-   'Arpeggio notes on the strong beats, each with a note a half step below it or the scale note above it played just before on the weak beat, is most of the bebop language. Enclosures have their own chapter above; approach notes inside a line of your own are in the notes of Improvise.',
-   {sub:'Shape and rhythm'},
-   ['Real lines mix the two materials: an arpeggio in one direction, a scale in the other.',
-    'End phrases on an off-beat and leave space. An arpeggio with jazz rhythm sounds like jazz; a correct one in stiff, even notes does not.']]},
- {h:'Practice and common faults',p:[
+   'The most useful case first. Over CMaj7, start on the 3rd and stack the next three notes: '+rot(sp('C','maj9'),1).slice(0,4).map(nm).join(' ')+'. In degrees of C that is 3 5 7 9. The root has gone and the 9th has arrived. But '+rot(sp('C','maj9'),1).slice(0,4).map(nm).join(' ')+' is itself a seventh chord with a name of its own, '+sy('E','m7')+'. So to play 3 5 7 9 over CMaj7 you play an Em7 arpeggio, which you already know.',
+   {fig:()=>NF.row(neckT('CMaj7 · R 3 5 7',lineDots('C','maj9',sem('maj7').map(x=>48+x),2,5),2,5),neckT('Over CMaj7 · 3 5 7 9 (Em7)',lineDots('C','maj9',o39,2,5),2,5)),cap:'Left: CMaj7 from its root. Right: the same chord from its 3rd up to its 9th. Three dots are shared; the root has left at the bottom and the 9th has come in at the top.'},
+   'Inside a key the rule never changes: the arpeggio from the 3rd of a chord is the chord of the key two degrees higher. Over Dm7 it is FMaj7; over G7 it is Bm7♭5. Lines built this way sound richer than root arpeggios and leave the root to the bass, where it already is.',
+   {fig:()=>stf([['C','maj7','E','m7'],['D','m7','F','maj7'],['G','7','B','m7♭5'],['G','7','B','dim7']].map(([cr,cq,ar,aq],i)=>({sym:i===3?'G7♭9':sy(cr,cq),notes:sp(ar,aq).map((n,k)=>[[52,53,59,59][i]+sem(aq)[k],n,overLab(cr,cq,n)])})),{gap:44}),cap:'Four arpeggios played from the 3rd of the chord named above the bar. The numbers are degrees of that chord.'},
+   {sub:'Other arpeggios, other colours'},
+   'The same thinking gives the rest of the table. A diminished 7th arpeggio from the 3rd of a dominant chord gives 3, 5, ♭7 and ♭9: the dominant of a minor key, complete except for its root. The arpeggio of the chord a tritone away, D♭7 over G7, keeps the 3rd and ♭7 of G7, which the two chords share, and adds the ♭5 and ♭9. A minor 7th arpeggio from the 5th of a dominant chord gives a suspended sound. A minor 7th arpeggio from the 6th of a major chord gives the 6 chord, and a major 7th arpeggio from the 5th gives the raised 11th.',
+   {tbl:[['Over','Play','From','You get','The sound'],OVER.map(overRow)],cap:'One arpeggio over another chord. “You get” reads the notes of the arpeggio as degrees of the chord underneath.'},
+   {tip:'Do not learn the table as a list. Take one row, loop the chord, and play the arpeggio over it until you can hear which of its notes is the colour. Then find where that arpeggio lies beside the root arpeggio in the same position, and which notes the two have in common.'},
+   ig([['spelling',9],['earchord',6,11],['chordscale',11]],'No game drills these as arpeggios yet. These levels teach the notes involved: how the 9th and the altered 9ths are spelled, how they sound, and which of them a chord can carry.')]});
+ /* ---------------- 27 ---------------- */
+ const BIG=[['C','maj9'],['D','m9'],['G','9'],['D','m11'],['G','13'],['C','maj13♯11']],triName=ns=>{const r=nm(ns[0]),q=['','m','dim','aug'].find(z=>same(ns,sp(r,z)));return q==null?bad('upper triad '+ns.map(nm).join(' ')):sy(r,q)+(q===''?' major':'');},sevName=ns=>{const r=nm(ns[0]),q=SEVQ.find(z=>same(ns,sp(r,z)));return q==null?bad('lower chord'):sy(r,q);};
+ const bigRow=([r,q])=>{const ns=sp(r,q);return [sy(r,q),form(q),ns.map(nm).join(' '),sevName(ns.slice(0,4)),triName(ns.slice(-3))+' ('+ns.slice(-3).map(nm).join(' ')+')'];};
+ const B3=[['D','m9',50],['G','13(no 11)',43],['C','maj9',48]];
+ if(mod(sem('11')[5]-sem('11')[1],12)!==1||mod(sem('m11')[5]-sem('m11')[1],12)!==2)bad('the 11th against the 3rd');
+ N.push({h:T.big,p:[
+   'A seventh chord stacks three 3rds on a root. Keep stacking and the next notes are the 9th, the 11th and the 13th: the 2nd, 4th and 6th notes of the scale, an octave higher. With all of them the chord has seven notes, which is the whole scale arranged in 3rds. As an arpeggio that is simply the seventh arpeggio carried on upward past the octave.',
+   'On G, the dominant of C: '+sp('G','13').map(nm).join(' ')+', in degrees '+form('13')+'. The first four notes are G7. The top three, '+sp('G','13').slice(-3).map(nm).join(' ')+', are a triad in their own right. That is the practical way to see any big chord: a seventh chord below and a triad on top.',
+   {fig:()=>stf(B3.map(([r,q,b])=>({sym:sy(r,q),notes:sp(r,q).map((n,k)=>[b+sem(q)[k],n,dl(XQ[q][k])])})),{gap:42}),cap:'Dm9, G13 and CMaj9 as arpeggios: the II–V–I of C with each chord carried past its 7th. G13 is written as it is played, without its 11th.'},
+   {fig:()=>NF.row(...B3.map(([r,q,b])=>neckT(sy(r,q)+(q==='13(no 11)'?' (no 11th)':''),lineDots(r,q,sem(q).map(x=>b+x),2,5),2,5))),cap:'The same three arpeggios in frets 2 to 5.'},
+   {sub:'What is left out, and why'},
+   'A guitarist cannot play seven notes at once, and should not want to. The 5th goes first: it adds nothing to the character of the chord. The root can be left to the bass. One note, though, is left out because it does harm. On a major or a dominant chord the 11th lies a half step above the 3rd, an octave up, and the two blur each other. So a 13th chord is played without its 11th; a dominant 11th chord is in practice played without its 3rd, which makes it a suspended chord; and a major chord takes the raised 11th. On a minor chord the 11th is a whole step above the ♭3, there is no clash, and the m11 chord is used complete.',
+   'An arpeggio has room for every note, one at a time, and you can run the full stack. But the note left out of the chord is also the note not to stop on. On G13, pass through the C and land on the B or the E.',
+   {tbl:[['Chord','Formula','Notes','The seventh chord below','The triad on top'],BIG.map(bigRow)],cap:'Six big chords as two smaller ones. The top triad is the three highest notes of the stack.'},
+   'Thinking of the top of a chord as a triad of its own is called an upper structure. Which triads fit over which dominant, and the scale each implies, are in the notes of Chord–Scale Reflex.',
+   ig([['spelling',9,11],['earchord',6,11],['chordscale',10,11]])]});
+ /* ---------------- 28 ---------------- */
+ const numOf=(r,kr,q)=>(({0:'I',2:'II',3:'♭III',5:'IV',7:'V',8:'♭VI',9:'VI',10:'♭VII'})[mod(pc(r)-pc(P(kr)),12)]||bad('numeral'))+QS[q];
+ const BL=formOf('Basic blues in F'),blLn=BL.chs.length?lineOf(BL.chs,51,70,53):[],blG=BL.chs.length?guideLine(BL.chs,57):[],blU=[];BL.chs.forEach(C=>{if(!blU.some(z=>z.src===C.src))blU.push(C);});blLn.forEach(m=>spot(m,6,10));BL.chs.forEach((C,b)=>{if(b&&C.src!==BL.chs[b-1].src&&Math.abs(blLn[b*4]-blLn[b*4-1])>2)bad('the blues line leaps at bar '+(b+1));});
+ const runs=chs=>{const R=[];chs.forEach((C,b)=>{if(R.length&&R.at(-1).C.src===C.src)R.at(-1).to=b;else R.push({C,from:b,to:b});});return R;};
+ const gtPair=(A,Bc)=>A.gt.map(g=>{const m=60+g,t=Bc.gt.map(x=>{let d=mod(x-g,12);if(d>6)d-=12;return d;}).sort((a,b)=>Math.abs(a)-Math.abs(b))[0];return A.name(m)+' '+(t===0?'stays':(t<0?'falls ':'rises ')+stepTxt(t)+' to '+Bc.name(m+t));});
+ N.push({h:T.blues,forms:[{name:'Basic blues in F',syms:BL.bars}],p:[
+   'Everything so far can be tried at once on the twelve-bar blues, the shortest complete form there is. The basic blues in F has three chords, all dominant 7ths: '+blU.map(C=>C.sym+' ('+numOf(C.r,'F',C.q)+')').join(', ')+'. The plan is the one for any tune: find the arpeggio of every chord in one position, find the guide tones, and then join the arpeggios by the nearest note.',
+   {tbl:[['Chord','In the key','Arpeggio','3rd and 7th'],blU.map(C=>[C.sym,numOf(C.r,'F',C.q),C.tones.join(' '),C.name(60+C.gt[0])+' and '+C.name(60+C.gt[1])])],cap:'The three chords of the F blues.'},
+   {fig:()=>NF.row(...blU.map(C=>posMap(nm(C.r),C.q,6,10))),cap:'The three arpeggios between frets 6 and 10. The hand does not move for the whole chorus.'},
+   {sub:'The guide tones'},
+   'Look at what the 3rd and 7th do when the chord changes. From F7 to B♭7: '+gtPair(blU[0],blU[1]).join(', and ')+'. Both guide tones slide down one fret, and when F7 returns they slide back. From F7 to C7: '+gtPair(blU[0],blU[2]).join(', and ')+'. A whole chorus can be played with one of these notes on the first beat of each bar, moving a fret or two at most. The table shows one such line beside a line of quarter notes.',
+   {tbl:[['Bar','Chord','A guide tone on beat 1','A line by the nearest note'],BL.chs.map((C,b)=>[String(b+1),C.sym,C.name(blG[b])+' ('+gtDeg(C,blG[b])+')',blLn.slice(b*4,b*4+4).map(m=>C.name(m)).join(' ')])],cap:'Twelve bars. The third column is one note a bar; the fourth is four notes a bar, chord tones only, taking the nearer note at every change of chord.'},
+   {fig:()=>stack([0,4,8].map(a=>[`Bars ${a+1} to ${a+4}`,lineStaff(BL.chs,blLn,a,a+4,{gap:34,ks:-1})])),cap:'The line of the table on the staff, in the key signature of F. Every change of chord is crossed by a half step or a whole step.'},
+   'Play the guide-tone line first, one note a bar, until you can hear the form in it. Then play the quarter-note line. Then make your own by the rules of '+see('con')+', and after that put a turn or an enclosure before some of the first beats. A jazz blues has more chords in the same twelve bars, and the method does not change; the forms are in the notes of Repertoire.',
+   ig([['boxes',10],['improv',8,9],['repertoire',1,7]],'Blues Boxes 10 plays the same three arpeggios inside the pentatonic box.')]});
+ /* ---------------- 29 ---------------- */
+ const TU=formOf('Autumn Leaves (first 8, G minor)'),tuLn=TU.chs.length?lineOf(TU.chs,45,68,48):[],tuG=TU.chs.length?guideLine(TU.chs,51):[];tuLn.forEach(m=>spot(m,3,7));
+ const tuIn=['none','one','two','three','all four'][TU.chs[3].ct.filter(p=>TU.chs[2].ct.includes(p)||TU.chs[4].ct.includes(p)).length],tuOut=[...new Set(TU.chs.flatMap(C=>C.ct.filter(p=>!SC.natural.includes(mod(p-pc(P('G')),12))).map(p=>C.name(60+p))))];if(tuOut.join()!==TU.chs[5].name(60+TU.chs[5].gt[0]))bad('notes outside G minor: '+tuOut.join(' '));
+ const tuFn=(C,b)=>b<4?numOf(C.r,'Bb',C.q)+' of B♭':numOf(C.r,'G',C.q)+' of G minor';
+ N.push({h:T.tune,forms:[{name:'Autumn Leaves (first 8, G minor)',syms:TU.bars}],p:[
+   'Now a standard: the first eight bars of Autumn Leaves in G minor, as chords only. They are worth knowing by heart because they hold the two cadences of the earlier chapters back to back: a II–V–I into B♭ major, one more chord, and then a II–V–I into G minor, the relative minor.',
+   {tbl:[['Bar','Chord','What it is','Arpeggio','A guide tone on beat 1','A line by the nearest note'],TU.chs.map((C,b)=>[String(b+1),C.sym,tuFn(C,b),C.tones.join(' '),C.name(tuG[b])+' ('+gtDeg(C,tuG[b])+')',tuLn.slice(b*4,b*4+4).map(m=>C.name(m)).join(' ')])],cap:'Eight bars, one chord a bar.'},
+   'Read the guide-tone column downward: '+tuG.map((m,b)=>TU.chs[b].name(m)).join(', ')+'. It is a scale going down, one step every two bars, and each note is the 3rd of one chord and then the 7th of the next. That falling line is the backbone of the tune’s harmony, and any solo that touches it on the first beats will sound as if it knows where it is.',
+   {fig:()=>rows(TU.chs.slice(0,3).map(C=>posMap(nm(C.r),C.q,3,7)),TU.chs.slice(4,7).map(C=>posMap(nm(C.r),C.q,3,7))),cap:'Above: the cadence into B♭ major. Below: the cadence into G minor. Both in frets 3 to 7.'},
+   'All eight bars lie between frets 3 and 7. The fourth chord, '+TU.chs[3].sym+', is the IV of B♭: its arpeggio is '+TU.chs[3].tones.join(' ')+', and '+tuIn+' of those notes are already in '+TU.chs[2].sym+' or '+TU.chs[4].sym+', the chords on either side of it. The only note in the eight bars from outside the key signature is '+TU.chs[5].name(60+TU.chs[5].gt[0])+', the 3rd of '+TU.chs[5].sym+': the raised 7th of G minor, doing exactly what '+see('minor')+' said it does.',
+   {fig:()=>stack([0,4].map(a=>[`Bars ${a+1} to ${a+4}`,lineStaff(TU.chs,tuLn,a,a+4,{gap:36,ks:-2})])),cap:'The quarter-note line of the table, in the key signature of G minor.'},
+   'Work on any tune in this order. Write out the arpeggio of every bar. Find the position that holds them all. Play each arpeggio from its root in time, then the guide tones alone, then a line by the nearest note, then that line in eighth notes. Only then start to add scale notes between the chord tones and figures round them. By that point you are improvising on the tune, and every note you add has a chord tone to lean on.',
+   ig([['improv',14,15],['repertoire',4],['phrase',10],['analysis',18]],'Improvise 14 and 15 take this tune and five others, with the 3rd or 7th as each chord arrives.')]});
+ /* ---------------- 31 (the table of 30 is built last, when every chapter has its number) ---------------- */
+ const routine={h:T.routine,p:[
    {sub:'A routine'},
-   ['One root, five qualities, one octave, saying the degrees.',
-    'One quality, one position, full range, from each chord tone, up and back.',
-    'The seven arpeggios of a key in one scale position.',
-    'II–V–I in one position: roots up; then as one continuous line; then with the 3rd on beat 1 of each chord. Round the cycle of 4ths, a new key each day.',
-    'The bebop dominant scale down from the root, 3rd, 5th and ♭7 of the V7, resolving to a chord tone of the I.',
-    'Everything with a click, and then with the click on 2 and 4.'],
-   {sub:'Faults and fixes'},
-   {tbl:[['Fault','Fix'],[['Playing the shape without knowing the degrees','Say root, 3, 5, 7 aloud; start from a named degree'],['Notes ringing together','Release each finger as the next note sounds; roll across same-fret notes'],['Always starting from the root','Practise from the 3rd, 5th and 7th until they are as quick'],['Wrong octave','The game checks exact pitch: begin on the lowest asked note inside the shaded frets'],['Restarting on each new root in a II–V–I','Join to the nearest chord tone of the next chord'],['The bebop scale started off the beat','Chord tone on a downbeat first; otherwise leave the passing note out']]]},
-   {tip:'An arpeggio is known when you can start it from any chord tone, in any position, on any beat, and say what the note is. Test yourself that way and not by speed: pick a chord and a fret at random, put a finger down, and name what you are standing on before you play from it.'}]}
-];
+   'Twenty minutes, in this order, covers the whole subject in small. Change the root and the key every day.',
+   ['One root, the five qualities, one octave, saying the degrees aloud.',
+    'One chord, one position, the full run: from the lowest root to the top, to the bottom, back to the root. Then from its 3rd, 5th and 7th.',
+    'The seven arpeggios of one key in one scale position, up one and down the next; then round the cycle of fourths.',
+    'II–V–I in one position: each chord from its root; then as one line by the nearest note; then with the 3rd of each chord on the first beat. A new key each day, round the cycle of fourths.',
+    'One outline, in the key of the day and the two keys on either side of it.',
+    'The turn on every chord tone of the I chord, starting on the beat and then displaced.',
+    'Everything with a click; then with the click on 2 and 4.'],
+   {sub:'Common faults, and what to do about them'},
+   {tbl:[['Fault','Fix'],[['Playing the shape without knowing the degrees','Say root, 3, 5, 7 aloud as you play; start from a degree somebody else names'],['Notes ringing into each other','Let each finger go as the next note sounds; roll across two notes at one fret'],['Always starting from the root','Practise from the 3rd, 5th and 7th until they are as quick'],['The right notes in the wrong octave','Find the lowest note you need inside the position before you start, and begin there'],['Starting again from the root at every new chord','Go to the nearest note of the new chord, above or below'],['Uneven eighth notes','Slow the click until all the notes are the same length; alternate picking'],['The bebop run started off the beat','A chord tone on a beat first; otherwise leave the added note out'],['An enclosure whose target lands on an “and”','Start the figure an eighth note earlier']]]},
+   {tip:'An arpeggio is known when you can start it from any chord tone, in any position, on any beat, and say what the note is. Test yourself that way and not by speed: name a chord, put a finger down anywhere, and say what you are standing on before you play from it.'},
+   ig([['arp',1,4,5,7,9,13]],'One of these for each step of the routine.')]};
+ /* ---------------- 30 ---------------- */
+ const chOf=k=>{const i=N.findIndex(c=>c.h===T[k]);return i<0?bad('no chapter '+k):(i+1)+' '+T[k];},chs=(...ks)=>ks.map(chOf).join('; ');
+ const LV=[[1,'A named seventh chord, four notes up from its root, in one position',['five','oct']],[2,'The same from the 3rd, 5th or 7th; then seven notes, up and back',['inv']],[3,'Four notes with the click, one to a beat',['time']],[4,'Every chord tone in five frets: from the lowest root to the top, the bottom, and back; quarter notes, then eighths',['pos','dim','neck']],
+   [5,'IIm7 up and V7 down from its 3rd; then IIm7, V7, IMaj7 from their roots in one position, in time',['iiv','iivi']],[6,'Your own line through Dm, G, C by the nearest note; then other keys',['con']],[7,'The same with seventh chords, and through the minor cadence',['con7','mincad','other']],[8,'The same lines in eighth notes',['con7']],
+   [9,'The turn on each note of a C major and a C minor triad; then displaced',['turn','enc']],[10,'The turn on the root and 3rd of each chord of a II–V–I; darker neighbours; other keys; displaced',['turncad','enc']],[11,'The three chromatic figures and the double approach on a major chord; then displaced',['enc']],[12,'The bebop dominant scale down from the root in swing eighths',['bebop']],
+   [13,'The three outlines through II–V–I, in C',['out']],[14,'The same three in all twelve keys',['out']],[15,'The three outlines through the minor cadence',['out','mincad','minor']]];
+ const OT=[['triads',[6,7],'A triad with one note on every string, from the root, 3rd and 5th',['leave']],['triads',[9],'From one triad to the nearest inversion of the next',['con']],['triads',[14],'The three inversions of a triad up one string set, in time',['neck']],['scales',[13,14],'Triads and seventh chords from every degree of a scale position',['pat','key']],['scales',[15],'One position, twelve keys, with triads and sevenths',['key']],
+   ['along',[4],'A seventh chord two notes a string, three octaves, and its inversions',['leave','inv']],['fretboard',[16],'Every place of one note inside five frets',['pos']],['improv',[1,2],'Your own order of the chord tones, on one chord and through II–V',['what','iiv']],['improv',[4],'The 3rd or 7th on the first beat of each bar of a II–V–I',['iivi']],['improv',[5],'Chromatic notes that step into a chord tone, in your own line',['enc']],
+   ['improv',[8,9],'Your own line through the blues',['blues']],['improv',[14,15],'Your own line through a standard',['tune']],['voicelead',[1,2,3,6],'The 3rd and 7th of each chord of a cadence, as pairs and as a line',['iivi','mincad']],['boxes',[10],'The arpeggios of I7, IV7 and V7 inside the pentatonic box',['blues']],['spelling',[12],'The 3rd and 7th of any seventh chord, spelled',['iivi']],
+   ['spelling',[11],'The dominant colours and the big chords, spelled',['other','big']],['earchord',[3,4],'The five seventh chords by ear',['five']],['cr',[9],'An arpeggio of each chord of a II–V, heard and played back',['iiv']],['cr',[13],'The outlines and the turn line, by ear',['out','turncad']],['modes',[8,9],'The scales that supply the neighbour tones of the darker chords',['turncad','other']]];
+ const games={h:T.games,p:[]};N.push(games,routine);
+ games.p=[
+   'This chapter is the map from the text to the games. The first table lists the fifteen levels of Arpeggio Runner in order, what each one asks for, and the chapters to read before it. The second lists the levels of other games that practise arpeggios from another side.',
+   {tbl:[['Level','Name','What it asks','Read first'],LV.map(([n,a,ks])=>[String(n),GBY.arp.levels[n-1].n,a,chs(...ks)])],cap:'Arpeggio Runner, level by level. Every level is played on the guitar.'},
+   {tbl:[['Game','Level','What it practises','Chapter'],OT.map(([g,ns,a,ks])=>[GBY[g].name,ns.map(n=>GBY[g].levels[n-1]?n+' “'+GBY[g].levels[n-1].n+'”':bad('no level '+g+' '+n)).join(', '),a,chs(...ks)])],cap:'Arpeggios in the other games.'},
+   'Three chapters have no level of their own in any game yet: '+list(['other','over','big'].map(k=>see(k)))+'. They are practised with the instrument and a click, and '+see('routine')+' says how.',
+   ig([['arp',1]],'The place to start; the tables say where to go from there.')];
+ if(GBY.arp.levels.length!==LV.length)bad('Arpeggio Runner has '+GBY.arp.levels.length+' levels, the table '+LV.length);
+ /* table heads are set in capitals by the page: a chord symbol or a numeral in a head keeps its own case (Dm7 must not read DM7) */
+ const SYMRX=/(?<![A-Za-z])(?:[A-G][♭♯]?(?:Maj7♯5|Maj7|m7♭5|m\(Maj7\)|m7|m6|m|7♭9|7sus4|7|6|°7|\+)|♭?(?:VII|VI|IV|V|III|II|I)(?:Maj7|m7♭5|m7|7|°7|m))(?![A-Za-z])/g;
+ N.forEach(c=>c.p.forEach(it=>{if(it&&it.tbl&&it.tbl[0])it.tbl[0]=it.tbl[0].map(h=>String(h).replace(SYMRX,z=>'<span style="text-transform:none">'+z+'</span>'));}));
+ N.err=ERR;
+ return N;
+})();
 LESSON_NOTES.bends=(()=>{
  const R2=(...h)=>'<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">'+h.map(x=>'<div style="flex:1 1 300px;min-width:0">'+x+'</div>').join('')+'</div>';
  /* a pitch curve drawn by the game's own bendSVG from a made-up take: f(t) = cents above the fretted note at t ms */
@@ -14498,7 +14878,7 @@ const LESSONS={
   rules:['Hear the key from the cadence; most phrases start on 1, 3 or 5.','Steps and skips: label each move (step up, 3rd down…).','A chromatic approach note rises a half step into the scale note above it.','Blues phrases: the minor pentatonic is 1 ♭3 4 5 ♭7 (♭5 for the blues scale); the rhythm and the rests are part of the phrase.','Double stops: two notes picked together, 3rds on neighbouring strings, 6ths with a string skipped.','Lines over chords: chord tones on the beats, scale steps between; through II–V the line crosses the bar line by a step, most often the 7th of IIm7 falling to the 3rd of V7.','In time, a note half a beat or more from its place fails the take.'],
   take:'Playing back what you hear is how jazz is learned: from records and from other players, in real time.'},
  arp:{how:['Find all the chord tones in the position first, then play them low to high.','Say the degree as you play it (R, 3, 5, 7).','Add the click only when you can play it slowly without stopping.'],
-  rules:['maj7: R 3 5 7 · 7: R 3 5 ♭7 · m7: R ♭3 5 ♭7 · m7♭5: R ♭3 ♭5 ♭7 · dim7: R ♭3 ♭5 𝄫7.','Starting from the 3rd, 5th or 7th makes three more shapes from the same notes.','The whole position: every chord tone of a five-fret window, from the lowest root up to the top, down to the bottom, back to the root.','II–V: the 7th of IIm7 falls a half step to the 3rd of V; from there V7 goes on down: 3, root, ♭7, 5.','Connecting: at a new chord go to its nearest note, just above or just below the one you are on; inside a chord, to the next chord tone.','The approach note is a half step below a chord tone, the neighbour tone is the scale note above it. The turn: neighbour, tone, approach, tone (2 1 7 1 on a root). The enclosure: the note above, the note below, then the target (2 7 1; chromatic: 2 ♭2 7 1 and the like).'],
+  rules:['Maj7: R 3 5 7 · 7: R 3 5 ♭7 · m7: R ♭3 5 ♭7 · m7♭5: R ♭3 ♭5 ♭7 · dim7: R ♭3 ♭5 𝄫7.','Starting from the 3rd, 5th or 7th makes three more shapes from the same notes.','The whole position: every chord tone of a five-fret window, from the lowest root up to the top, down to the bottom, back to the root.','II–V: the 7th of IIm7 falls a half step to the 3rd of V; from there V7 goes on down: 3, root, ♭7, 5.','Connecting: at a new chord go to its nearest note, just above or just below the one you are on; inside a chord, to the next chord tone.','The approach note is a half step below a chord tone, the neighbour tone is the scale note above it. The turn: neighbour, tone, approach, tone (2 1 7 1 on a root). The enclosure: the note above, the note below, then the target (2 7 1; chromatic: 2 ♭2 7 1 and the like).'],
   take:'Arpeggios are how lines outline the chords. Playing them in position, in time, is the first step to soloing on changes.'},
  analysis:{how:['Build the scale, stack every other note, and say the seven chords of the key in order.','Then write each chord of a progression as a numeral and mark its function.','Circle anything outside the key and ask where it resolves. Analyse the tunes you are learning, not just exercises.'],
   rules:['Major key, sevenths: <b>IMaj7 IIm7 IIIm7 IVMaj7 V7 VIm7 VIIm7♭5</b>; natural minor: Im7 IIm7♭5 ♭IIIMaj7 IVm7 Vm7 ♭VIMaj7 ♭VII7, harmonic minor gives V7.','Function: tonic I, IIIm7, VIm7; subdominant IIm7, IVMaj7; dominant V7, VIIm7♭5.','Which keys hold a chord: Maj7 is I or IV (two keys), m7 is II, III or VI (three), 7 is V of exactly one key, m7♭5 is VII of one.','Secondary dominant: a dominant a 5th above its target (VI7 → IIm7 is V7/II). Tritone sub: a dominant a half step above its target (♭II7 → IMaj7).','Backdoor: IVm7 – ♭VII7 – IMaj7. Borrowed chords come from the parallel minor; ♯I°7 is a passing chord between I and IIm7.','Minor keys: the numerals are compared with the major scale on the tonic (♭IIIMaj7, ♭VIMaj7, ♭VII7). A chord with the raised 7th is dominant, one with the ♭6 and without it is subdominant minor, one with neither is tonic minor.','A II – V that is not the tune’s own points to the key of the moment: its tonic is a fifth below the root of the dominant.'],

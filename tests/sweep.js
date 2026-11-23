@@ -1657,6 +1657,46 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   let met=0;many(LV('analysis',19).g[0],600,q=>{const x=q.km;if(!x.chain)return;met++;if(q.answer!==nm(x.kr)||pc(P(q.answer))!==x.kp)tb('chain: the answer changed');if(plain(q.explain).indexOf(nm(x.kr)+' minor.')===0||/^\\s*\\S+ minor\\./.test(plain(q.explain)))tb('chain: the explanation opens with a minor key: '+plain(q.explain).slice(0,60));});if(!met)tb('no chain asked');
   const y=KM.find(x=>x.res&&!x.chain);if(y&&!/key of the moment is/.test(plain(kmWhy(y))))tb('a cadence that lands and stays keeps its explanation');}
  S.gid='fretboard';}
+/* ============ ARPEGGIO RUNNER'S FULL NOTES (24 Nov 2026, brief .claude/arp-notes-brief.md) ============
+   The text is a textbook on arpeggios that names, at the end of every chapter, the levels that practise it. Checked here: every “In the games” line names
+   only levels that exist, by their real names; every neck diagram has its own title; Maj7 is never written maj7; a comparison row differs from its neighbour
+   by one dot moved one fret on one string; the worked blues and tune use the chords of the stored forms and no others; the text does not talk about the game
+   outside the “In the games” lines and the chapter of that name. (No backslash and no backtick in this block: it sits inside the sweep's template string.) */
+{const ab=m=>{bad++;console.log('arp notes:',m);},N=LESSON_NOTES.arp,plain=h=>String(h==null?'':h).replace(/<svg[^]*?<[/]svg>/g,' ').replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/[ ]+/g,' ').trim();
+ const itemTxt=it=>typeof it==='string'?it:Array.isArray(it)?it.join(' '):it.sub?it.sub:it.tip?[].concat(it.tip).join(' '):it.tbl?(it.tbl[0]||[]).join(' ')+' '+it.tbl[1].map(r=>r.join(' ')).join(' ')+' '+(it.cap||''):(it.cap||'');
+ const isIG=it=>typeof it==='string'&&it.indexOf('<b>In the games</b>')===0,names=GAMES.map(x=>x.name).sort((a,b)=>b.length-a.length);
+ /* a text with level references: a game's name, then one or more  n “name”  */
+ const refs=(txt,where)=>{let n=0,cur=null,i=0;const t=plain(txt);while(i<t.length){const g=names.find(z=>t.startsWith(z,i));if(g){cur=GAMES.find(x=>x.name===g);i+=g.length;continue;}const m=t.slice(i).match(/^([0-9]+) “([^”]+)”/);
+    if(m){n++;if(!cur)ab(where+': a level with no game before it: '+m[0]);else{const L=cur.levels[+m[1]-1];if(!L)ab(where+': '+cur.name+' has no level '+m[1]);else if(plain(L.n)!==m[2])ab(where+': '+cur.name+' '+m[1]+' is “'+plain(L.n)+'”, the text says “'+m[2]+'”');}i+=m[0].length;continue;}
+    if(t[i]==='“'&&/^[0-9]+ $/.test(t.slice(Math.max(0,i-4),i).replace(/^[^0-9]*/,'')))ab(where+': an unparsed level reference near '+t.slice(i-6,i+30));i++;}return n;};
+ if(!N||N.length<18)ab('chapters: '+(N&&N.length));
+ if(N&&(!Array.isArray(N.err)||N.err.length))ab('faults found while the text was built: '+(N.err||['no list']).join(' | '));
+ else{let igs=0,necks=0,cmps=0,figs=0;const heads=N.map(c=>plain(c.h));
+  if(heads[0]!=='What you need first')ab('the first chapter is “What you need first”');if(new Set(heads).size!==heads.length)ab('two chapters with one title');
+  N.forEach((c,ci)=>{const h=heads[ci],last=c.p.at(-1),games=h==='In the games';
+    if(!isIG(last))ab(h+': does not end with an “In the games” line');else{igs++;if(!refs(last,h))ab(h+': the “In the games” line names no level');}
+    c.p.forEach((it,k)=>{const ig=isIG(it);if(ig&&k!==c.p.length-1)ab(h+': an “In the games” line that is not the last item');const t=plain(itemTxt(it));
+      if(/maj7/.test(t))ab(h+': “maj7” written in lower case: '+(t.match(/.{0,20}maj7.{0,10}/)||[''])[0]);if(/—/.test(t))ab(h+': an em dash');
+      if(!ig&&!games){const m=t.match(/the game asks|the microphone|[Ll]evels?[^a-z]|[Ll]evels?$/);if(m)ab(h+': the text talks about the game (“'+m[0]+'”): '+t.slice(0,80));if(/[0-9] “/.test(t)&&refs(t,h))ab(h+': a level is named outside the “In the games” line');}
+      if(games&&it&&it.tbl)it.tbl[1].forEach(r=>{refs(r.join(' · '),h+' (table)');});
+      if(it&&it.fig){figs++;NF.err.length=0;const html=String(it.fig());if(NF.err.length)ab(h+': figure error '+NF.err.join(' | '));if(/maj7/.test(html.replace(/aria-label="[^"]*"/g,'')))ab(h+': “maj7” in a figure');
+        const sv=html.match(/<svg class="nfneck"[^]*?<[/]svg>/g)||[];necks+=sv.length;sv.forEach((z,j)=>{if(!/class="nn-title"[^>]*>[^<]+</.test(z))ab(h+': diagram '+(j+1)+' of a figure has no title');if(!/class="nn-root"/.test(z)&&!/along|3 5 7 9/.test(z))ab(h+': a diagram without a gold root');});
+        if(/<svg class="nfbox"/.test(html))ab(h+': an untitled chord box');if(/in order:/.test(plain(it.cap)))ab(h+': a caption that makes the reader count (“in order:”)');
+        if(it.cmp){cmps++;if(it.cmp.reduce((a,r)=>a+r.length,0)!==sv.length)ab(h+': a comparison figure draws '+sv.length+' diagrams for '+it.cmp.length+' rows of data');
+          it.cmp.forEach(r=>{if(r.length<2)ab(h+': a comparison row of one');for(let j=1;j<r.length;j++){const A=r[j-1],B=r[j],key=d=>d.s+'/'+d.f,a=A.filter(d=>!B.some(e=>key(e)===key(d))),b=B.filter(d=>!A.some(e=>key(e)===key(d)));
+            if(A.length!==B.length||a.length!==1||b.length!==1||a[0].s!==b[0].s||Math.abs(a[0].f-b[0].f)!==1)ab(h+': comparison row, diagrams '+j+' and '+(j+1)+' do not differ by one dot moved one fret on one string ('+a.map(key).join(' ')+' → '+b.map(key).join(' ')+')');}});}}});
+    if(c.forms)c.forms.forEach(F=>{const f=FORMS.find(z=>z.n===F.name);if(!f){ab(h+': no stored form “'+F.name+'”');return;}if(F.syms.join('|')!==f.bars.slice(0,F.syms.length).join('|'))ab(h+': the chords are not those of “'+F.name+'”');
+      const ok=new Set(F.syms),all=plain(c.p.filter(it=>!isIG(it)).map(itemTxt).join(' ')),found=all.match(/(?<![A-Za-z♭♯])[A-G][♭♯]?(?:Maj7|m7♭5|m7|7)(?![A-Za-z0-9♭♯(])/g)||[];if(found.length<F.syms.length)ab(h+': the chords of the form are not in the text');
+      found.forEach(z=>{if(!ok.has(z))ab(h+': the chord '+z+' is not in “'+F.name+'”');});
+      c.p.forEach(it=>{if(it&&it.fig){const up=(String(it.fig()).match(/class="ns-lab ns-up"[^>]*>[^<]+/g)||[]).map(z=>z.replace(/^[^>]*>/,''));up.forEach(z=>{if(!ok.has(z))ab(h+': the staff names '+z+', not a chord of “'+F.name+'”');});}});});});
+  if(igs!==N.length)ab('“In the games” lines: '+igs+' for '+N.length+' chapters');if(necks<40)ab('neck diagrams: '+necks);if(cmps<6)ab('comparison figures: '+cmps);
+  if(N.filter(c=>c.forms).length!==2)ab('the worked blues and the worked tune carry their form');
+  /* the chapter “In the games”: all fifteen levels of Arpeggio Runner by their names, each with a chapter that exists */
+  const G=N.find(c=>plain(c.h)==='In the games'),T1=G&&G.p.find(it=>it&&it.tbl),A=GAMES.find(x=>x.id==='arp');
+  if(!T1||T1.tbl[1].length!==A.levels.length)ab('the table of the levels has '+(T1&&T1.tbl[1].length)+' rows for '+A.levels.length+' levels');
+  else T1.tbl[1].forEach((r,i)=>{if(+r[0]!==i+1||plain(r[1])!==plain(A.levels[i].n))ab('level table row '+(i+1)+': '+r[1]);plain(r[3]).split('; ').forEach(z=>{const m=z.match(/^([0-9]+) (.+)$/);if(!m||heads[+m[1]-1]!==m[2])ab('level table row '+(i+1)+': no chapter “'+z+'”');});});
+  /* a pointer to another chapter (“…”) names a chapter that exists */
+  N.forEach((c,ci)=>c.p.forEach(it=>{if(typeof it!=='string'||isIG(it))return;(plain(it).match(/“[^”]{12,}”/g)||[]).forEach(q=>{const t=q.slice(1,-1);if(/^[A-Z]/.test(t)&&/: | and |^The |^One |^A /.test(t)&&!heads.includes(t)&&!/^In the games$/.test(t)&&heads.some(z=>z.slice(0,10)===t.slice(0,10)))ab(heads[ci]+': a pointer to a chapter that does not exist: '+q);});}));}}
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

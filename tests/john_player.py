@@ -1,13 +1,13 @@
 """A simulated player through the live listening path for any guitar level (dist/, Basic Pitch on the GPU, headless and muted).
-The question's own example (q.target at q.grid, count-in included) is rendered as a plucked take and fed to the microphone input; the app listens and grades.
+The question's own example (q.target at q.grid, or every chord of q.strumSeq rolled at its grid point; count-in included) is rendered as a plucked take and fed to the microphone input; the app listens and grades.
 Run after build.py:  .venv/bin/python tests/john_player.py game:level[:generator index] ...   (the right take must pass)"""
 import pathlib,sys,time
 from playwright.sync_api import sync_playwright
 root=pathlib.Path(__file__).resolve().parent.parent
-SYN="""async ()=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.cinN||4)*beat:0.6,ev=q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
+SYN="""async ()=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.cinN||4)*beat:0.6,ST=q.strumSeq,gt=i=>t0+(q.grid?q.grid[i]:i*2)*beat,ev=ST?ST.flatMap((ch,i)=>ch.map((m,j)=>({m,t:gt(i)+j*.012,nx:i+1<ST.length?gt(i+1):gt(i)+2,v:.2}))):q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
   const end=ev.at(-1).t+3,sr=22050,oc=new OfflineAudioContext(1,Math.ceil(end*sr),sr);
-  ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=i+1<ev.length?ev[i+1].t:x.t+1.5,len=Math.max(.1,Math.min(1.2,nx-x.t-.02)),g=oc.createGain();g.connect(oc.destination);
-    g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);
+  ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=x.nx||(i+1<ev.length?ev[i+1].t:x.t+1.5),len=Math.max(.1,Math.min(x.nx?2.4:1.2,nx-x.t-.06)),g=oc.createGain();g.connect(oc.destination);
+    g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(x.v||.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);
     for(let h=1;h<=6;h++){const o=oc.createOscillator(),hg=oc.createGain();o.frequency.value=f*h;hg.gain.value=1/(h*h*.8+.2)*(h===1?1:.6);o.connect(hg);hg.connect(g);o.start(x.t);o.stop(x.t+len+.1);}});
   const buf=await oc.startRendering(),c=Piano.ac();await c.resume();const sn=c.createBufferSource();sn.buffer=buf;const dest=c.createMediaStreamDestination();sn.connect(dest);MIC=dest.stream;
   const s2=c.createMediaStreamSource(MIC);AN=c.createAnalyser();AN.fftSize=2048;s2.connect(AN);BUF=new Float32Array(2048);window._sn=sn;window._fed=0;return {notes:ev.length,secs:+end.toFixed(1),bpm:q.metro,first:q.grid?q.grid[0]:0,key:q.key.slice(0,44)};}"""

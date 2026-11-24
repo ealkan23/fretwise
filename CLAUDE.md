@@ -7,6 +7,9 @@ Guitar music-theory, ear-training, rhythm and microphone trainer for an aspiring
 - **Offline file:** `dist/fretwise.html` (built by `build.py`, piano embedded, git-ignored). Open from disk in Chrome.
 - **Pedagogical review** that drove the roadmap: https://claude.ai/artifact/7emdzZtQ8s6Eb2FDthZEUL
 
+## The same key again and again (25 Nov 2026, user: Intervals & Keys 1 asked D♭ seven times in a row)
+`rootPick` (twelve-key coverage) took the root this game had seen least, with a noise of 1.5 answers: a root more than two answers behind the rest was drawn **every time** until it caught up. The count `g.rk` is per game, and levels with other root lists raise the other roots (on the user's store D♭ stood about ten behind when level 1 was opened again). Now a lagging root is preferred only a little (its deficit counts as 1 at most, noise 3) and **the roots of the last two questions are not drawn again** while the list has others. Simulated on a copy of the user's store with D♭ fifteen behind: 12 of 60 questions, never twice running. It affects every game that draws its key with `rootPick`.
+
 ## OSJ: levels from a guitar workbook the user studied (24 Nov 2026, the OSJ brief in `.claude/`, tiers 1 and 2; built by another session, reviewed here and published on 25 Nov 2026)
 Fourteen levels **appended** and one generator pair added to an older level; no insert, no renumbering, no migration, no existing item key changed, no saved data touched. **Nothing was played on a guitar or sung; the strummed levels were never tried with a real strum.** Code: the block `/*OSJ_BEGIN*/ … /*OSJ_END*/` (just before `const GAMES`) for generators, `/*OSJN_BEGIN*/ … /*OSJN_END*/` (just before `/*YT_NOTES_BEGIN*/`) for level notes and notes items; the sweep block `/*SPRSW_BEGIN*/ … /*SPRSW_END*/` at the end of `tests/sweep.js` (no template literals, no backslashes; written from `/tmp/osj/sw.js` by `/tmp/osj/putsw.py`).
 ### The tag

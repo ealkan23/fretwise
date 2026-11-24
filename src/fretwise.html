@@ -6554,7 +6554,10 @@ function weight(g,key){const it=g.items[K(key)];if(!it)return 1.6+Math.random()*
 const PCFLAT=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
 let LAST_ROOT=null;
 /* choose a root from a list, preferring the roots this game has seen least (twelve-key coverage) */
-function rootPick(list){const g=S?G(S.gid):null,seen=(g&&g.rk)||{};let best=list[0],bw=Infinity;for(const r of list){const n=(seen[PCFLAT[pc(P(r))]]||{n:0}).n,w=n+Math.random()*1.5;if(w<bw){bw=w;best=r;}}LAST_ROOT=PCFLAT[pc(P(best))];return best;}
+function rootPick(list){const g=S?G(S.gid):null,seen=(g&&g.rk)||{},kOf=r=>PCFLAT[pc(P(r))],ns=list.map(r=>(seen[kOf(r)]||{n:0}).n),mn=Math.min.apply(null,ns),A=(S&&S.answers)||[],last=[S&&S.q&&S.q.rootKey,A.length>1&&A.at(-2).q&&A.at(-2).q.rootKey].filter(Boolean),many=list.some(r=>!last.includes(kOf(r)));
+  /* a root that lags is preferred, but only a little (its deficit counts as 1 at most), and the roots of the two questions before are not drawn again:
+     a root far behind the others (levels with other root lists had raised theirs) used to be asked every time until it caught up */
+  let best=list[0],bw=Infinity;list.forEach((r,i)=>{const w=Math.min(ns[i]-mn,1)+Math.random()*3+(many&&last.includes(kOf(r))?100:0);if(w<bw){bw=w;best=r;}});LAST_ROOT=kOf(best);return best;}
 /* ONE INPUT PER GAME (user rule, Nov 2026): when a game is answered on the guitar, every question is played or strummed into the mic;
    when it is answered on screen, nothing is recorded. guitarMode: mic games always; Time & Groove when “strum into the mic” is on;
    games with the Answer-by choice when it is “Playing it”. Levels with no question for the current mode are skipped by the ladder (g.skip). */

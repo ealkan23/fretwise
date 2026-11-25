@@ -1866,7 +1866,11 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
      if(!(ev.length===1&&!ev[0].rest)&&check(q,[{t:0,d:q.bars*M}]))sb(L+': a whole-bar note passes '+q.key);
      const j=ev.findIndex((e,i)=>i<ev.length-1&&!e.rest&&!ev[i+1].rest&&!e.tup&&!ev[i+1].tup&&Math.abs(e.d-ev[i+1].d)>1e-6);
      if(j>=0){const sw=ev.map(e=>({...e}));const a=sw[j].d;sw[j].d=sw[j+1].d;sw[j+1].d=a;sw[j+1].t=sw[j].t+sw[j].d;if(check(q,sw))sb(L+': two values swapped pass '+q.key);}
-     if(/undefined|NaN/.test(q.prompt+q.explain+q.answerText+q.label))sb(L+': text '+q.key);}});
+     if(/undefined|NaN/.test(q.prompt+q.explain+q.answerText+q.label))sb(L+': text '+q.key);
+     /* a half rest only on beat 1 or 3 of 4/4; one bar of clicks before the first note can sound */
+     if(M===4&&ev.some(e=>e.rest&&e.d>=2&&Math.abs(e.t%2)>1e-6))sb(L+': a half rest off beats 1 and 3 '+q.key);
+     if(i===0){const tk=[],nt=[],o1=Piano.tick,o2=Piano.note;Piano.tick=t=>tk.push(t);Piano.note=(m,t)=>nt.push(t);q.audio();Piano.tick=o1;Piano.note=o2;const cin=M===6?2:M;
+       if(tk.length!==cin+(M===6?2:M)*q.bars||Math.min(...nt)<tk.slice().sort((x,y)=>x-y)[cin]-1e-6)sb(L+': no bar of clicks before the bar '+q.key);}}});
    if(keys.size<12)sb(L+': only '+keys.size+' distinct bars in '+n);if([4,5,13].includes(L)&&!dots)sb(L+': no dotted value to spell with a tie');}
  /* the move tables: old levels 1 to 12 exactly once; Rhythm Theory 1 to 8 in order; the moved levels on distinct new levels */
  const ks=Object.keys(RD_KEEP).concat(Object.keys(RD_MOVE)).map(Number).sort((a,b)=>a-b);if(ks.join()!==[1,2,3,4,5,6,7,8,9,10,11,12].join())sb('RD_KEEP and RD_MOVE cover old 1 to 12 once');

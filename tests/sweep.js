@@ -1890,6 +1890,13 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   STORE.games=save;}
  console.log('rhydict checked');}
 /*RDSW_END*/
+/*GMSW_BEGIN*/
+/* tap matching in the continuous games (26 Nov 2026): one missed note in a run of sixteenths at 60 does not shift the taps after it onto the notes before them */
+{const keep=GR;GR={started:true,done:false,bpm:60,res:0,extras:[],bi:0,hold:0,holdFrom:0,c:{},onsets:Array.from({length:16},(_,i)=>({t:i*250,hit:null,off:null}))};
+ GR.onsets.forEach((o,i)=>{if(i===5)return;const t=o.t-20;while(GR.res<GR.onsets.length&&GR.onsets[GR.res].t+250<t){if(GR.onsets[GR.res].hit===null)GR.onsets[GR.res].hit=false;GR.res++;}grooveMatch(t);});
+ if(GR.onsets.some((o,i)=>i!==5&&(!o.hit||o.off!==-20))||GR.onsets[5].hit||GR.extras.length){bad++;console.log('GROOVE matching: a missed note shifts the taps after it',GR.onsets.map(o=>o.hit?o.off:'miss').join(' '));}
+ GR=keep;}
+/*GMSW_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

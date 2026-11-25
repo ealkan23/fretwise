@@ -246,6 +246,8 @@ svg.fb circle.dim,svg.fb text.dim{opacity:.18}
 .check input{width:16px;height:16px;accent-color:var(--brass)}
 .ch-bar{fill:var(--brass);fill-opacity:.35}
 .ch-barok{fill:var(--good)}
+.tmchart .tmhit{fill:transparent;cursor:pointer}.tmchart .tmhit:hover,.tmchart .tmhit.on{fill:var(--fg);fill-opacity:.06}.tmchart .tmseg{cursor:pointer}.tmchart .tmsel{font-weight:700;fill:var(--fg)}
+.tmday{margin-top:12px}.tmday .eyebrow{display:flex;align-items:center;gap:10px}.tmtbl td{vertical-align:top}.tmdot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .exportta{width:100%;min-height:90px;font:12px var(--f-mono);border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--fg);margin-top:8px}
 .refblock{margin-top:12px}.vsheet .refblock{margin-top:22px}.vsheet .vwhy{font-size:13px;margin:2px 0 10px;max-width:70ch}.vsheet .boxes{display:grid;grid-template-columns:repeat(4,max-content);align-items:stretch;gap:12px}@media (max-width:720px){.vsheet .boxes{grid-template-columns:repeat(2,max-content)}}.vbub{background:#fbfaf4;border:1px solid #cfc9b8;border-radius:12px;padding:10px 12px 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35);--fg:#15131a;--muted:#6a6474;--line:#8f899a;--surface:#fbfaf4;--brass-ink:#8a5a00}.vbub svg.box{width:132px}.vbub .bx-dot{fill:#26222e}.vbub .bx-root{fill:#c2831a}.vbub .bx-t{fill:#fff}.vbub .bx-l,.vbub .bx-str{stroke:#6a6474}.vbub .bx-x{fill:#c0392b}
 svg.circle{width:100%;max-width:360px;display:block;margin:8px auto}
@@ -15134,11 +15136,36 @@ function activityChart(){const days=[];for(let i=13;i>=0;i--){const d=new Date()
   let h=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Answers per day, last 14 days">`;[0,.5,1].forEach(k=>{const y=T+(H-T-B)*(1-k);h+=`<line class="ch-grid" x1="${L}" x2="${W-8}" y1="${y}" y2="${y}"/><text class="ch-lab" x="${L-6}" y="${y+3}" text-anchor="end">${Math.round(mx*k)}</text>`;});
   days.forEach((d,i)=>{const x=L+i*bw+2,hh=(H-T-B)*d.n/mx,y=H-B-hh;if(d.n){h+=`<rect class="ch-bar" x="${x}" y="${y}" width="${bw-4}" height="${hh}" rx="2"/><rect class="ch-barok" x="${x}" y="${H-B-(H-T-B)*d.c/mx}" width="${bw-4}" height="${(H-T-B)*d.c/mx}" rx="2"/>`;}h+=`<text class="ch-lab" x="${x+(bw-4)/2}" y="${H-8}" text-anchor="middle">${d.lab}</text>`;});return h+'</svg>';}
 /* minutes practised per day, last 14 days (19 Nov 2026, user request): from the per-day totals g.days (every round and every continuous session, capped per answer as the practice time is) */
-function timeChart(){const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({k:dayKey(d.getTime()),lab:d.toLocaleDateString([],{weekday:'short'}).slice(0,2),ms:0});}
-  GAMES.forEach(x=>{const D=G(x.id).days||{};days.forEach(d=>{if(D[d.k])d.ms+=D[d.k].dur||0;});});const mins=days.map(d=>d.ms/60000),tot=mins.reduce((a,b)=>a+b,0),act=mins.filter(m=>m>=0.5).length,mx=Math.max(10,Math.ceil(Math.max(...mins)/10)*10),W=460,H=132,L=30,B=22,T=16,bw=(W-L-8)/14,fm=m=>m>=60?Math.floor(m/60)+' h '+Math.round(m%60)+' min':Math.round(m)+' min';
-  let h=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Minutes practised per day, last 14 days">`;[0,.5,1].forEach(k=>{const y=T+(H-T-B)*(1-k);h+=`<line class="ch-grid" x1="${L}" x2="${W-8}" y1="${y}" y2="${y}"/><text class="ch-lab" x="${L-6}" y="${y+3}" text-anchor="end">${Math.round(mx*k)}</text>`;});
-  days.forEach((d,i)=>{const m=mins[i],x=L+i*bw+2,hh=(H-T-B)*m/mx,y=H-B-hh;if(m>=0.5)h+=`<rect class="ch-barok" x="${x}" y="${y}" width="${bw-4}" height="${hh}" rx="2"><title>${d.k}: ${fm(m)}</title></rect><text class="ch-lab" x="${x+(bw-4)/2}" y="${y-3}" text-anchor="middle">${Math.round(m)}</text>`;h+=`<text class="ch-lab" x="${x+(bw-4)/2}" y="${H-8}" text-anchor="middle">${d.lab}</text>`;});
-  return h+`</svg><div class="legend"><span><i style="background:var(--good)"></i>minutes</span><span>${fm(tot)} in 14 days · ${act} day${act===1?'':'s'} practised${act?' · '+fm(tot/act)+' on a day you practise':''}</span></div>`;}
+/* 25 Nov 2026 (user: “break this down into which master's games … also game level breakdown in the same chart”): each day's bar is stacked by master
+   (TM_COL; the user's colours: John blue, Bongi yellow, Jessica red, Alfred grey, Joe purple), and inside a master's part one slice per game, split by a thin gap.
+   Hovering a slice gives the game and its levels; a click on a day opens the table of that day: master, game, minutes, and each level's minutes.
+   A level's share comes from the history points of that day (g.rl: each round and each continuous session carries its time and its level); the game's
+   time is the day total g.days[day].dur, divided between its levels in proportion. Stack order bottom → top keeps the hues that are hard to tell apart
+   (red, yellow, grey) apart; checked with the dataviz validator on the dark panel (#1e1f22): adjacent pairs clear the colour-blind and normal-vision floors;
+   the grey has no chroma by the user's choice, so every slice also has its name in the legend, the hover and the table. */
+const TM_ORDER=['rhythm','ear','neck','theory','voicings'],TM_COL={rhythm:'#d99a00',ear:'#e05a5a',neck:'#3987e5',theory:'#b5b5b0',voicings:'#9085e9'};
+function tmLevels(g,k){const by={};(g.rl||[]).forEach(p=>{if(p.dur&&dayKey(p.t)===k)by[p.L]=(by[p.L]||0)+p.dur;});return by;}
+const tmFm=m=>m>=60?Math.floor(m/60)+' h '+Math.round(m%60)+' min':m<1?'under 1 min':Math.round(m)+' min';
+function tmDays(){const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({k:dayKey(d.getTime()),lab:d.toLocaleDateString([],{weekday:'short'}).slice(0,2),date:d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}),ms:0,cats:{}});}
+  GAMES.forEach(x=>{const g=G(x.id),D=g.days||{};days.forEach(d=>{const ms=(D[d.k]&&D[d.k].dur)||0;if(ms<1000)return;d.ms+=ms;const lv=tmLevels(g,d.k),tot=Object.values(lv).reduce((a,b)=>a+b,0);
+    const lvs=tot?Object.entries(lv).map(([L,v])=>[+L,ms*v/tot]).sort((a,b)=>a[0]-b[0]):[];(d.cats[x.cat]||(d.cats[x.cat]=[])).push({x,ms,lvs});});});
+  days.forEach(d=>Object.values(d.cats).forEach(a=>a.sort((p,q)=>q.ms-p.ms)));return days;}
+const tmLvTxt=(x,lvs)=>lvs.length?lvs.map(([L,ms])=>`level ${lvNum(x.id,L)} ${tmFm(ms/60000)}`).join(' · '):'levels not recorded';
+function timeChart(){const days=tmDays(),mins=days.map(d=>d.ms/60000),tot=mins.reduce((a,b)=>a+b,0),act=mins.filter(m=>m>=0.5).length,mx=Math.max(10,Math.ceil(Math.max(...mins)/10)*10),W=460,H=150,L=30,B=22,T=16,bw=(W-L-8)/14,ph=H-T-B,catTot={};
+  let h=`<svg class="chart tmchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Minutes practised per day, last 14 days, by master and game">`;[0,.5,1].forEach(k=>{const y=T+ph*(1-k);h+=`<line class="ch-grid" x1="${L}" x2="${W-8}" y1="${y}" y2="${y}"/><text class="ch-lab" x="${L-6}" y="${y+3}" text-anchor="end">${Math.round(mx*k)}</text>`;});
+  days.forEach((d,i)=>{const m=mins[i],x=L+i*bw+2,w=bw-4,sel=view.tday===d.k;let y=H-B;
+    h+=`<rect class="tmhit${sel?' on':''}" data-act="tday" data-k="${d.k}" x="${x-1}" y="${T-4}" width="${w+2}" height="${ph+B}" rx="3"><title>${d.date}: ${tmFm(m)}. Click for the games and levels</title></rect>`;   /* behind the slices, so a slice keeps its own hover */
+    if(m>=0.5){TM_ORDER.forEach((c,ci)=>{const gs=d.cats[c];if(!gs)return;const cm=gs.reduce((a,b)=>a+b.ms,0)/60000;catTot[c]=(catTot[c]||0)+cm;
+        gs.forEach((s2,gi)=>{const gm=s2.ms/60000,hh=ph*gm/mx,gap=hh>3?(gi<gs.length-1?0.6:0)+(gi===gs.length-1?1.2:0):0;y-=hh;
+          h+=`<rect class="tmseg" data-act="tday" data-k="${d.k}" x="${x}" y="${y}" width="${w}" height="${Math.max(0.6,hh-gap)}" fill="${TM_COL[c]}"><title>${d.date} · ${MASTERS[c].n}: ${esc(s2.x.name)} ${tmFm(gm)} (${tmLvTxt(s2.x,s2.lvs)})</title></rect>`;});});
+      h+=`<text class="ch-lab" x="${x+w/2}" y="${H-B-ph*m/mx-3}" text-anchor="middle">${Math.round(m)}</text>`;}
+    h+=`<text class="ch-lab${sel?' tmsel':''}" x="${x+w/2}" y="${H-8}" text-anchor="middle">${d.lab}</text>`;});
+  h+='</svg>';
+  const leg=TM_ORDER.map(c=>`<span><i style="background:${TM_COL[c]}"></i>${MASTERS[c].n} · ${tmFm(catTot[c]||0)}</span>`).join('');
+  const sd=view.tday&&days.find(d=>d.k===view.tday);let tb='';
+  if(sd){const rows=[];TM_ORDER.forEach(c=>(sd.cats[c]||[]).forEach(s2=>rows.push(`<tr><td><i class="tmdot" style="background:${TM_COL[c]}"></i>${MASTERS[c].n}</td><td>${esc(s2.x.name)}</td><td class="num">${tmFm(s2.ms/60000)}</td><td>${tmLvTxt(s2.x,s2.lvs)}</td></tr>`)));
+    tb=`<div class="tmday"><div class="eyebrow">${sd.date} · ${tmFm(sd.ms/60000)} <button class="btn small ghost" data-act="tday" data-k="${sd.k}">Close</button></div>${rows.length?`<table class="tbl tmtbl"><thead><tr><th>Master</th><th>Game</th><th>Time</th><th>Levels</th></tr></thead><tbody>${rows.join('')}</tbody></table>`:'<p class="muted">Nothing practised that day.</p>'}</div>`;}
+  return h+`<div class="legend">${leg}</div><div class="legend"><span>${tmFm(tot)} in 14 days · ${act} day${act===1?'':'s'} practised${act?' · '+tmFm(tot/act)+' on a day you practise':''} · hover a slice for its game and levels, click a day for the whole breakdown</span></div>${tb}`;}
 function weekSummary(){const since=Date.now()-7*86400000;let n=0,c=0,T=0,rounds=0;const byCat={};GAMES.forEach(x=>{const g=G(x.id);g.sessions.filter(ss=>ss.t>=since).forEach(ss=>{n+=ss.n;c+=ss.c;T+=ss.dur||0;rounds++;const b=byCat[x.cat]||(byCat[x.cat]={n:0,c:0});b.n+=ss.n;b.c+=ss.c;});});
   const items=[];GAMES.forEach(x=>Object.values(G(x.id).items).forEach(it=>{if(it.n>=3)items.push({g:x.name,l:it.l,acc:it.c/it.n,n:it.n});}));items.sort((a,b)=>a.acc-b.acc||b.n-a.n);
   const cats=Object.entries(byCat).filter(([k,v])=>v.n>=10).map(([k,v])=>({name:CATS.find(c=>c.id===k).name,p:v.c/v.n})).sort((a,b)=>a.p-b.p);
@@ -15879,7 +15906,7 @@ document.addEventListener('click',e=>{const hit=e.target.closest('.fb-hit');
   else if(a==='aiclear'){try{localStorage.removeItem(AI.key);localStorage.removeItem(AI.cache);}catch(e){}AI.err='';TALK={};render();}
   else if(a==='submit')answer(selArr());
   else if(a==='clear'){S.sel.clear();render();}
-  else if(a==='quit')quit();
+  else if(a==='quit')quit();   else if(a==='tday'){view.tday=view.tday===b.dataset.k?null:b.dataset.k;render();}
   else if(a==='reset'){view.confirm=true;render();}
   else if(a==='reset-no'){view.confirm=false;render();}
   else if(a==='reset-yes'){STORE.games[view.gid]=blank();view.confirm=false;saveGame(view.gid);render();}

@@ -1831,6 +1831,61 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 /*OSJSW_MORE*/
  console.log('OSJ checked');}
 /*SPRSW_END*/
+/*RDSW_BEGIN*/
+/* RHYTHM DICTATION (25 Nov 2026): the sixteen levels, their vocabularies and meters, every bar writable with the writer's values, the grading, distinct items,
+   the move tables, and the move itself on a made-up store */
+{const sb=m=>{bad++;console.log('RHYDICT',m);};const D=GBY.rhydict,RT=GBY.rhytheory;
+ if(!D||D.levels.length!==16)sb('sixteen levels');if(!RT||RT.levels.length!==8||RT.name!=='Rhythm Theory')sb('Rhythm Theory keeps eight levels');
+ if(RT&&RT.levels.some(l=>/ictation/.test(l.n)))sb('a dictation level left in Rhythm Theory');
+ const NAMES=['Whole, half, quarter','Eighth notes','Eighth rests and off-beats','Ties and dots','3/4','Syncopation I','Syncopation II: ties into the beat','Eighth-note triplets','Quarter-note triplets','Sixteenths','Dotted eighth and sixteenth','Sixteenth rests','6/8','Swing','Two bars','Two bars: everything'];
+ NAMES.forEach((n,i)=>{if(D.levels[i].n!==n)sb('level '+(i+1)+' named '+D.levels[i].n);});
+ if(GAMES.findIndex(x=>x.id==='rhydict')!==GAMES.findIndex(x=>x.id==='rhytheory')+1)sb('placed right after Rhythm Theory');
+ if(D.tap||D.mic||PLAY_GAMES.includes('rhydict')||COURSE.rhydict!==201||BADGE.rhydict[0]!=='life'||BADGE.rhydict[1]!=='core'||!STD.rhydict||STD.rhydict.acc!==0.9||STD.rhydict.flu||STYLE.rhydict||!SHORTN.rhydict)sb('registries');
+ /* the writer, as rwAdd works */
+ const sim=(q,keys)=>{const W={ev:[],dot:false,rest:false,tie:false,trip:0,tsum:0},cap=q.bars*q.meter,wu=q.wu||1;for(const k of keys){if(k==='.'){W.dot=true;continue;}if(k==='r'){W.rest=true;continue;}if(k==='_'){W.tie=true;continue;}if(k==='t'){W.trip=1;W.tsum=0;continue;}
+   let d=RW_VAL[k]*(W.dot?1.5:1)*wu;if(W.trip)d=d*2/3;const t=W.ev.reduce((a,e)=>a+e.d,0);if(t+d>cap+1e-6)return null;const last=W.ev[W.ev.length-1];
+   if(W.tie&&last&&!last.rest&&!last.tup&&!W.trip)last.d+=d;else W.ev.push({t,d,rest:W.rest?1:undefined,tup:W.trip||undefined});if(W.trip){W.tsum+=d;if(Math.abs(W.tsum-Math.round(W.tsum))<1e-6){W.trip=0;W.tsum=0;}}W.dot=false;W.rest=false;W.tie=false;}return W.ev;};
+ const VK=['w','h','q','e','s'],plain=v=>VK.find(k=>Math.abs(RW_VAL[k]-v)<1e-6),dotted=v=>VK.find(k=>Math.abs(RW_VAL[k]*1.5-v)<1e-6);
+ /* keys that write the answer; tieDots: every dotted value as the value and a tie (q. = q _ e) */
+ const keysOf=(q,tieDots)=>{const out=[],wu=q.wu||1,ev=q.answer.slice().sort((a,b)=>a.t-b.t);let inTrip=0;
+   for(const e of ev){const pre=e.rest?['r']:[];if(e.tup){if(inTrip!==e.tup){out.push('t');inTrip=e.tup;}const k=plain(e.d/wu*1.5);if(!k)return null;out.push(...pre,k);continue;}inTrip=0;const v=e.d/wu;
+     if(plain(v)){out.push(...pre,plain(v));continue;}if(dotted(v)&&!(tieDots&&!e.rest)){out.push(...pre,'.',dotted(v));continue;}
+     let r=v,first=true;while(r>1e-6){const k=VK.find(k=>RW_VAL[k]<=r+1e-6);if(!k)return null;out.push(...(e.rest?['r']:first?[]:['_']),k);r-=RW_VAL[k];first=false;}}return out;};
+ const MET={5:[3],13:[6],16:[3,4,6]};
+ for(let L=1;L<=16;L++){const keys=new Set(),allowed=new Set(RD_V[L].concat(['q']));let n=0,dots=0;
+   D.levels[L-1].g.forEach((gen,gi)=>{for(let i=0;i<Math.ceil(300/D.levels[L-1].g.length);i++){const q=gen();n++;keys.add(q.key);
+     const M=q.meter,ms=MET[L]||[4];if(!ms.includes(M))sb(L+': meter '+M);if(q.swing&&L!==14&&L!==16)sb(L+': swing');if(L===14&&!q.swing)sb('14 not swung');if((L>=15)!==(q.bars===2))sb(L+': bars '+q.bars);
+     if(M===6?q.rdCells.some(c=>!RD68[c]):q.rdCells.some(c=>!allowed.has(c)))sb(L+': a cell outside the level '+q.rdCells.join(' '));
+     if(M===6&&(q.wu!==2||q.rdBpm>60||q.key.indexOf('rd-6-')!==0))sb(L+': 6/8 unit, tempo or key');if([10,11,12].includes(L)&&q.rdBpm>80)sb(L+': sixteenths over 80');
+     /* the bar fills its meter, no gap, no overlap, nothing across a bar line */
+     const ev=q.answer.slice().sort((a,b)=>a.t-b.t);let t=0;ev.forEach(e=>{if(Math.abs(e.t-t)>1e-6)sb(L+': gap or overlap '+q.key);const b0=Math.floor(e.t/M+1e-9);if(e.t+e.d>(b0+1)*M+1e-6)sb(L+': across the bar line '+q.key);t=e.t+e.d;});
+     if(Math.abs(t-q.bars*M)>1e-6)sb(L+': bar not full '+q.key);if(!ev.some(e=>!e.rest))sb(L+': no note');
+     /* writable: the writer's keys give back a bar the grader marks right; the same with ties for the dots; a whole-note bar and two values swapped fail */
+     const k1=keysOf(q,false),w1=k1&&sim(q,k1);if(!w1||!check(q,w1))sb(L+': not writable '+q.key+' '+(k1||[]).join(''));
+     const k2=keysOf(q,true),w2=k2&&sim(q,k2);if(!w2||!check(q,w2))sb(L+': tied spelling fails '+q.key);if(k2&&k1&&k2.join()!==k1.join())dots++;
+     if(!(ev.length===1&&!ev[0].rest)&&check(q,[{t:0,d:q.bars*M}]))sb(L+': a whole-bar note passes '+q.key);
+     const j=ev.findIndex((e,i)=>i<ev.length-1&&!e.rest&&!ev[i+1].rest&&!e.tup&&!ev[i+1].tup&&Math.abs(e.d-ev[i+1].d)>1e-6);
+     if(j>=0){const sw=ev.map(e=>({...e}));const a=sw[j].d;sw[j].d=sw[j+1].d;sw[j+1].d=a;sw[j+1].t=sw[j].t+sw[j].d;if(check(q,sw))sb(L+': two values swapped pass '+q.key);}
+     if(/undefined|NaN/.test(q.prompt+q.explain+q.answerText+q.label))sb(L+': text '+q.key);}});
+   if(keys.size<12)sb(L+': only '+keys.size+' distinct bars in '+n);if([4,5,13].includes(L)&&!dots)sb(L+': no dotted value to spell with a tie');}
+ /* the move tables: old levels 1 to 12 exactly once; Rhythm Theory 1 to 8 in order; the moved levels on distinct new levels */
+ const ks=Object.keys(RD_KEEP).concat(Object.keys(RD_MOVE)).map(Number).sort((a,b)=>a-b);if(ks.join()!==[1,2,3,4,5,6,7,8,9,10,11,12].join())sb('RD_KEEP and RD_MOVE cover old 1 to 12 once');
+ if(Object.values(RD_KEEP).join()!=='1,2,3,4,5,6,7,8')sb('RD_KEEP');if(Object.values(RD_MOVE).join()!=='4,8,14,10')sb('RD_MOVE');
+ /* goals: every Rhythm Theory step inside 1 to 8, every Rhythm Dictation step inside 1 to 16 */
+ GOAL_KEYS.forEach(k=>GOALS[k].stages.forEach(st=>st.steps.concat(GOALS[k].more||[]).forEach(z=>{if(z[0]==='rhytheory'&&z[2]>8)sb('goal '+k+' rhytheory '+z[1]+'-'+z[2]);if(z[0]==='rhydict'&&z[2]>16)sb('goal '+k+' rhydict');})));
+ /* the move on a made-up store: frontier old 7, old 4 and 6 passed, old 9 open; every answer lands in exactly one game */
+ {const save=STORE.games;STORE.games={};const g=blank();const it=(L,n,c)=>({n,c,w:n-c,h:0,ms:n*1000,lv:L,l:'x'});for(let L=1;L<=12;L++){g.items['k'+L]=it(L,10,8);g.n+=10;g.c+=8;g.ms+=10000;g.hist[L]=Array(5).fill(1);}
+  g.lvl=7;g.last=6;g.unl=[9];g.lc={4:{s:5,g:0},6:{s:3,g:0},7:{s:2,g:0}};g.sessions=[{t:1,L:6,n:5,c:5,ms:1000,dur:60000},{t:2,L:7,n:5,c:5,ms:1000,dur:30000}];g.time=90000;g.pl=[{t:3,lv:6,k:'k6',ok:1},{t:4,lv:3,k:'k3',ok:1}];g.mig={};
+  moveDictation(g);const T=STORE.games.rhydict;
+  if(g.n+T.n!==120||g.c+T.c!==96||g.ms+T.ms!==120000||g.time+T.time!==90000)sb('the made-up move: totals');
+  if(Object.keys(g.items).length!==8||Object.keys(T.items).length!==4||T.items.k6.lv!==8||T.items.k9.lv!==10||g.items.k12.lv!==8||g.items.k5.lv!==4)sb('the made-up move: items');
+  if(g.lvl!==5||T.lvl!==9||T.skip.join()!=='1,2,3,5,6,7'||T.unl.join()!=='10'||g.last!==5)sb('the made-up move: frontiers '+g.lvl+' '+T.lvl+' '+T.skip+' '+T.unl+' '+g.last);
+  if(T.lc[8].s!==3||T.lc[4].s!==5||g.lc[5].s!==2||T.sessions.length!==1||T.sessions[0].L!==8||g.sessions[0].L!==5||T.pl.length!==1||T.pl[0].lv!==8)sb('the made-up move: records');
+  if(!g.mig.rd1||!T.mig.rd1||!T.mig.rv1)sb('the made-up move: flags');
+  const n0=JSON.stringify([g,T]);moveDictation(g);if(JSON.stringify([g,STORE.games.rhydict])!==n0)sb('the made-up move: a second run changes something');
+  STORE.games=save;}
+ console.log('rhydict checked');}
+/*RDSW_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

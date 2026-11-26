@@ -9,7 +9,7 @@ LV=[a for a in sys.argv[1:]] or ['3','10','17','25','26','27','28','29']   # '29
 SYN="""async ([mode,bpmSet])=>{const q=S.q,beat=60/q.metro,t0=0.1+4*beat;let ev=[];
   if(mode==='wrongturn'){const w=[];q.sr.bars.forEach((b,bi)=>b.ev.forEach(e=>{if(!e.rest&&!e.tieFrom)w.push({m:e.m,bar:bi,t:e.t});}));ev=w.slice(0,q.target.length).map((x,i)=>({m:x.m,t:t0+q.grid[i]*beat}));}
   else if(q.sr.srcs.some(s=>Array.isArray(s))){const d=scoreData(q.sr.bars),bt=SC_METER[q.sr.bars[0].m].beat;let st=0;const starts=q.sr.bars.map(b=>{const x=st;st+=b.len;return x;});ev=d.map(x=>({m:x.m,t:t0+((starts[x.bar-1]+x.beat-1)/bt)*beat}));}   /* a tune: every written note, repeated ones too */
-  else ev=q.target.map((m,i)=>({m,t:t0+q.grid[i]*beat}));
+  else ev=q.target.map((m,i)=>({m:mode==='bad'&&i%5===2?m+2:m,t:t0+q.grid[i]*beat}));   /* bad: every fifth note a whole step off (a fifth of the notes wrong: under 90 %) */
   const end=ev.at(-1).t+3,sr=22050,oc=new OfflineAudioContext(1,Math.ceil(end*sr),sr);
   ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=i+1<ev.length?ev[i+1].t:x.t+1.5,len=Math.max(.12,nx-x.t-.02),g=oc.createGain();g.connect(oc.destination);
     g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);
@@ -20,12 +20,12 @@ res=[]
 with sync_playwright() as pw:
   b=pw.chromium.launch(channel='chrome',headless=True,args=['--autoplay-policy=no-user-gesture-required','--mute-audio','--use-angle=metal','--enable-gpu','--ignore-gpu-blocklist'])
   for LA in LV:
-    L=int(LA.split('@')[0]);BPM=int(LA.split('@')[1]) if '@' in LA else None
-    for mode in (['right','wrongturn'] if L==28 else ['right']):
+    LB=LA.split('@')[0];L=int(LB.split(':')[0]);NB=int(LB.split(':')[1]) if ':' in LB else 0;BPM=int(LA.split('@')[1]) if '@' in LA else None   # '13:8' = level 13, an eight-bar line
+    for mode in (['right','wrongturn'] if L==28 else ['right','bad'] if NB else ['right']):
       pg=b.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
       pg.goto((root/'dist'/'fretwise.html').as_uri());pg.evaluate('localStorage.clear()');pg.reload()
       pg.evaluate('bpLoad()');pg.wait_for_function('BP.state!=="loading"',timeout=60000)
-      pg.evaluate("([L,B])=>{const g=G('sightread');g.opts=Object.assign({},g.opts||{},{auto:false});g.review=false;g.preview=false;g.unl=Array.from({length:29},(_,i)=>i+1);if(B)g.opts.bpmL={[L]:B};view={name:'lobby',gid:'sightread'};render();start('sightread',L);render();}",[L,BPM])
+      pg.evaluate("([L,B,NB])=>{const g=G('sightread');g.opts=Object.assign({},g.opts||{},{auto:false});g.review=false;g.preview=false;g.unl=Array.from({length:29},(_,i)=>i+1);if(B)g.opts.bpmL={[L]:B};const lv=GBY.sightread.levels[L-1],keep=lv.g;if(NB){let pick=null;for(let t=0;t<300&&!pick;t++){const gen=pickGen(keep);if(gen().sr.bars.length===NB)pick=gen;}lv.g=[pick];}view={name:'lobby',gid:'sightread'};render();start('sightread',L);render();lv.g=keep;}",[L,BPM,NB])
       info=pg.evaluate(SYN,[mode,None])
       pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
       t=time.time();pg.wait_for_function('!S.q.scan||S.scanning',timeout=5000);pg.evaluate('micListen()')   # 26 Nov 2026: a scan comes first on Sight Reading and Chart Reading; this call skips it, so the take starts with the count-in as before

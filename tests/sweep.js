@@ -1947,6 +1947,23 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  ['B','C','D'].forEach(k=>GOALS[k].stages.concat([{steps:GOALS[k].more}]).forEach(x=>x.steps.forEach(z=>{if(z[0]==='rhyread'&&z[2]>12)sb('goal '+k+' names rhyread '+z[1]+'-'+z[2]);})));
  [19,21].forEach(L=>GBY.rhyread.levels[L-1].g.forEach(g=>{for(let i=0;i<30;i++){const q=g();if(/12.8|5.4|3.8|6.8/.test(q.prompt||'')){sb('level '+L+' asks a moved meter');break;}}}));}
 /*RBB_END*/
+/*RBC_BEGIN*/
+/* the reading build, phase C (26 Nov 2026): Sight Reading 3–23 ask long lines. Over 600 draws a level (pickGen, as pickQ draws): levels 3–12 about two in three four bars,
+   13–23 about half eight bars and a third four; every long line keeps the rules of srLineQ (no pitch twice in a row, no A B A B A, a natural only where the level has one,
+   bars filled, the page read back = the targets through the SIGHTREAD block), 16 slots or more carry the share rule, the item keys of long lines name their bars */
+{const sb=m=>{bad++;console.log('RBC',m);};S.gid='sightread';
+ for(let L=3;L<=23;L++){const gs=GBY.sightread.levels[L-1].g,cnt={2:0,4:0,8:0};let n=0;
+   for(let i=0;i<600;i++){const gen=pickGen(gs);let q;try{q=gen();}catch(e){sb('L'+L+' throws '+e.message);break;}const nb=q.sr.bars.length;cnt[nb>=8?8:nb>=4?4:2]++;n++;const o=gen.o||{};
+     if(srSeesaw(q.target)){sb('L'+L+' A B A B A '+q.key);break;}if(!noDup(q.target)){sb('L'+L+' a pitch twice '+q.key);break;}
+     if(!o.nat&&q.sr.bars.some(b=>b.ev.some(e=>e.acc===0))){sb('L'+L+' a natural on a level without one '+q.key);break;}
+     if(nb>2&&!new RegExp('-'+nb+'b-').test(q.key)){sb('L'+L+' a '+nb+'-bar key without its bars '+q.key);break;}
+     if(lineSlots(q.target,true)>=16!==!!q.share){sb('L'+L+' share rule does not follow the slots '+q.key);break;}
+     if(nb>=4&&q.metro&&(q.grid.at(-1)+2)*60/q.metro>90){sb('L'+L+' a take longer than 90 s '+q.key);break;}}
+   const f=k=>cnt[k]/n;if(L<=12){if(f(4)<.55||f(4)>.78)sb('L'+L+' four bars '+f(4).toFixed(2));if(f(8))sb('L'+L+' eight bars');}
+   else{if(f(8)<.4||f(8)>.6)sb('L'+L+' eight bars '+f(8).toFixed(2));if(f(4)<.24||f(4)>.43)sb('L'+L+' four bars '+f(4).toFixed(2));}}
+ [1,2,24,25].forEach(L=>{if(GBY.sightread.levels[L-1].g.some(g=>g.w))sb('L'+L+' weighted');});
+ console.log('reading build C checked');}
+/*RBC_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

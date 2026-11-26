@@ -1,7 +1,7 @@
 # Sight Reading phase 3: start every level headless and muted on a copy of the store, screenshot a question and a graded answer (tests/out/sr-*.png)
 import subprocess,time,json,pathlib,sys
 from playwright.sync_api import sync_playwright
-root=pathlib.Path('/Users/emir/Desktop/fretwise-repo');raw=(root/'backups/store-before-sight-reading-2026-11-20.json').read_text()
+root=pathlib.Path('/Users/emir/Desktop/fretwise-repo');raw=(root/(sys.argv[1] if len(sys.argv)>1 else 'backups/store-before-reading-build-2026-11-26.json')).read_text()   # 26 Nov 2026: the newest store copy by default
 srv=subprocess.Popen(['python3','-m','http.server','8796'],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1)
 try:
   with sync_playwright() as p:

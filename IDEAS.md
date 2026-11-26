@@ -50,4 +50,4 @@ Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dic
 
 ## Built since
 
-- **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: PHASE_A_COMMIT.
+- **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

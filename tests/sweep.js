@@ -1938,14 +1938,24 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
 /*RBB_BEGIN*/
 /* the reading build, phase B (26 Nov 2026): Reading Rhythm's new order, REORDERS30 a permutation, goal R's rhythm steps, the round generators of the two "everything" levels free of the meters that moved out */
 {const sb=m=>{bad++;console.log('RBB',m);};const nm=GBY.rhyread.levels.map(l=>l.n);
- const want={17:'6/8, with sixteenths',18:'Cut time',19:'Everything so far',20:'Broken triplets',21:'Everything',22:'Road map, played',23:'12/8',24:'Sixteenth-note triplets',25:'5/4 and 3/8',26:'Changing meters',27:'Accented eighth notes'};
+ const want={16:'Switching grids: by the line',17:'Switching grids: on beat 3',18:'Switching grids: on any beat',19:'Rests and dots inside the grids',20:'Everything so far, in 4/4',21:'6/8, with sixteenths',22:'Cut time',23:'Everything so far',24:'Broken triplets',25:'Everything',26:'Road map, played',27:'12/8',28:'Sixteenth-note triplets',29:'5/4 and 3/8',30:'Changing meters',31:'Accented eighth notes'};
  Object.entries(want).forEach(([L,n])=>{if(nm[L-1]!==n)sb('level '+L+' is '+nm[L-1]+', not '+n);});
  const R30=REORDERS30.rhyread,img=Object.values(R30.m).sort((a,b)=>a-b).join(),dom=Object.keys(R30.m).map(Number).sort((a,b)=>a-b).join();if(img!==dom)sb('REORDERS30 is not a permutation');
- const st=GOALS.R.stages.map(x=>x.steps.filter(z=>z[0]==='rhyread').map(z=>z[1]+'-'+z[2]).join());if(st.join('|')!=='1-5|6-12|13-19|20-21|22-22')sb('goal R rhythm steps '+st.join('|'));
+ const st=GOALS.R.stages.map(x=>x.steps.filter(z=>z[0]==='rhyread').map(z=>z[1]+'-'+z[2]).join());if(st.join('|')!=='1-5|6-12|13-23|24-25|26-26')sb('goal R rhythm steps '+st.join('|'));
  if(GOALS.R.stages.some(x=>x.steps.some(z=>z[0]==='rhydict')))sb('goal R still requires Rhythm Dictation');
- if(!GOALS.R.more.some(z=>z[0]==='rhyread'&&z[1]===23&&z[2]===29)||!GOALS.R.more.some(z=>z[0]==='rhydict'&&z[1]===1&&z[2]===16))sb('goal R appendix');
+ if(!GOALS.R.more.some(z=>z[0]==='rhyread'&&z[1]===27&&z[2]===33)||!GOALS.R.more.some(z=>z[0]==='rhydict'&&z[1]===1&&z[2]===16))sb('goal R appendix');
  ['B','C','D'].forEach(k=>GOALS[k].stages.concat([{steps:GOALS[k].more}]).forEach(x=>x.steps.forEach(z=>{if(z[0]==='rhyread'&&z[2]>12)sb('goal '+k+' names rhyread '+z[1]+'-'+z[2]);})));
- [19,21].forEach(L=>GBY.rhyread.levels[L-1].g.forEach(g=>{for(let i=0;i<30;i++){const q=g();if(/12.8|5.4|3.8|6.8/.test(q.prompt||'')){sb('level '+L+' asks a moved meter');break;}}}));}
+ [23,25].forEach(L=>GBY.rhyread.levels[L-1].g.forEach(g=>{for(let i=0;i<30;i++){const q=g();if(/12.8|5.4|3.8|6.8/.test(q.prompt||'')){sb('level '+L+' asks a moved meter');break;}}}));}
+/* the grid ladder (26 Nov 2026, later): levels 16–19 bars fill 4/4, use only their grids' cells, the grid holds by the line (16, 19), changes only on beat 3 (17) or a beat (18), never the same grid twice in a row; REORDERS31 */
+{const sb=m=>{bad++;console.log('GRID',m);};const gOf=(e,G)=>Object.keys(G).find(k=>G[k].some(c=>RCELL[c].ev.some(z=>Math.abs(z.d-e.d)<1e-6&&!!z.rest===!!e.rest&&!!z.tup===!!e.tup)));
+ [[16,4,RRG],[17,2,RRG],[18,1,RRG],[19,4,RRG4]].forEach(([L,per,G])=>{const c=grooveSpec('rhyread',L);if(!c){sb('L'+L+' no spec');return;}let lastSeg=null;
+  for(let k=0;k<40;k++){const b=c.bar(k,4),tot=b.ev.reduce((a,e)=>a+e.d,0);if(Math.abs(tot-4)>1e-6){sb('L'+L+' bar of '+tot+' beats');break;}
+   const segs=[];for(let a=0;a<4;a+=per){const es=b.ev.filter(e=>e.t>=a-1e-6&&e.t<a+per-1e-6);if(es.some(e=>e.t+e.d>a+per+1e-6)){sb('L'+L+' a figure crosses its segment');break;}
+     const tup=es.some(e=>e.tup),six=es.some(e=>!e.tup&&Math.abs(e.d*4-Math.round(e.d*4))<1e-6&&Math.abs(e.d*2-Math.round(e.d*2))>1e-6||(!e.tup&&Math.abs(e.t*2-Math.round(e.t*2))>1e-6));segs.push(tup?'t':six?'s':'e');}
+   if(G===RRG&&b.ev.some(e=>e.rest||e.d===0.75||e.d===1.5))sb('L'+L+' a rest or a dot');
+   for(let i=1;i<segs.length;i++)if(segs[i]===segs[i-1]&&segs[i]!=='e')sb('L'+L+' the same grid twice in a row inside a bar: '+segs.join(''));
+   if(per===4){if(k%2===1&&segs[0]!==lastSeg&&!(segs[0]==='e'||lastSeg==='e'))sb('L'+L+' the grid changes inside a line');lastSeg=segs[0];}}});
+ const R31=REORDERS31.rhyread;if(R31.m[16]!==20||R31.m[29]!==33||R31.nw.join()!=='16,17,18,19')sb('REORDERS31');}
 /*RBB_END*/
 /*RBC_BEGIN*/
 /* the reading build, phase C (26 Nov 2026): Sight Reading 3–23 ask long lines. Over 600 draws a level (pickGen, as pickQ draws): levels 3–12 about two in three four bars,

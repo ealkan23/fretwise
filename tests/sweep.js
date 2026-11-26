@@ -1935,6 +1935,18 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  /* other games keep their rules: no share on Scale Runner, Along the Neck, Tunes by Ear */
  [['scales',2],['along',3],['tunes',9]].forEach(([g,L])=>{S.gid=g;for(const gen of GBY[g].levels[L-1].g){const q=gen();if(q.share||q.scan)sb(g+' L'+L+' has a share or scan');}});S.gid='sightread';}
 /*RBA_END*/
+/*RBB_BEGIN*/
+/* the reading build, phase B (26 Nov 2026): Reading Rhythm's new order, REORDERS30 a permutation, goal R's rhythm steps, the round generators of the two "everything" levels free of the meters that moved out */
+{const sb=m=>{bad++;console.log('RBB',m);};const nm=GBY.rhyread.levels.map(l=>l.n);
+ const want={17:'6/8, with sixteenths',18:'Cut time',19:'Everything so far',20:'Broken triplets',21:'Everything',22:'Road map, played',23:'12/8',24:'Sixteenth-note triplets',25:'5/4 and 3/8',26:'Changing meters',27:'Accented eighth notes'};
+ Object.entries(want).forEach(([L,n])=>{if(nm[L-1]!==n)sb('level '+L+' is '+nm[L-1]+', not '+n);});
+ const R30=REORDERS30.rhyread,img=Object.values(R30.m).sort((a,b)=>a-b).join(),dom=Object.keys(R30.m).map(Number).sort((a,b)=>a-b).join();if(img!==dom)sb('REORDERS30 is not a permutation');
+ const st=GOALS.R.stages.map(x=>x.steps.filter(z=>z[0]==='rhyread').map(z=>z[1]+'-'+z[2]).join());if(st.join('|')!=='1-5|6-12|13-19|20-21|22-22')sb('goal R rhythm steps '+st.join('|'));
+ if(GOALS.R.stages.some(x=>x.steps.some(z=>z[0]==='rhydict')))sb('goal R still requires Rhythm Dictation');
+ if(!GOALS.R.more.some(z=>z[0]==='rhyread'&&z[1]===23&&z[2]===29)||!GOALS.R.more.some(z=>z[0]==='rhydict'&&z[1]===1&&z[2]===16))sb('goal R appendix');
+ ['B','C','D'].forEach(k=>GOALS[k].stages.concat([{steps:GOALS[k].more}]).forEach(x=>x.steps.forEach(z=>{if(z[0]==='rhyread'&&z[2]>12)sb('goal '+k+' names rhyread '+z[1]+'-'+z[2]);})));
+ [19,21].forEach(L=>GBY.rhyread.levels[L-1].g.forEach(g=>{for(let i=0;i<30;i++){const q=g();if(/12.8|5.4|3.8|6.8/.test(q.prompt||'')){sb('level '+L+' asks a moved meter');break;}}}));}
+/*RBB_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

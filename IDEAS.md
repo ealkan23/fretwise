@@ -53,6 +53,9 @@ Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dic
 - The headless test pipe sometimes produces faint extra strums mid-ring that count against a chart; not filtered. Worth checking on real takes whether a quiet extra strum should be ignored.
 - Strums closer than one beat (eighth-note comping figures) are not written; the measured limit is about 0.4 s with a quick strum.
 
+### The 16-note threshold of the fairer grading (27 Nov 2026, from the review of the reading build)
+The share rule (90 % of the notes, no stop) starts at 16 notes, as briefed. Measured over 300 draws a level: in Sight Reading 3 to 5 and 11 most four-bar lines have fewer than 16 notes (long notes and rests), so they are still graded strictly: one wrong note fails four bars (level 4: 200 of 204 four-bar lines; level 3 and 5: about half). The early levels, where the longer lines were introduced, therefore get the least of the fairer grading. Idea: start the share rule at 10 notes (at 90 % a line of 10 to 19 notes then forgives one note) or grade every four-bar line by it. Not built: the user confirmed 16 before the build; put to him as a question.
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

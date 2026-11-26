@@ -11,6 +11,8 @@ CLAUDE.md also holds older "not built" notes inside its build sections (search i
 ### Reading goal (goal R, "Read at sight"): from the outside review of 26 Nov 2026
 The full description the review was made from: `docs/goal-R-read-at-sight.md`. The user asked for commentary only; nothing here is decided.
 
+**Briefed on 26 Nov 2026, not built yet:** items 1, 2, 4, 5 and 6 are written up for a building session in `.claude/reading-brief.md` (phases A to D; five proposed choices to confirm with the user first). Items 3, 7 and 8 and the smaller points are not in that brief.
+
 1. **Fairer grading of long takes.** Today any wrong note fails a whole take (long pages forgive one unheard note in sixteen and a few late ones). Idea: grade pages of four bars and more by the share of notes right and in time, with no stop, e.g. 90 to 95 %. Small. Should come before anything that makes the lines harder.
 2. **Scan time that grows with the page.** With "Listen as soon as the question appears" on, the count-in starts at once: about four seconds to look, the same for a 5-note line and a 32-bar page. Idea: a look time set by the length of the page (a few seconds for a line, up to about 30 for a page), then an automatic count-in. Small.
 3. **A target tempo for the master standard.** Passing never depends on tempo; every level can be passed at its slowest. Idea: each level's green standard is measured at a stated tempo. Limit: above about 120 the microphone stops separating swung eighths. Small.

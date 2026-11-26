@@ -1964,6 +1964,41 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  [1,2,24,25].forEach(L=>{if(GBY.sightread.levels[L-1].g.some(g=>g.w))sb('L'+L+' weighted');});
  console.log('reading build C checked');}
 /*RBC_END*/
+/*RCC_BEGIN*/
+/* Chart Reading (26 Nov 2026, reading brief phase D): ten levels and their registries; every chart's bars fill the bar (a push spills into the next bar exactly where its figure starts);
+   every chord has a grip; the grid is the written strums, never closer than a beat; a perfect take passes; under 8 strums one wrong chord fails; from 8 the share rule (16 strums:
+   one wrong passes, two fail); every strum half a beat late fails; a road map played straight through fails; item keys hold no key name; 12 items or more a level in 300 draws */
+{const sb=m=>{bad++;console.log('RCC',m);};S.gid='chartread';const x=GBY.chartread;
+ if(!x||x.levels.length!==10)sb('ten levels');if(x.cat!=='voicings'||!x.mic)sb('cat or mic');
+ if(COURSE.chartread!==201||!BADGE.chartread||!(STYLE.chartread||[]).includes('jazz')||!SHORTN.chartread||!STD.chartread||(LEVEL_NOTES.chartread||[]).length!==10||!(LESSON_NOTES.chartread||[]).length)sb('registries');
+ if(PLAY_GAMES.includes('chartread')||HAT_GAMES.includes('chartread'))sb('in PLAY_GAMES or HAT_GAMES');
+ if(!GOALS.R.stages[3].steps.some(z=>z[0]==='chartread'&&z[1]===1&&z[2]===5)||!GOALS.R.stages[4].steps.some(z=>z[0]==='chartread'&&z[1]===6&&z[2]===10)||!GOALS.D.more.some(z=>z[0]==='chartread'&&z[1]===1&&z[2]===10))sb('goals');
+ const act=v=>{const a={};for(let m=40;m<=88;m++)a[m]=0.02;v.forEach(m=>a[m]=0.7);return a;},
+  take=(q,seq,f,times)=>{const B=60000/q.metro,bs=4*B+100;return micGrade(q,{strums:seq.map((v,i)=>({t:bs+(times?times[i]:q.grid[i])*B+(f?f(i):0),act:act(v)})),beat:B,beatStart:bs,firstAt:bs});},
+  wrongOf=v=>v.map(m=>m+1);
+ x.levels.forEach((lv,li)=>{const L=li+1,items=new Set();
+  for(let t=0;t<300;t++){const g=lv.g[t%lv.g.length];let q;try{q=g();}catch(e){sb('L'+L+' throws '+e.message);break;}items.add(q.key);if(t>=40)continue;const C=q.cc,ch=C.ch,tag='L'+L+' '+q.key;
+   /* the bars fill the bar: each bar's events and the spill of a push from the bar before cover 0–4 once */
+   let bad1='';ch.bars.forEach((b,bi)=>{let cov=[];const prev=ch.bars[bi-1];if(prev)prev.ev.forEach(e=>{if(e.t+e.d>4+1e-9)cov.push([0,e.t+e.d-4]);});b.ev.forEach(e=>cov.push([e.t,Math.min(4,e.t+e.d)]));cov.sort((a,c)=>a[0]-c[0]);let at=0;cov.forEach(c=>{if(Math.abs(c[0]-at)>1e-9)bad1='bar '+(bi+1)+' has a gap or overlap at '+at;at=c[1];});if(Math.abs(at-4)>1e-9)bad1='bar '+(bi+1)+' ends at '+at;if(b.ev.some(e=>e.c==='n')&&(bi%4===3||bi===ch.bars.length-1))bad1='a push across a line';});if(bad1){sb(tag+' '+bad1);break;}
+   if(ch.bars.some(b=>b.chords.some(c=>!symParse(c.sym)||!chordVoicings(c.r,c.q).length))){sb(tag+' a chord without a grip');break;}
+   if(q.grid.join()!==C.st.map(z=>z.t).join()||q.grid.some((g2,i)=>i&&g2-q.grid[i-1]<1-1e-9)){sb(tag+' the grid is not the written strums a beat apart');break;}
+   if(q.strumSeq.length!==q.grid.length||q.strumAltSeq.some((a,i)=>!a.length||!a.some(v=>v.join()===q.strumSeq[i].join()))){sb(tag+' the strums and their grips do not line up');break;}
+   if(q.key.split('-').includes(ch.key)){sb(tag+' the key name is in the item key');break;}
+   if(!take(q,q.strumSeq).ok){sb(tag+' the perfect take fails');break;}
+   const n=q.strumSeq.length;
+   if(n<8){const w=q.strumSeq.slice();w[Math.floor(n/2)]=wrongOf(w[Math.floor(n/2)]);if(take(q,w).ok){sb(tag+' one wrong chord passes under 8 strums');break;}}
+   else{if(!q.share||q.share.from!==8){sb(tag+' no share rule from 8 strums');break;}const al=n-Math.ceil(n*.9-1e-9),pk=c=>Array.from({length:c},(_,j)=>Math.floor((j+.5)*n/c)),W=ix=>q.strumSeq.map((v,i)=>ix.includes(i)?wrongOf(v):v);
+     if(al&&!take(q,W(pk(al))).ok){sb(tag+' '+al+' wrong chords of '+n+' fail');break;}if(take(q,W(pk(al+1))).ok){sb(tag+' '+(al+1)+' wrong chords of '+n+' pass');break;}}
+   if(take(q,q.strumSeq,()=>60000/q.metro*0.5).ok){sb(tag+' every strum half a beat late passes');break;}
+   if(ch.road){const wr=[];ch.bars.forEach((b,w)=>b.ev.forEach(e=>{if(e.rest||e.c===undefined)return;const c=e.c==='n'?ch.bars[w+1].chords[0]:b.chords[e.c];wr.push({t:w*4+e.t,v:chordVoicings(c.r,c.q)[0]});}));
+     if(take(q,wr.map(z=>z.v),null,wr.map(z=>z.t)).ok){sb(tag+' the road map played straight through passes');break;}}}
+  if(items.size<12)sb('L'+L+' only '+items.size+' items in 300 draws');});
+ /* 16 strums: one wrong chord passes, two fail (the share rule's numbers) */
+ {const g=x.levels[2].g[0];let q=null;for(let t=0;t<50&&!q;t++){const z=g();if(z.strumSeq.length===16)q=z;}if(!q)sb('no 16-strum chart at level 3');else{const W=ix=>q.strumSeq.map((v,i)=>ix.includes(i)?wrongOf(v):v);if(!take(q,W([7])).ok)sb('16 strums: one wrong chord fails');if(take(q,W([3,11])).ok)sb('16 strums: two wrong chords pass');}}
+ /* other strummed questions keep their rule: a Shells cadence in time has no share rule */
+ S.gid='shells';for(const lv of GBY.shells.levels)for(const g of lv.g){let q;try{q=g();}catch(e){continue;}if(q.share){sb('shells has a share rule');break;}}S.gid='chartread';
+ console.log('chartread checked');}
+/*RCC_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

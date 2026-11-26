@@ -13,8 +13,8 @@ The full description the review was made from: `docs/goal-R-read-at-sight.md`. T
 
 **Briefed on 26 Nov 2026, not built yet:** items 1, 2, 4, 5 and 6 are written up for a building session in `.claude/reading-brief.md` (phases A to D; five proposed choices to confirm with the user first). Items 3, 7 and 8 and the smaller points are not in that brief.
 
-1. **Fairer grading of long takes.** Today any wrong note fails a whole take (long pages forgive one unheard note in sixteen and a few late ones). Idea: grade pages of four bars and more by the share of notes right and in time, with no stop, e.g. 90 to 95 %. Small. Should come before anything that makes the lines harder.
-2. **Scan time that grows with the page.** With "Listen as soon as the question appears" on, the count-in starts at once: about four seconds to look, the same for a 5-note line and a 32-bar page. Idea: a look time set by the length of the page (a few seconds for a line, up to about 30 for a page), then an automatic count-in. Small.
+1. **Fairer grading of long takes.** Today any wrong note fails a whole take (long pages forgive one unheard note in sixteen and a few late ones). Idea: grade pages of four bars and more by the share of notes right and in time, with no stop, e.g. 90 to 95 %. Small. Should come before anything that makes the lines harder. **Built 26 Nov 2026 (reading build, phase A): see Built since.**
+2. **Scan time that grows with the page.** With "Listen as soon as the question appears" on, the count-in starts at once: about four seconds to look, the same for a 5-note line and a 32-bar page. Idea: a look time set by the length of the page (a few seconds for a line, up to about 30 for a page), then an automatic count-in. Small. **Built 26 Nov 2026 (reading build, phase A): see Built since.**
 3. **A target tempo for the master standard.** Passing never depends on tempo; every level can be passed at its slowest. Idea: each level's green standard is measured at a stated tempo. Limit: above about 120 the microphone stops separating swung eighths. Small.
 4. **Goal changes.** Move to "also helps": Reading Rhythm 18 (12/8), 22 (sixteenth-note triplets), 23 (5/4 and 3/8), 24 (changing meters), and Rhythm Dictation 1–4. Keep Reading Rhythm 21 (broken triplets) required. Possibly require Sing the Page 1–6 (held back: that game has never been tried with a real voice). Small.
 5. **Longer lines early.** Sight Reading 1–23 ask 4 to 17 notes; four bars appear only sometimes (levels 7, 13, 16, 20) and real length starts at level 24. Idea: four bars from about level 3, eight by the middle of the ladder, kept easy and slow. Medium.
@@ -50,4 +50,4 @@ Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dic
 
 ## Built since
 
-(nothing yet)
+- **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: PHASE_A_COMMIT.

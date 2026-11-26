@@ -396,9 +396,14 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
     if(win[0]===0&&/fret [45]\\b/.test(q.explain)&&q.explain.split('; ').some(t=>{const mm=/string (\\d), fret ([45])/.exec(t);return mm&&posOf(OPEN[+mm[1]]+(+mm[2])).some(x=>x.f===0);})){sb(tag+' an open-string pitch shown at fret 4 or 5: '+q.explain);break;}}
   const B=1000,t0=5000,mk=T=>({notes:T.map((m,k)=>({midi:m,mf:m,t:t0+q.grid[k]*B,dur:250})),firstAt:t0,beat:B,beatStart:t0}),ok=T=>micGrade(q,mk(T)).ok;
   if(!ok(q.target)){sb(tag+' the perfect take fails');break;}
-  const w2=q.target.slice(),kk=Math.floor(w2.length/2),dv=[1,-1,2,-2].find(d=>w2[kk]+d!==w2[kk-1]&&w2[kk]+d!==w2[kk+1]);w2[kk]+=dv;if(ok(w2)){sb(tag+' a wrong note passes');break;}
+  if(q.share){const n=lineSlots(q.target,true);if(n<16){sb(tag+' a share rule on '+n+' slots');break;}const al=n-Math.ceil(n*.9-1e-9),pk=c=>Array.from({length:c},(_,j)=>Math.min(n-1,Math.floor((j+.5)*n/c))),wr=ix=>{const w=q.target.slice();ix.forEach(k=>{w[k]+=[1,-1,2,-2,3].find(d=>w[k]+d!==w[k-1]&&w[k]+d!==w[k+1]);});return w;};
+    if(q.target.length===n){if(al&&!ok(wr(pk(al)))){sb(tag+' '+al+' wrong notes of '+n+' fail (share)');break;}if(ok(wr(pk(al+1)))){sb(tag+' '+(al+1)+' wrong notes of '+n+' pass (share)');break;}}}
+  else{const w2=q.target.slice(),kk=Math.floor(w2.length/2),dv=[1,-1,2,-2].find(d=>w2[kk]+d!==w2[kk-1]&&w2[kk]+d!==w2[kk+1]);w2[kk]+=dv;if(ok(w2)){sb(tag+' a wrong note passes');break;}
+  if(lineSlots(q.target,true)>=16&&!o.free){sb(tag+' 16 slots or more without the share rule');break;}}
   const late=n=>{const r=mk(q.target);const idx=[];for(let k=1;k<q.target.length&&idx.length<n;k+=2)idx.push(k);idx.forEach(k=>{r.notes[k].t+=B*.45;});return micGrade(q,r).ok;};
-  {const r=mk(q.target),k1=Math.min(1,q.target.length-1);r.notes[k1].t+=B;if(micGrade(q,r).ok){sb(tag+' a note a beat late passes');break;}}
+  if(!q.share){const r=mk(q.target),k1=Math.min(1,q.target.length-1);r.notes[k1].t+=B;if(micGrade(q,r).ok){sb(tag+' a note a beat late passes');break;}}
+  if(!o.free&&!(q.scan>=4&&q.scan<=30&&q.scan===Math.min(30,Math.max(4,2*bars.length)))){sb(tag+' scan time '+q.scan+' for '+bars.length+' bars');break;}
+  if(o.free&&q.scan){sb(tag+' a free-start question with a scan');break;}
   const lm=q.tol?Math.max(q.tol.lateMin||0,Math.ceil(q.target.length*q.tol.late))+1:1;if(q.tol&&lm<=Math.floor(q.target.length/2)&&late(lm)){sb(tag+' '+lm+' late notes pass');break;}
   if(o.nat&&!bars.some(b=>b.ev.some(e=>e.acc===0))){sb(tag+' the naturals level without a natural');break;}
   if(o.ties&&!bars.some(b=>b.ev.some(e=>e.tieTo))){sb(tag+' the ties level without a tie');break;}
@@ -1897,6 +1902,40 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  if(GR.onsets.some((o,i)=>i!==5&&(!o.hit||o.off!==-20))||GR.onsets[5].hit||GR.extras.length){bad++;console.log('GROOVE matching: a missed note shifts the taps after it',GR.onsets.map(o=>o.hit?o.off:'miss').join(' '));}
  GR=keep;}
 /*GMSW_END*/
+/* ===== THE READING BUILD, PHASE A (26 Nov 2026): a long take is graded by its share; a scan before the count-in ===== */
+/*RBA_BEGIN*/
+{const sb=m=>{bad++;console.log('RBA',m);};S.gid='sightread';
+ const mkQ=(n,len)=>{const T=Array.from({length:n},(_,i)=>i%2?62:60);const q=M({key:'rba-'+n,label:'t',target:T,octaveFree:false,maxNotes:n,degs:T.map(()=>'x'),names:T.map(()=>'x'),hideTarget:true,metro:60,grid:T.map((_,i)=>i),sr:{barOf:T.map((_,i)=>Math.floor(i/4))}});q.rhyStrict=true;srShareSet(q,T.map(()=>len||1));return q;};
+ const B=1000,t0=5000,take=(q,f)=>{const ns=[];q.target.forEach((m,k)=>{const x=f?f(k,m):{};if(x===null)return;ns.push({midi:x.m!=null?x.m:m,mf:x.m!=null?x.m:m,t:t0+q.grid[k]*B+(x.d||0),dur:250});});return micGrade(q,{notes:ns,firstAt:t0,beat:B,beatStart:t0});};
+ const sp=(n,c)=>new Set(Array.from({length:c},(_,j)=>Math.floor((j+.5)*n/c)));
+ const q52=mkQ(52);if(!q52.share)sb('52 slots: no share rule');
+ if(!take(q52).ok)sb('52: the perfect take fails');
+ {const W=sp(52,5),r=take(q52,(k,m)=>W.has(k)?{m:m+5}:{});if(!r.ok)sb('52: five wrong notes fail ('+(r.share&&r.share.pct)+')');}
+ {const W=sp(52,6),r=take(q52,(k,m)=>W.has(k)?{m:m+5}:{});if(r.ok)sb('52: six wrong notes pass');}
+ {const W=sp(52,5),r=take(q52,k=>W.has(k)?{d:B}:{});if(!r.ok)sb('52: five notes a beat late fail');if(r.share&&r.share.late!==5)sb('52: late count '+(r.share&&r.share.late));}
+ {const W=sp(52,6),r=take(q52,k=>W.has(k)?{d:B}:{});if(r.ok)sb('52: six notes a beat late pass');}
+ {const r=take(q52,k=>k===20?{d:B*.3}:{});if(!r.ok)sb('52: one note a third of a beat late fails the long take (rhyStrict should not decide)');}
+ /* extra notes count: 4 wrong + 2 extra = 6 bad of 54 → fails; 4 wrong + 1 extra passes */
+ {const extra=(q,W,X)=>{const ns=[];q.target.forEach((m,k)=>{ns.push({midi:W.has(k)?m+5:m,mf:m,t:t0+k*B,dur:250});if(X.has(k))ns.push({midi:m+7,mf:m+7,t:t0+k*B+B*.5,dur:300});});return micGrade(q,{notes:ns,firstAt:t0,beat:B,beatStart:t0});};
+  const r1=extra(q52,sp(52,4),new Set([3])),r2=extra(q52,sp(52,4),new Set([3,40]));if(!r1.ok)sb('52: four wrong and one extra fail');if(r2.ok)sb('52: four wrong and two extra pass');if(r2.share&&r2.share.extra!==2)sb('52: extra count '+(r2.share&&r2.share.extra));}
+ /* a stop: 100 quarter-note slots, 8 unplayed in a row = a stop (share 92 % would pass); 4 in a row (one bar) pass */
+ const q100=mkQ(100);
+ {const r=take(q100,k=>k>=40&&k<48?null:{});if(r.ok)sb('100: two bars unplayed pass');if(!r.share||!r.share.stop||r.share.stop.bar!==11)sb('100: the stop is not found in bar 11 '+JSON.stringify(r.share&&r.share.stop));if(r.share&&r.share.pct<.9)sb('100: the share should hold');}
+ {const r=take(q100,k=>k>=40&&k<44?null:{});if(!r.ok)sb('100: one bar unplayed fails');}
+ {const r=take(q100,k=>k>=40&&k<45?{m:70}:{});if(r.ok)sb('100: five wrong in a row (five beats) pass');}
+ /* rests do not count: half-beat slots → 8 in a row = 4 beats, not a stop */
+ {const qh=mkQ(100,.5),r=take(qh,k=>k>=40&&k<48?{m:70}:{});if(!r.ok||r.share.stop)sb('100 eighths: 8 wrong in a row (four beats) count as a stop');}
+ /* a 15-slot line keeps the strict rule */
+ {const q15=mkQ(15);if(q15.share)sb('15 slots: a share rule');const r=take(q15,(k,m)=>k===7?{m:m+5}:{});if(r.ok)sb('15: one wrong note passes');}
+ /* the feedback says the numbers */
+ {const W=sp(52,5),r=take(q52,(k,m)=>W.has(k)?{m:m+5}:{}),tx=micFeedbackExtra(q52,r);if(!/47 of 52 notes right and in time \\(90 %/.test(tx))sb('feedback: '+tx);}
+ {const r=take(q100,k=>k>=40&&k<48?null:{}),tx=micFeedbackExtra(q100,r);if(!/stopped in bar 11/.test(tx))sb('feedback stop: '+tx);}
+ /* the scan: 2 s a written bar, 4 to 30 */
+ [[1,4],[2,4],[4,8],[8,16],[16,30],[32,30]].forEach(([b,v])=>{if(scanSecs(b)!==v)sb('scan '+b+' bars = '+scanSecs(b));});
+ /* other games keep their rules: no share on Scale Runner, Along the Neck, Tunes by Ear */
+ [['scales',2],['along',3],['tunes',9]].forEach(([g,L])=>{S.gid=g;for(const gen of GBY[g].levels[L-1].g){const q=gen();if(q.share||q.scan)sb(g+' L'+L+' has a share or scan');}});S.gid='sightread';}
+/*RBA_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);
+

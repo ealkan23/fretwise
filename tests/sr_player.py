@@ -28,10 +28,10 @@ with sync_playwright() as pw:
       pg.evaluate("([L,B])=>{const g=G('sightread');g.opts=Object.assign({},g.opts||{},{auto:false});g.review=false;g.preview=false;g.unl=Array.from({length:29},(_,i)=>i+1);if(B)g.opts.bpmL={[L]:B};view={name:'lobby',gid:'sightread'};render();start('sightread',L);render();}",[L,BPM])
       info=pg.evaluate(SYN,[mode,None])
       pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
-      t=time.time();pg.evaluate('micListen()')
+      t=time.time();pg.wait_for_function('!S.q.scan||S.scanning',timeout=5000);pg.evaluate('micListen()')   # 26 Nov 2026: a scan comes first on Sight Reading and Chart Reading; this call skips it, so the take starts with the count-in as before
       try:pg.wait_for_function("S&&(S.locked||/Nothing heard/.test(S.micMsg||''))",timeout=400000)
       except Exception as e:res.append((L,mode,info,'TIMEOUT',errs[:2]));pg.close();continue
-      r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,lateMax:r.lateMax,missMax:r.missMax,extra:(r.extra||[]).length,key:S.q.key.slice(0,40)}})()")
+      r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,lateMax:r.lateMax,missMax:r.missMax,share:r.share?Math.round(r.share.pct*1000)/10+'% '+(r.share.stop?'stop':''):undefined,extra:(r.extra||[]).length,key:S.q.key.slice(0,40)}})()")
       want=(mode=='right');res.append((L,mode,info,r,round(time.time()-t,1),errs[:2],'AS EXPECTED' if r['ok']==want else 'UNEXPECTED'))
       print(res[-1],flush=True);pg.close()
   b.close()

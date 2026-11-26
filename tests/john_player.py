@@ -21,9 +21,9 @@ with sync_playwright() as pw:
     pg.evaluate("([gid,L,gi])=>{const g=G(gid);g.opts=Object.assign({},g.opts||{},{auto:false,vamp:false});g.mode='play';g.review=false;g.preview=false;g.unl=Array.from({length:40},(_,i)=>i+1);if(gi>=0){const lv=GBY[gid].levels[L-1];lv.g=[lv.g[gi]];}view={name:'lobby',gid};render();start(gid,L);render();}",[gid,L,gi])
     info=pg.evaluate(SYN)
     pg.evaluate("(()=>{const o=startListening;startListening=(...a)=>{const r=o(...a);if(!window._fed){window._fed=1;_sn.start();}return r;};})()")
-    pg.wait_for_function('S&&!S.playing&&!S.loading',timeout=60000);t=time.time();pg.evaluate('micListen()')
+    pg.wait_for_function('S&&!S.playing&&!S.loading',timeout=60000);t=time.time();pg.wait_for_function('!S.q.scan||S.scanning',timeout=5000);pg.evaluate('micListen()')   # 26 Nov 2026: a scan comes first on Sight Reading and Chart Reading; this call skips it, so the take starts with the count-in as before
     try:pg.wait_for_function("S&&(S.locked||/Nothing heard/.test(S.micMsg||''))",timeout=120000)
     except Exception as e:print(A,info,'TIMEOUT',errs[:2],flush=True);pg.close();continue
-    r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,why:(r.walkWhy||[]).slice(0,3),heard:(r.per||[]).filter(x=>x.got!=null).length,cents:r.cents==null?undefined:Math.round(r.cents*10)/10,ct:((G(S.gid).pl||[]).at(-1)||{}).ct,off:(r.per||[]).filter(x=>x.off!=null).map(x=>Math.round(x.off))}})()")
+    r=pg.evaluate("(()=>{const r=S.micResult||{};return {ok:!!(S.answers.at(-1)||{}).ok,notesOk:r.notesOk,timeOk:r.timeOk,miss:r.missN,wrong:r.wrongN,late:r.lateN,why:(r.walkWhy||[]).slice(0,3),heard:(r.per||[]).filter(x=>x.got!=null).length,cents:r.cents==null?undefined:Math.round(r.cents*10)/10,ct:((G(S.gid).pl||[]).at(-1)||{}).ct,share:r.share?Math.round(r.share.pct*1000)/10+'% '+(r.share.stop?'stop':''):undefined,off:(r.per||[]).filter(x=>x.off!=null).map(x=>Math.round(x.off))}})()")
     print(A,info,r,round(time.time()-t,1),errs[:2],'PASS' if r['ok'] else 'FAIL',flush=True);pg.close()
   b.close()

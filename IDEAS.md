@@ -51,4 +51,4 @@ Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dic
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.
-- **26 Nov 2026, reading build phase B** (Reading goal item 4): Reading Rhythm reordered (18 Cut time, 19 Everything so far, 20 Broken triplets, 21 Everything, 22 Road map, played, 23 12/8, 24 Sixteenth-note triplets, 25 5/4 and 3/8, 26 Changing meters); goal R requires Reading Rhythm 1–22, no Rhythm Dictation; 101 → 93 required levels. Commit: PHASE_B_COMMIT.
+- **26 Nov 2026, reading build phase B** (Reading goal item 4): Reading Rhythm reordered (18 Cut time, 19 Everything so far, 20 Broken triplets, 21 Everything, 22 Road map, played, 23 12/8, 24 Sixteenth-note triplets, 25 5/4 and 3/8, 26 Changing meters); goal R requires Reading Rhythm 1–22, no Rhythm Dictation; 101 → 93 required levels. Commit: 74c44df.

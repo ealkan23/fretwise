@@ -44,6 +44,13 @@ The user finds Reading Rhythm 16 "Everything so far, in 4/4" far too hard: the c
 - **Hard**: the level as it is.
 - Recommended form: Medium inserted before each "everything" level (Reading Rhythm 16, 19, 21; they were 16, 20, 25 before the reorder of 26 Nov 2026), a renumbering migration, his answers staying with Hard; Hard in "also helps". Alternative: a Medium/Hard switch on the level page (no migration; a pass on Medium would count as a pass on Hard).
 - Open questions he has not answered: only Reading Rhythm, or also Jazz Rhythm 10 and Rhythm Dictation 15–16; is Hard required to move on.
+- **26 Nov 2026, later (user, after 79 blocks at 65 % and ±55 ms on screen: “very packed… different grids, sixteenth rests, triplet rests… how should we approach this”).** Proposed instead of a single Medium level: a short ladder that teaches the *switch* of grid by itself before the rests come back. Each figure was already passed alone (levels 1–15); what the level adds is a new counting grid on every beat. Steps:
+  1. **The grid changes by the bar**: eighths, triplets and sixteenths, one grid a bar, only the full figures (no rests, ties or dots).
+  2. **The grid changes on beat 3**: the same, two grids a bar.
+  3. **The grid changes on any beat**, still without rests.
+  4. **Rests and dots inside the grids** (sixteenth rests, broken triplets, dotted figures), grid by the bar again.
+  5. The level as it is (today's 16).
+  Pulse & Feel 5 “Switching subdivisions” already trains the switch on the click without reading (two bars of each); step 1 is its reading counterpart. Would be inserted before Reading Rhythm 16 (a renumbering migration, his answers staying on today's level); whether the same ladder goes before 19 and 21 is open. Not built: waiting for his answer.
 
 ### Goal D and the dictation levels (25 Nov 2026)
 Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dictation 5–14 in stage 3 (it required three dictation levels before): old Swing dictation is new level 14 and a goal's levels run from 1 without a gap. Offered and not answered: move the swing-dictation requirement to "also helps", so that D requires Rhythm Dictation 1–8 only.

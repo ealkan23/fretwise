@@ -63,6 +63,17 @@ Since Rhythm Dictation became its own game, goal D (comping) requires Rhythm Dic
 ### The 16-note threshold of the fairer grading (27 Nov 2026, from the review of the reading build)
 The share rule (90 % of the notes, no stop) starts at 16 notes, as briefed. Measured over 300 draws a level: in Sight Reading 3 to 5 and 11 most four-bar lines have fewer than 16 notes (long notes and rests), so they are still graded strictly: one wrong note fails four bars (level 4: 200 of 204 four-bar lines; level 3 and 5: about half). The early levels, where the longer lines were introduced, therefore get the least of the fairer grading. Idea: start the share rule at 10 notes (at 90 % a line of 10 to 19 notes then forgives one note) or grade every four-bar line by it. Not built: the user confirmed 16 before the build; put to him as a question.
 
+### A soloing course's contents checked against Fretwise (27 Nov 2026)
+The user sent the contents of a ten-chapter course on soloing over changes (foundation, two notes through the form, arpeggios, the Barry Harris scale exercise, chromaticism, arpeggios from the 3rd, triplet arpeggios, bebop phrases, melodic minor, phrasing and dynamics) and asked what Fretwise does not cover. Not covered, or only in part (nothing decided, nothing built):
+- **Melodic minor as chords**: its diatonic triads and seventh-chord arpeggios played in position (Scale Runner has the scale only; Drop-2 21 has the grips, not the arpeggios).
+- **Triplet arpeggios through changes**: a four-note arpeggio in eighth-note triplets crossing the beat, through the scale and through a progression (Scale Runner 4 has scale triplets only).
+- **The Barry Harris scale exercise over a progression**: scale lines descending from a chord tone with a chromatic passing note added so that chord tones fall on the beats, through the changes (Scale Runner 7 has the 1-to-7 run in one key; Improvise grades lines by rule, not this exercise).
+- **Bebop scales with the added passing note in time**: the major bebop scale (♯5 / ♭6 added) and the dominant one run so chord tones land on beats, over chords (Arpeggio Runner 12 has the dominant run; Chord–Scale 6 is on paper).
+- **Arpeggios from the 3rd (3–5–7–9) through a whole progression** (Arpeggio Runner 18 has them over one chord; 19 has ninth arpeggios).
+- **One phrase taken through every chord of a tune** (a lick moved to fit each change), and **composing / writing your own lines** (no entry tool).
+- **Phrasing and dynamics in a solo**: accents on off-beats, ghost notes, slurs, loud and soft inside a line, graded on a played line (accents exist only for tapped or strummed rhythm in Reading Rhythm 29–31 and Pulse & Feel).
+- **Playing the melody of the tune the course uses**: not possible as written (copyrighted melodies stay out of the app); the user's own tunes entry tool is the related open idea above.
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

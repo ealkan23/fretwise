@@ -23,6 +23,6 @@ while read -r id; do
       echo "$(date +%T) none $n/$total $id: $(echo "$msg" | grep -i 'error\|no sub\|There are no' | head -1)" >> "$LOG"; break
     fi
   done
-  sleep $((8 + RANDOM % 18))
+  sleep $((${MINS:-8} + RANDOM % ${SPAN:-18}))
 done < "$LIST"
 echo "$(date +%T) DONE" >> "$LOG"

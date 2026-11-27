@@ -2021,6 +2021,19 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  S.gid='scales';GBY.scales.levels.forEach((lv,i)=>{if(lv.n==='Twelve keys in one position')return;lv.g.forEach(g=>{for(let t=0;t<40;t++){let q;try{q=g();}catch(e){continue;}const m=/type (1B|1D|4A|4C|4D)\\b/.exec([q.visual||'',q.label||'',q.explain||''].join(' | '));if(m){const src=[q.visual||'',q.label||'',q.explain||''].join(' | '),j=src.indexOf(m[0]);sb('level '+(i+1)+' '+lv.n+' asks type '+m[1]+' ('+q.key+') '+src.slice(Math.max(0,j-70),j+20).replace(/<[^>]*>/g,' '));break;}}});});
  console.log('sheet checked');}
 /*SHEET_END*/
+/*YTGSW_BEGIN*/
+ /* YouTube Notes of a game (27 Nov 2026): every entry renders, has a title, a channel, a level, a video id listed in videos/<channel>/_list.tsv (when the folder is present),
+    3 to 8 references rising inside the video's length, no maj7, no lower-case numerals, no em dashes, every neck diagram titled, NF.err empty */
+ {const gb=m=>{bad++;console.log('YTG',m);};NF.err.length=0;const TAB=String.fromCharCode(92)+'t',LEN={};['jenslarsen','marbin'].forEach(ch=>{try{fs.readFileSync(path.join(__dirname,'..','videos',ch,'_list.tsv'),'utf8').split(String.fromCharCode(10)).forEach(l=>{const a=l.split(TAB);if(a.length>2)LEN[a[0]]=+a[1];});}catch(e){}});const haveList=Object.keys(LEN).length>0;let n=0,figs=0;
+  Object.entries(YT_GAME).forEach(([gid,Y])=>{if(!GBY[gid])gb('ytg: no game '+gid);if(!Y.entries.length)gb('ytg: no entries '+gid);const seen=new Set();
+   Y.entries.forEach(e=>{n++;const w='ytg '+e.vid+': ';if(seen.has(e.vid))gb(w+'twice');seen.add(e.vid);if(!/^[\\w-]{11}$/.test(e.vid))gb(w+'id');if(!e.title||!YT_CH[e.ch])gb(w+'title or channel');if(!['beginner','intermediate','advanced'].includes(e.level))gb(w+'level');
+    if(haveList&&!(e.vid in LEN))gb(w+'not in the channel list');if(haveList&&LEN[e.vid]!==e.len)gb(w+'length '+e.len+' not '+LEN[e.vid]);
+    if(!e.refs||e.refs.length<3||e.refs.length>8)gb(w+'refs: 3 to 8');(e.refs||[]).forEach((r,i)=>{if(!(r[0]>=0&&r[0]<e.len)||!r[1]||(i&&r[0]<=e.refs[i-1][0]))gb(w+'ref '+r[0]);});
+    let h='';try{h=e.p.map(noteItem).join('');}catch(err){gb(w+'render '+err.message);}const all=(h+' '+(e.unclear||[]).join(' ')+' '+(e.refs||[]).map(r=>r[1]).join(' ')),txt=all.replace(/<svg[\\s\\S]*?<\\/svg>/g,' ').replace(/<[^>]+>/g,' ');
+    if(/maj7/.test(txt))gb(w+'maj7');if(/—/.test(all))gb(w+'em dash');if(/\\b(ii|iii|iv|vi|vii)(m7|7)?\\b/.test(txt))gb(w+'lower-case numeral');if(/undefined|NaN|nf-err/.test(all.replace(/aria-label="[^"]*"/g,'')))gb(w+'broken value');
+    const nk=(h.match(/<svg class="nfneck"/g)||[]).length,nt=(h.match(/<svg class="nfneck"[^>]*><text class="nn-title"/g)||[]).length;if(nk!==nt)gb(w+(nk-nt)+' neck diagram(s) without a title');figs+=(h.match(/<figure class="nfig"/g)||[]).length;});});
+  if(NF.err.length)gb('ytg: figure faults: '+NF.err.slice(0,5).join(' | '));console.log('youtube notes of games',Object.keys(YT_GAME).length,'entries',n,'figures',figs);}
+/*YTGSW_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

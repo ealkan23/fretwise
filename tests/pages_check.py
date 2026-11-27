@@ -32,6 +32,9 @@ try:
         for v in ['lobby','stats','notes']:
             r=R("view={name:'%s',gid:'%s'}"%(v,x))
             if r!='ok':bad.append((v,x,r))
+    for x in pg.evaluate("Object.keys(YT_GAME)"):
+        r=R("view={name:'ytgame',gid:'%s'}"%x)
+        if r!='ok':bad.append(('ytgame',x,r))
     fe=pg.evaluate("NF.err.slice(0,10)")
     if fe:bad.append(('note figures',fe))
     bad+=[('pageerror',e) for e in errs]

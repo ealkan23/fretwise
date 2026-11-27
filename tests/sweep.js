@@ -294,7 +294,7 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
      /* 19 Nov 2026: no note of the scale is skipped inside the position (types 2 and 3 used to leave out the lowered note that falls one fret under the position; it is now a first-finger stretch) */
      if(zz.notes.some((x,i)=>i&&S0.s.indexOf(mod(x.m-k,12))!==(S0.s.indexOf(mod(zz.notes[i-1].m-k,12))+1)%S0.s.length))sb('derived skips a note '+id+' '+k+' '+P);}}
  for(const fg of [1,2,4])for(const st of [6,5,4,3]){let seen=0;for(let i=0;i<60;i++){const q=scOctQ({strings:[st],fingers:[fg]})();if(!/^sco-/.test(q.key))continue;seen++;const m=q.prompt.match(/string ([0-9]), fret ([0-9]+)/),f0=+m[2],Pn=ROMAN.indexOf(q.prompt.match(/Position ([IVX]+)/)[1]);
-     if(f0-Pn!==fg-1||q.target.length!==15||q.target[7]-q.target[0]!==12||q.target.at(-1)!==q.target[0]||q.target[0]!==OPEN[st]+f0){sb('octave form '+st+' '+fg);break;}
+     if((f0-Pn!==fg-1&&!(fg===1&&Pn===f0+1))||q.target.length!==15||q.target[7]-q.target[0]!==12||q.target.at(-1)!==q.target[0]||q.target[0]!==OPEN[st]+f0){sb('octave form '+st+' '+fg);break;}
      if(fg===2&&st>=5&&/ pb-st"/.test(q.visual)){sb('second finger form has a stretch '+st);break;}}if(!seen&&!(st===3&&fg!==1))sb('octave form never made '+st+' '+fg);if(seen&&st===3&&fg!==1)sb('octave form from string 3 should need the first finger');}
  GBY.scales.levels.forEach((lv,li)=>lv.g.forEach(g=>{for(let i=0;i<40;i++){const q=g();if(/NaN|undefined/.test(q.prompt+q.visual+q.explain+q.label)){sb('text L'+(li+1));break;}if(q.target.some((m,j)=>j&&m===q.target[j-1])){sb('repeat L'+(li+1));break;}}}));}
 /* modes: every scale has one label per note and holds its chord; its colour notes are its own; it equals its parent scale from the parent's root;
@@ -2010,6 +2010,17 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  S.gid='shells';for(const lv of GBY.shells.levels)for(const g of lv.g){let q;try{q=g();}catch(e){continue;}if(q.share){sb('shells has a share rule');break;}}S.gid='chartread';
  console.log('chartread checked');}
 /*RCC_END*/
+/*SHEET_BEGIN*/
+/* Scale Runner on the user's seven-shape sheet (27 Nov 2026): every key's positions are the seven of the sheet (types 1 1A 1C 2 3 4 4B), the tonic never under the third finger;
+   C in position III plays D on string 3 at fret 7 (Scale Runner only; Reading keeps string 2 fret 3); no level but “Twelve keys in one position” asks another type */
+{const sb=m=>{bad++;console.log('SHEET',m);};
+ for(let k=0;k<12;k++){const ps=scSheetPos(k),ts=ps.map(p=>scPos(k,p).type).sort().join(' ');if(ps.length!==7||ts!=='1 1A 1C 2 3 4 4B')sb('key '+k+': '+ps.join(',')+' types '+ts);
+   ps.forEach(p=>{const z=scPos(k,p,null,true),fing=z.notes.filter(n=>mod(n.m-k,12)===0&&n.s>=4).map(n=>n.f-p+1);if(fing.includes(3))sb('key '+k+' position '+p+': a tonic under the third finger');});}
+ if(scSheetPos(0).join()!=='2,3,5,7,9,11,12')sb('C: '+scSheetPos(0).join());
+ {const z=scPos(0,3,null,true).notes,d=z.find(n=>n.m===62);if(!d||d.s!==3||d.f!==7)sb('C in III: D not on string 3 fret 7');const r=scPos(0,3).notes.find(n=>n.m===62);if(!r||r.s!==2||r.f!==3)sb('Reading C in III: D not on string 2 fret 3');}
+ S.gid='scales';GBY.scales.levels.forEach((lv,i)=>{if(lv.n==='Twelve keys in one position')return;lv.g.forEach(g=>{for(let t=0;t<40;t++){let q;try{q=g();}catch(e){continue;}const m=/type (1B|1D|4A|4C|4D)\\b/.exec([q.visual||'',q.label||'',q.explain||''].join(' | '));if(m){const src=[q.visual||'',q.label||'',q.explain||''].join(' | '),j=src.indexOf(m[0]);sb('level '+(i+1)+' '+lv.n+' asks type '+m[1]+' ('+q.key+') '+src.slice(Math.max(0,j-70),j+20).replace(/<[^>]*>/g,' '));break;}}});});
+ console.log('sheet checked');}
+/*SHEET_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

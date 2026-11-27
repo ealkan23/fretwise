@@ -74,6 +74,13 @@ The user sent the contents of a ten-chapter course on soloing over changes (foun
 - **Phrasing and dynamics in a solo**: accents on off-beats, ghost notes, slurs, loud and soft inside a line, graded on a played line (accents exist only for tapped or strummed rhythm in Reading Rhythm 29–31 and Pulse & Feel).
 - **Playing the melody of the tune the course uses**: not possible as written (copyrighted melodies stay out of the app); the user's own tunes entry tool is the related open idea above.
 
+### Diatonic seventh chords up the key: what is missing (27 Nov 2026, user: “does our games ever ask me to run diatonic 7th chords within a scale, drop-3s, drop-2s?”)
+What exists: Scale Runner 14 (single-note seventh arpeggios from every degree, C major only); Shells 6 (shells up the key, roots on 6 and on 5, untimed); Drop-2 11 (drop-2 up the key on strings 5–2 only, root in the bass or 7th in the bass, major, four keys each, untimed); Drop-2 21 (harmonic and melodic minor up one set, every voice a scale step, in time); Triad Shapes 15 (triads of a key up one set, in time). Not built:
+- **Drop-3 up the key** (strings 6-4-3-2 and 5-3-2-1): no drop-3 level is played at all, only named and marked (Shells 9–11).
+- **Drop-2 up the key in major as Drop-2 21 does minor**: every voice one scale step, on each string set (Drop-2 11 is one inversion on one set, untimed).
+- **Drop-2 up the key with the 3rd or the 5th in the bass**, on the top and low sets, and in time with the click.
+- **Seventh arpeggios up the key in other keys than C** (Scale Runner 14), and in melodic minor (see the soloing-course list above).
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

@@ -81,6 +81,9 @@ What exists: Scale Runner 14 (single-note seventh arpeggios from every degree, C
 - **Drop-2 up the key with the 3rd or the 5th in the bass**, on the top and low sets, and in time with the click.
 - **Seventh arpeggios up the key in other keys than C** (Scale Runner 14), and in melodic minor (see the soloing-course list above).
 
+### Scale Runner: positions where the tonic falls under the 3rd finger (27 Nov 2026, user: “start with finger 3 shapes are bullshit, are you sure these are in Leavitt's method?”)
+D major in position III came up in Scale Runner 7 as type 4D (the tonic under finger 3, fourth-finger stretches on five strings). In a system that puts all twelve keys in one position (Leavitt's twelve fingering types), two keys always land with the tonic under the 3rd finger: types 1D and 4D (A♭ and D♭ in position II; D in III is the same type moved up). So the shapes belong to that system by arithmetic, but **the note-by-note fingering of each stretch type in the app was reconstructed by rule, not copied from the book** (see the Scale Runner section of CLAUDE.md), so its stretches may not be Leavitt's. Offered, not decided: keep types 1D and 4D out of every level but “Twelve keys in one position” (where covering all twelve is the point), or check them against a photo of the book's page. Waiting for the user.
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

@@ -90,6 +90,34 @@ D major in position III came up in Scale Runner 7 as type 4D (the tonic under fi
 ### YouTube Notes for other games (27 Nov 2026)
 Scale Runner got “YouTube Notes”: one textbook entry for each tagged video lesson (Jens Larsen, Marbin), from its lesson card. The code is generic (`YT_GAME[gameId]`), and `videos/<channel>/_categories.json` already tags other videos by game (e.g. `voicelead`, `repertoire`). Not built for any other game: the user asked for Scale Runner only. What it would take: the same four phases (digests, verification, writing, proof-read) for that game's tagged videos, a new `YT_GAME[gid]` in the YTG block.
 
+### The 37 scale lessons checked against Scale Runner and Along the Neck (28 Nov 2026, user: “is our scale games missing any major stuff from this… what can be added, changed, tweaked”)
+All 37 entries of “Scales from the video lessons” read against the level lists of Scale Runner, Along the Neck, Modes, Blues Boxes and Arpeggio Runner. A rundown was given; nothing built, nothing decided. Ranked by how often and how strongly the lessons ask for it.
+
+**Major gaps**
+1. **Thirds, triads and seventh chords in melodic and harmonic minor** (lessons: “do all three exercises in major, melodic minor and harmonic minor”). Scale Runner 17 runs the two minor scales only as scales. Small: `scQ` patterns are index-based over the position's notes, so `scale:'mm'|'hm'` with `pat` 3 / tri / 7 already works; needs levels, texts, sweep. (Same item as “Melodic minor as chords” in the soloing-course list.)
+2. **The bebop arpeggio through the scale**: a half step below the root, then 1 3 5 as an eighth-note triplet, the 7th on the next beat, on every diatonic seventh chord. Taught in about twelve of the 37 lessons; no game asks it (Arpeggio Runner 9–11 enclose the tones of one chord, not the row of the key). Needs a pattern with a mixed rhythm (the grid allows it; `scQ` has one `div` per run) and a chromatic note outside the position's fingering. Medium.
+3. **The pivot arpeggio through the scale** (root, then 3 5 7 an octave lower, or the root an octave up, plus the resolving step below the 7th). In no game. Medium (leaves a one-octave span; position fit to prove).
+4. **The scale of every chord through a tune** (Barry Harris's opening exercise: one bar = root up to the 7th, two bars = up and back), in one area of the neck. Scale Runner 7 has the run in one key at a time. Material exists (`E8`, `FORMS`, `formQual` scale families). Medium. Sister exercise: **the never-ending line** (unbroken eighths, the scale changes exactly at the chord change, a turnaround with altered dominants), which could be an Improvise spec (scale notes only, by step, no stop).
+5. **The arpeggio from the 3rd (and from the 5th) through II–V–I**: FMaj7 / Bm7♭5 / Em7 over Dm7 / G7 / CMaj7. Arpeggio Runner 18 has them over one held chord only (rows exist for the 3rd of Maj7, m7 and 7 and the 5th of 7 and Maj7; **no m7 from the 5th of a m7**, the lessons' Am7 over Dm7). Small to medium.
+
+**Smaller gaps**
+- **Diatonic sixths** in position (and as an Along the Neck figure on two strings). Small: a new `SC_ST` kind `[0,5]`.
+- **Stacks of fourths** (three notes, quartal arpeggios) through the scale; Scale Runner 12 has two-note fourths only. Small: kind `[0,3,6]`.
+- **Triad orders as three notes**: 3 1 5 (named in two lessons), 1 5 3, 5 1 3, 3 5 1 in triplets; Scale Runner 19 has four-note shapes and the inversions. Small.
+- **Triads with a leading note** (half step under the root going up, under the 5th coming down) and **triads with an enclosure in front** (scale note above, half step below, then 1 3 5) through the scale; the **Parker enclosure** (3rd above, half step below, scale note above, target) through the scale; **arpeggio with a chromatic tail from 7 to 5**; **two arpeggios chained** (Am7 into FMaj7). Each a pattern with outside notes: same engine work as item 2.
+- **Triads and seventh chords of the key a third apart** (Dm F Am C Em G B°) instead of by step. Small: a step option in `scPattern`.
+- **The scales of one tune in one position** (a C jazz blues: C, F and A dominant scales, D Dorian, G Mixolydian without moving the hand). Scale Runner 15 has twelve keys in one position but not a tune's own set. Small to medium.
+- **One phrase in every position of a key / in twelve keys in one area** (a fixed lick moved). Not built anywhere (see the soloing-course list).
+- **Three notes per string** (seven shapes) as a fingering: nowhere. Along the Neck 4 and 6 use three-and-four and four notes a string. For speed and even picking; the microphone cannot check strings. Medium.
+- **Along the Neck**: triads of the key up one string set as single notes (cascading; Triad Shapes 15 strums them); harmonic minor along a string and over the whole neck (level 8 has melodic minor only); sixths along two strings.
+- **Minor pentatonics on the 2nd, 3rd and 6th of the key played over the chord** (E minor pentatonic over CMaj7): on paper only (Chord–Scale 9). **Side-stepping pentatonics** (out a whole step down, back in), whole tone from the 5th of a minor chord, the whole-tone string-skip shapes, groups of six, the three “uncommon” pentatonics, harmonic major, the augmented scale: fusion or shred material, none in a game; low priority for the stated goals.
+- **Note names in the position** (“know the name of every note as you play it”): the diagram shows degrees; a label switch degrees / note names / none would serve it. Small.
+
+**Changes to what exists**
+- **Order**: the lessons' ladder is scale → thirds → triads → seventh chords, said in ten lessons. Scale Runner puts Groups of three and four (9) before thirds and Fourths (12) between thirds and triads; one lesson calls the four-note grouping “good for the fingers, not a line”. Proposal: Fourths after Seventh chords, groups of three and four moved behind them or into “also helps” (a renumbering migration; goal A requires scales 9–14).
+- **Triads (13) and Seventh chords (14) are in C only**; thirds have a C level and a C, F, G level. Add F and G generators (Twelve keys in one position already runs them round the circle).
+- **Seventh chords “from the tonic first”** is the Barry Harris exercise as the lessons give it: keep; say so in the level note.
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

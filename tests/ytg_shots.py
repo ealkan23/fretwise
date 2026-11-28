@@ -21,19 +21,22 @@ try:
             f.querySelectorAll('svg.nfstaff').forEach(sv=>{const vb=sv.viewBox.baseVal;sv.querySelectorAll('text.ns-up').forEach(t=>{const a=t.getBBox();if(a.x+a.width>vb.x+vb.width||a.y<vb.y)out.over.push('ch'+(i+1)+' symbol cut: '+t.textContent);});
               const ups=[...sv.querySelectorAll('text.ns-up')].map(t=>t.getBBox());ups.forEach((a,k)=>{if(k&&ups[k-1].x+ups[k-1].width>a.x-2)out.over.push('ch'+(i+1)+' chord symbols overlap');});});});});return out;}""")
       print(W,r,'page errors',errs[:3])
-      pg.screenshot(path=str(root/f'tests/out/{tag}-{W}.png'),full_page=True)
+      if pg.evaluate('document.body.scrollHeight')<30000:pg.screenshot(path=str(root/f'tests/out/{tag}-{W}.png'),full_page=True)   # a page of 143 lessons is far taller than a screenshot can be
       n=r['secs']
       for i in range(n):pg.locator(f'#ns-{i}').screenshot(path=str(root/f'tests/out/{tag}-{W}-ch{i+1:02d}.png'))
       from PIL import Image,ImageDraw
-      figs=pg.locator('.nsec figure.nfig');k=figs.count();ims=[]
+      figs=pg.locator('.nsec figure.nfig:not(.plain)');k=figs.count();ims=[]
       for j in range(k):
         f=figs.nth(j);lab=pg.evaluate("e=>{const s=e.closest('.nsec');return (+s.id.slice(3)+1)+'.'+([...s.querySelectorAll('figure.nfig')].indexOf(e)+1)}",f.element_handle())
         pth=root/f'tests/out/_ytgfig.png';f.screenshot(path=str(pth));im=Image.open(pth).convert('RGB');d=ImageDraw.Draw(im);d.rectangle([0,0,60,18],fill=(255,0,0));d.text((4,3),lab,fill=(255,255,255));ims.append(im)
-      for g in range(0,len(ims),6):
-        grp=ims[g:g+6];cw=max(i.width for i in grp);H=sum(i.height+8 for i in grp);sheet=Image.new('RGB',(cw,H),(40,40,40));y=0
-        for i in grp:sheet.paste(i,(0,y));y+=i.height+8
-        sheet.save(root/f'tests/out/{tag}-{W}-figs{g//6+1:02d}.png')
-      print(W,'figures',k)
+      C=3 if len(ims)>60 else 1;N=4*C if C>1 else 6   # many figures: three across, twelve a sheet
+      for g in range(0,len(ims),N):
+        grp=ims[g:g+N];cw=max(i.width for i in grp);rows=[grp[k:k+C] for k in range(0,len(grp),C)];H=sum(max(i.height for i in r)+8 for r in rows);sheet=Image.new('RGB',(cw*C+8*(C-1),H),(40,40,40));y=0
+        for r in rows:
+          for k,i in enumerate(r):sheet.paste(i,(k*(cw+8),y))
+          y+=max(i.height for i in r)+8
+        sheet.save(root/f'tests/out/{tag}-{W}-figs{g//N+1:02d}.png')
+      print(W,'figures',len(ims))
       pg.close()
     b.close()
 finally:srv.terminate()

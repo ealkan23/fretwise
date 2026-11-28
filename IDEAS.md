@@ -119,6 +119,14 @@ All 37 entries of “Scales from the video lessons” read against the level lis
 - **Triads (13) and Seventh chords (14) are in C only**; thirds have a C level and a C, F, G level. Add F and G generators (Twelve keys in one position already runs them round the circle).
 - **Seventh chords “from the tonic first”** is the Barry Harris exercise as the lessons give it: keep; say so in the level note.
 
+### One textbook per game: the full notes and the YouTube Notes merged (28 Nov 2026)
+The user asked for a brief to merge a game's full notes and its per-video YouTube Notes into one university-level
+textbook, organised by subject, consolidated (repeated material taught once), in the most logical progression, with a
+clean-up afterwards. Written, not run: `docs/brief-merge-notes.md` (settings for Arpeggio Runner; phases inventory →
+consolidation → plan with an outline checkpoint → writing → editing → verification → install and clean-up → publish).
+Open choices in its settings: stop at the outline for the user's approval (yes by default); remove the per-video page
+after the merge (yes by default). The user's 28 highlights in Arpeggio Runner's notes must be re-anchored (the brief says how).
+
 ## Built since
 
 - **26 Nov 2026, reading build phase A** (Reading goal items 1 and 2): Sight Reading takes of 16 notes and more pass at 90 % of their notes right and in time with no stop of more than four beats; a scan of 2 seconds a written bar (4 to 30) before every count-in, Space to cut it short. Commit: fe8adf4.

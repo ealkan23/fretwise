@@ -659,7 +659,7 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
      for(let g=0;g<G;g++){const grp=ix.slice(g*st.length,(g+1)*st.length),b=Math.min(...grp),rel=grp.map(i=>i-b).sort((a,c)=>a-c).join();if(rel!==st.join()){sb('group '+g+' of '+kind+' '+dir+': '+grp.join(' '));break;}}
      if(ms.some((m,i)=>i&&m===ms[i-1]))sb('a pitch twice in a row: '+kind+' '+dir+' '+k+' '+Pn);}}}
   const take=(q,T,G)=>{const B=60000/q.metro,bs=100;return micGrade(q,{notes:T.map((m,i)=>({midi:m,mf:m,t:bs+(G||q.grid)[i]*B,dur:150})),beat:B,beatStart:bs,firstAt:bs});};
-  if(GBY.scales.levels.length-(OSJ.scales||[]).length!==18||GBY.scales.levels[8].n!=='Groups of three and four'||GBY.scales.levels[11].n!=='Fourths'||GBY.scales.levels[9].n!=='Thirds, in C'||GBY.scales.levels[17].n!=='Pentatonics and the blues scale')sb('Scale Runner ladder');
+  if(['Groups of three and four','Fourths, sixths, stacked fourths','Thirds, in C','Pentatonics and the blues scale'].some(n=>!GBY.scales.levels.find(l=>l.n===n)))sb('Scale Runner ladder');   /* 28 Nov 2026 (the scale lessons build): by name; the ladder was renamed and reordered since */
   [9,10,11,12,13,14].forEach(L=>GBY.scales.levels[L-1].g.forEach((g,gi)=>{for(let i=0;i<25;i++){const q=g(),T=q.target,m=/class="rhy r(\\d)"/.exec(q.prompt),div=m?+m[1]:1;
      if(q.grid.some((x,j)=>Math.abs(x-j/div)>1e-9)){sb('L'+L+' g'+gi+': notes are not '+div+' a click');break;}
      if(!take(q,T).ok){sb('L'+L+' g'+gi+': the perfect take fails '+q.key);break;}const w=T.slice(),k2=Math.floor(T.length/2);w[k2]=[1,-1,2,-2,3].map(d=>T[k2]+d).find(x=>x!==T[k2-1]&&x!==T[k2+1]);if(take(q,w).ok){sb('L'+L+' g'+gi+': a wrong note passes');break;}}}));
@@ -683,7 +683,7 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
      if(L!==11)for(let f=1;f<fig;f+=4)if(q.grid[f]%1){sb(q.key+': a chord tone off the beat');break;}
      if(close&&q.grid[n-1]%4!==0){sb(q.key+': the closing root is not on beat 1');break;}
      if(!take(q,T).ok){sb(q.key+': the perfect take fails');break;}if(take(q,T,und.grid).ok){sb(q.key+': the undisplaced timing passes');break;}}}));
-  Object.entries(REORDERS27).forEach(([id,R])=>{const n=GBY[id].levels.length-(OSJ[id]||[]).length,   /* levels appended by the OSJ build lie outside this reorder */img=new Set();for(let L=1;L<=R.n;L++)img.add(R.m[L]||L);if(img.size!==R.n||R.nw.some(L=>img.has(L))||img.size+R.nw.length!==n||Math.max(...img,...R.nw)!==n)sb('REORDERS27 '+id+' does not cover the '+n+' levels');});}
+  Object.entries(REORDERS27).forEach(([id,R])=>{const n=R.n+R.nw.length,   /* the levels the game had after this reorder (levels appended or moved later lie outside it) */img=new Set();for(let L=1;L<=R.n;L++)img.add(R.m[L]||L);if(img.size!==R.n||R.nw.some(L=>img.has(L))||img.size+R.nw.length!==n||Math.max(...img,...R.nw)!==n)sb('REORDERS27 '+id+' does not cover the '+n+' levels');});}
  /* PHASE 2 */
  /* 2.1 Improvise: an approach note in level 5, the enclosure, rule faults in long takes */
  {S.gid='improv';const play=(q,T,drop)=>soloGrade(q,{notes:T.map((m,i)=>({midi:m,t:q.grid[i]*1000})).filter((x,i)=>!(drop||[]).includes(i)),beat:1000,beatStart:0,lat:0});
@@ -1787,10 +1787,10 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
  /* 2.1 Scale Runner 19: the older pattern kinds give exactly what they gave before (span = the last step), the new kinds their steps */
  {const oldPat=(n,kind,dir,from,groups)=>{const st=SC_ST[kind],span=st.at(-1),G=Math.min(groups||SC_GDEF[kind],n-from-span),out=[];for(let g=0;g<G;g++){if(dir==='down'){const top=n-1-g;out.push(...st.map(x=>top-x));}else{const grp=st.map(x=>from+g+x);out.push(...(dir==='alt'&&g%2?grp.reverse():grp));}}return out;};
   for(const k of ['3','tri','7','g3','g4','4'])for(let n=8;n<=30;n++)for(const d of ['up','down','alt'])for(const f of [0,1,2])for(const gr of [undefined,n])if(scPattern(n,k,d,f,gr).join()!==oldPat(n,k,d,f,gr).join())sp('scPattern changed for the older kind '+k+' n='+n+' '+d);
-  const L=GBY.scales.levels[18];if(!L||L.n!=='Triad shapes and cells')sp('Scale Runner 19 name');
+  const L=GBY.scales.levels.find(l=>l.n==='Triad shapes and cells');if(!L)sp('Scale Runner: Triad shapes and cells');
   SC_OSJ.forEach(k=>{const p=scPattern(20,k,'up',0,20),st=SC_ST[k];for(let g=0;g*st.length<p.length;g++)if(p.slice(g*st.length,(g+1)*st.length).join()!==st.map(x=>g+x).join())sp('scPattern '+k+' group '+g);if(Math.max.apply(null,p)>19)sp('scPattern '+k+' runs past the position');});
   S.gid='scales';const gs=G('scales');gs.opts=gs.opts||{};const hn=gs.opts.hideNeck;
-  L.g.forEach((gen,gi)=>{for(let t=0;t<25;t++){gs.opts.hideNeck=t%2===1;const q=gen();if(!/^sc-/.test(q.key)||!SC_OSJ.some(k=>q.key.indexOf('-'+k+'-')>0)){sp('scales19 fell back '+q.key);break;}
+  L.g.forEach((gen,gi)=>{for(let t=0;t<25;t++){gs.opts.hideNeck=t%2===1;const q=gen();if(!/^sc-/.test(q.key)||!SC_OSJ.concat(SC_ORD3).some(k=>q.key.indexOf('-'+k+'-')>0)){sp('scales19 fell back '+q.key);break;}
    const k=SC_OSJ.find(z=>q.key.indexOf('-'+z+'-')>0),st=SC_ST[k],key=/-1A-|-1B-|-1C-|-1D-|-4A-|-4B-|-4C-|-4D-|-[1-4]-/.test(q.key),T=q.target;
    if(t%2===1&&(!/scstart/.test(q.visual)||typeof q.after!=='function'))sp('scales19: hide the diagram does not work '+q.key);
    if(!line(q,T).ok){sp('scales19: perfect take fails '+q.key);break;}const w=T.slice(),j=Math.floor(T.length/2);w[j]=T[j]+1;if(T[j+1]===w[j]||T[j-1]===w[j])w[j]=T[j]-1;if(line(q,w).ok){sp('scales19: a wrong note passes '+q.key);break;}}});gs.opts.hideNeck=hn;}
@@ -2036,6 +2036,61 @@ GAMES.forEach(x=>x.levels.forEach((lv,i)=>{if(!lv.c)return;const c=lv.c,M=c.mete
   Object.keys(YT_GAME).forEach(g=>{if(!['scales','arp'].includes(g))gb('ytg: YouTube Notes on a game that should have none: '+g);if(YT_GAME[g].noTimes){YTG_HTML[g]=null;const h=ytgBody(g).replace(/<svg[\\s\\S]*?<\\/svg>/g,' ').replace(/<[^>]+>/g,' ');if(/\\b\\d{1,2}:\\d\\d\\b/.test(h))gb('ytg: a clock time on the '+g+' page: '+(h.match(/.{0,30}\\b\\d{1,2}:\\d\\d\\b.{0,10}/)||[""])[0]);}});
   if(NF.err.length)gb('ytg: figure faults: '+NF.err.slice(0,5).join(' | '));console.log('youtube notes of games',Object.keys(YT_GAME).length,'entries',n,'figures',figs);}
 /*YTGSW_END*/
+/*SLB_BEGIN*/
+/* THE SCALE LESSONS BUILD (28 Nov 2026, brief .claude/scale-lessons-brief.md). No template literals and no backslashes in this block. */
+{const sl=m=>{bad++;console.log('SLB',m);};S.gid='scales';const LV=GBY.scales.levels,lvOf=n=>LV.find(l=>l.n===n),nameOf=m=>PCN[mod(m,12)].split('/')[0];
+ /* A1: every older pattern kind gives the output it gave before (the function as it stood before the step option, kept here) */
+ {const OLD_ST={'3':[0,2],tri:[0,2,4],'7':[0,2,4,6],g3:[0,1,2],g4:[0,1,2,3],'4':[0,3],t3135:[2,0,2,4],t1531:[0,4,2,0],t5135:[4,0,2,4],t1353:[0,2,4,2],c1231:[0,1,2,0],inv1:[0,2,5],inv2:[0,3,5]},OLD_G={'3':8,tri:6,'7':4,g3:6,g4:5,'4':8,t3135:6,t1531:6,t5135:6,t1353:6,c1231:6,inv1:5,inv2:5};
+  const old=(n,kind,dir,from,groups)=>{from=from||0;if(kind==='scale'){const up=Array.from({length:n-from},(_,i)=>from+i);return dir==='up'?up:dir==='down'?up.slice().reverse():up.concat(up.slice(0,-1).reverse());}const st=OLD_ST[kind],span=Math.max(...st),G=Math.min(groups||OLD_G[kind],n-from-span),out=[];for(let g=0;g<G;g++){if(dir==='down'){const top=n-1-g;out.push(...st.map(x=>top-x));}else{const grp=st.map(x=>from+g+x);out.push(...(dir==='alt'&&g%2?grp.reverse():grp));}}return out;};
+  let nchk=0;Object.keys(OLD_ST).concat('scale').forEach(k=>{if(k!=='scale'&&(SC_ST[k].join()!==OLD_ST[k].join()||SC_GDEF[k]!==OLD_G[k]))sl('kind '+k+' changed');['up','down','alt','updown'].forEach(d=>{for(let n=8;n<=20;n++)for(let f=0;f<4;f++)[undefined,n,4].forEach(g=>{nchk++;if(scPattern(n,k,d,f,g).join()!==old(n,k,d,f,g).join())sl('scPattern '+k+' '+d+' n'+n+' from'+f+' groups'+g+' differs');});});});if(nchk<2000)sl('old kinds: too few cases');}
+ /* A2: the new kinds, and the step */
+ {const want={'6':[0,5],q3:[0,3,6],t315:[2,0,4],t153:[0,4,2],t513:[4,0,2],t351:[2,4,0]};Object.keys(want).forEach(k=>{if(!SC_ST[k]||SC_ST[k].join()!==want[k].join()||!SC_PAT[k]||!SC_GDEF[k]||!SC_PX[k])sl('new kind '+k);});
+  if(scPattern(12,'tri','up',1,12,2).join()!=='1,3,5,3,5,7,5,7,9,7,9,11')sl('step 2: '+scPattern(12,'tri','up',1,12,2).join());
+  if(scPattern(12,'7','down',0,12,2).join()!=='11,9,7,5,9,7,5,3,7,5,3,1')sl('step 2 down: '+scPattern(12,'7','down',0,12,2).join());
+  /* in C from D: Dm F Am C Em G B° (the pitches of position VII from its D, index of D found) */
+  const z=scPos(0,7,null,true),d=z.notes.findIndex(x=>mod(x.m,12)===2),ix=scPattern(z.notes.length,'tri','up',d,7,2),gs=[];for(let i=0;i+2<ix.length;i+=3)gs.push(ix.slice(i,i+3).map(j=>nameOf(z.notes[j].m)).join(''));
+  if(gs.slice(0,5).join(' ')!=='DFA FAC ACE CEG EGB')sl('third apart from D: '+gs.join(' '));
+  if(scChordRow(P('C'),'maj',3,2).join(' ')!=='Dm F Am C Em G B°')sl('row of triads a third apart: '+scChordRow(P('C'),'maj',3,2).join(' '));
+  if(scChordRow(P('C'),'maj',4,2).join(' ')!=='Dm7 FMaj7 Am7 CMaj7 Em7 G7 Bm7♭5')sl('row of sevenths a third apart');
+  if(scChordRow(P('A'),'hm',4,1).join(' ')!=='Am(Maj7) Bm7♭5 CMaj7♯5 Dm7 E7 FMaj7 G♯°7')sl('A harmonic minor: '+scChordRow(P('A'),'hm',4,1).join(' '));
+  if(scChordRow(P('A'),'mm',4,1).join(' ')!=='Am(Maj7) Bm7 CMaj7♯5 D7 E7 F♯m7♭5 G♯m7♭5')sl('A melodic minor: '+scChordRow(P('A'),'mm',4,1).join(' '));
+  ['maj','mm','hm'].forEach(sid=>CIRCLE5.forEach(k=>[3,4].forEach(n=>{if(scChordRow(P(k),sid,n,1).some(c=>c.indexOf('?')>=0))sl('unnamed chord in '+k+' '+sid);})));}
+ /* A3: where they went: appended after the old generators, the level renamed, level 20 appended (phase A numbering; found by name from phase B on) */
+ {const f=lvOf('Fourths, sixths, stacked fourths'),t=lvOf('Triads, every position'),s=lvOf('Seventh chords, every position'),c=lvOf('Triad shapes and cells'),m=lvOf('Minor scales: thirds, triads, seventh chords');
+  if(!f||!t||!s||!c||!m){sl('a level of phase A is missing');}else{
+  const kinds=(g,n)=>{const o=new Set(),ks=new Set(),ky=new Set();for(let i=0;i<(n||60);i++){const q=g();o.add(q.key.split('-').slice(2).join('-'));ks.add(q.key);ky.add(strip(q.prompt).trim().split(' ')[0]);}return {o,ks,ky};},strip=h=>String(h).replace(/<[^>]+>/g,' ').replace(/ +/g,' ');
+  if(f.g.length!==7||t.g.length!==7||s.g.length!==6||c.g.length!==7||m.g.length!==4)sl('generator counts '+[f,t,s,c,m].map(l=>l.g.length).join(' '));
+  /* the first generators of each changed level still give only their old kinds */
+  [[f,3,/^4-/],[t,4,/^tri-(up|down|alt)(-oct)?-[123]$/],[s,3,/^7-(up|down|alt)(-oct)?-[12]$/],[c,5,/^(t3135|t1531|t5135|t1353|c1231|inv1|inv2)-/]].forEach(([l,n,re])=>{for(let i=0;i<n;i++)kinds(l.g[i],40).o.forEach(k=>{if(!re.test(k))sl(l.n+' generator '+(i+1)+' gives '+k);});});
+  [[f,3,/^6-/],[f,4,/^q3-/],[f,5,/^6-/],[f,6,/^q3-/],[t,6,/^tri-(up|down)-th-3$/],[s,5,/^7-(up|down)-th-2$/],[c,5,/^t(315|153|513|351)-up-3$/],[c,6,/^t(315|153|513|351)-up-3$/]].forEach(([l,i,re])=>{kinds(l.g[i],40).o.forEach(k=>{if(!re.test(k))sl(l.n+' new generator '+(i+1)+' gives '+k);});});
+  [[f,5],[f,6],[t,4],[t,5],[s,3],[s,4],[c,6]].forEach(([l,i])=>{const ky=kinds(l.g[i],90).ky;if(!['C','F','G'].every(k=>ky.has(k))||ky.size!==3)sl(l.n+' generator '+(i+1)+' keys: '+[...ky].join(' '));});
+  /* A4: the minor level: in the scale, stacked thirds, the chords named, no pitch twice, the keys of the scale level */
+  m.g.forEach((g,gi)=>{const sid=gi%2?'hm':'mm',S=SC_SCALES[sid].s,keys=new Set(),ks=new Set();for(let i=0;i<80;i++){const q=g(),w=strip(q.prompt).trim().split(' '),k=w[0],rp=pc(P(k)),kd=q.key.split('-')[3],sz={'3':2,tri:3,'7':4}[kd];keys.add(k);ks.add(kd+(q.key.indexOf('-oct-')>0?'o':''));
+    if(q.key.indexOf('sc-'+sid+'-')!==0||!sz){sl('minor level key '+q.key);continue;}
+    if(q.target.some(x=>S.indexOf(mod(x-rp,12))<0))sl('minor level: a note outside '+k+' '+sid);if(q.target.some((x,j)=>j&&x===q.target[j-1]))sl('minor level: a pitch twice in a row '+q.key);
+    for(let j=0;j+sz<=q.target.length;j+=sz){const grp=q.target.slice(j,j+sz).slice().sort((a,b)=>a-b);for(let u=1;u<sz;u++){const a=S.indexOf(mod(grp[u-1]-rp,12)),b=S.indexOf(mod(grp[u]-rp,12));if(mod(b-a,7)!==2||grp[u]-grp[u-1]>4){sl('minor level: group not in thirds '+q.key+' '+grp.join(' '));j=1e9;break;}}}
+    if(sz>2){const row=scChordRow(P(k),sid,sz,1).join(', ');if(q.explain.indexOf(row)<0)sl('minor level: the chords are not named '+q.key);if(/IIm7 – V7 – IMaj7|VIm, VII°/.test(q.explain))sl('minor level: a sentence of the major key '+q.key);}
+    if(q.grid.some((x,j)=>x!==j))sl('minor level: not in quarter notes');}
+   const want=(sid==='mm'?['C','A','D','G','F']:['C','A','D','G','E']);if(!want.every(k=>keys.has(k))||keys.size!==5)sl('minor level keys '+[...keys].join(' '));if(ks.size<3)sl('minor level generator '+(gi+1)+' kinds '+[...ks].join(' '));if((gi<2)!==[...ks].every(x=>x.slice(-1)==='o'))sl('minor level generator '+(gi+1)+': from the tonic first, then the whole position');});
+  /* one octave from the tonic starts on the tonic */
+  for(let i=0;i<40;i++){const q=m.g[i%2](),k=strip(q.prompt).trim().split(' ')[0];if(mod(q.target[0],12)!==pc(P(k)))sl('minor level: from the tonic does not start on it');}}}
+ /* no note of a derived scale is missing inside any sheet position (so no group skips one) */
+ {let n=0;['mm','hm'].forEach(sid=>CIRCLE5.forEach(k=>{const rp=pc(P(k));scSheetPos(rp).forEach(Pn=>{n++;const z=scPos(rp,Pn,SC_SCALES[sid].s.map(x=>mod(rp+x,12)),true);if(!scNoGap(z,rp,SC_SCALES[sid].s))sl('a gap in '+k+' '+sid+' position '+Pn);});}));if(n!==168)sl('gap check count');
+  const z=scPos(0,2,SC_SCALES.hm.s,true),cut={...z,notes:z.notes.filter((x,i)=>i!==4)};if(scNoGap(cut,0,SC_SCALES.hm.s))sl('scNoGap does not see a missing note');}
+ /* every Scale Runner generator: never the same pitch twice in a row */
+ LV.forEach((lv,i)=>lv.g.forEach((g,gi)=>{for(let t=0;t<30;t++){let q;try{q=g();}catch(e){sl('level '+(i+1)+' generator '+(gi+1)+' throws '+e.message);break;}if(q.target.some((x,j)=>j&&x===q.target[j-1])){sl('level '+(i+1)+' '+lv.n+': a pitch twice in a row ('+q.key+')');break;}}}));
+ /* A5: the dots of the diagram: degrees by default, note names, nothing; display only (the question is the same) */
+ {const G0=G('scales');G0.opts=G0.opts||{};const z=scPos(0,2,null,true),txt=h=>(h.match(/<text class="pb-t[^>]*>[^<]*/g)||[]).map(x=>x.split('>')[1]);
+  const a=txt(scPosSVG(z,0)),b=txt(scPosSVG(z,0,null,false,{mode:'name',of:p=>PCN[p].split('/')[0]})),c=txt(scPosSVG(z,0,null,false,{mode:'none',of:()=>''}));
+  if(a.length!==z.notes.length||a.some(x=>!/^[♭♯]?[1-7]$/.test(x)))sl('labels: degrees by default');if(b.some(x=>!/^[A-G]/.test(x))||b.length!==a.length)sl('labels: note names');if(c.some(x=>x!==''))sl('labels: nothing');
+  if(scPosSVG(z,0)!==scPosSVG(z,0,null,false,{mode:'deg',of:()=>'x'}))sl('labels: the default picture changed');
+  const one=()=>{const q=lvOf('Thirds, in C').g[0]();return q;};delete G0.opts.scLab;const q0=one();if(!/numbers are scale degrees/.test(q0.visual))sl('labels: default caption');
+  G0.opts.scLab='name';const q1=one();if(!/letters are note names/.test(q1.visual)||txt(q1.visual).some(x=>!/^[A-G]$/.test(x)))sl('labels: the option name');
+  G0.opts.scLab='none';const q2=one();if(txt(q2.visual).some(x=>x!==''))sl('labels: the option none');delete G0.opts.scLab;
+  /* F major shows B♭, not A♯ */
+  G0.opts.scLab='name';let seen=0;for(let i=0;i<60&&!seen;i++){const q=lvOf('Thirds: C, F and G').g[1]();if(/F major/.test(q.prompt)){seen=1;const t=txt(q.visual);if(t.indexOf('B♭')<0||t.indexOf('A♯')>=0)sl('labels: F major spelled '+t.join(' '));}}delete G0.opts.scLab;if(!seen)sl('labels: no F major question drawn');}
+ console.log('scale lessons checked: phase A');}
+/*SLB_END*/
 console.log('checked',cnt,'play-converted',conv,'bad',bad,'games',GAMES.length);
 if(bad)process.exit(1);
 `);

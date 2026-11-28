@@ -1,10 +1,10 @@
 """A simulated player through the live listening path for any guitar level (dist/, Basic Pitch on the GPU, headless and muted).
 The question's own example (q.target at q.grid, or every chord of q.strumSeq rolled at its grid point; count-in included) is rendered as a plucked take and fed to the microphone input; the app listens and grades.
-Run after build.py:  .venv/bin/python tests/john_player.py game:level[:generator index][:first] ...   (the right take must pass; with :first, a strummed take of the first grip every time, it must fail)"""
+Run after build.py:  .venv/bin/python tests/john_player.py game:level[:generator index][:first] ...   (the right take must pass; with :first, a strummed take of the first grip every time, it must fail; with :wrong, a single-note take with every fifth note a whole step high, it must fail)"""
 import pathlib,sys,time
 from playwright.sync_api import sync_playwright
 root=pathlib.Path(__file__).resolve().parent.parent
-SYN="""async (mode)=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.cinN||4)*beat:0.6,ST=q.strumSeq&&mode==="first"?q.strumSeq.map(()=>q.strumSeq[0]):q.strumSeq,gt=i=>t0+(q.grid?q.grid[i]:i*2)*beat,ev=ST?ST.flatMap((ch,i)=>ch.map((m,j)=>({m,t:gt(i)+j*.012,nx:i+1<ST.length?gt(i+1):gt(i)+2,v:.2}))):q.target.map((m,i)=>({m,t:t0+(q.grid?q.grid[i]:i)*beat}));
+SYN="""async (mode)=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.cinN||4)*beat:0.6,ST=q.strumSeq&&mode==="first"?q.strumSeq.map(()=>q.strumSeq[0]):q.strumSeq,gt=i=>t0+(q.grid?q.grid[i]:i*2)*beat,ev=ST?ST.flatMap((ch,i)=>ch.map((m,j)=>({m,t:gt(i)+j*.012,nx:i+1<ST.length?gt(i+1):gt(i)+2,v:.2}))):q.target.map((m,i)=>({m:mode==="wrong"&&i%5===2?m+2:m,t:t0+(q.grid?q.grid[i]:i)*beat}));
   const end=ev.at(-1).t+3,sr=22050,oc=new OfflineAudioContext(1,Math.ceil(end*sr),sr);
   ev.forEach((x,i)=>{const f=440*Math.pow(2,(x.m-69)/12),nx=x.nx||(i+1<ev.length?ev[i+1].t:x.t+1.5),len=Math.max(.1,Math.min(x.nx?2.4:1.2,nx-x.t-.06)),g=oc.createGain();g.connect(oc.destination);
     g.gain.setValueAtTime(0,x.t);g.gain.linearRampToValueAtTime(x.v||.32,x.t+.004);g.gain.setTargetAtTime(.0001,x.t+.004,.55);g.gain.setTargetAtTime(0,x.t+len,.012);
@@ -14,7 +14,7 @@ SYN="""async (mode)=>{const q=S.q,beat=q.metro?60/q.metro:0.7,t0=q.metro?0.1+(q.
 with sync_playwright() as pw:
   b=pw.chromium.launch(channel='chrome',headless=True,args=['--autoplay-policy=no-user-gesture-required','--mute-audio','--use-angle=metal','--enable-gpu','--ignore-gpu-blocklist'])
   for A in sys.argv[1:]:
-    p=A.split(':');mode='first' if p[-1]=='first' else 'right';p=[z for z in p if z!='first'];gid=p[0];L=int(p[1]);gi=int(p[2]) if len(p)>2 else -1   # game:level[:generator][:first] (first = the first grip strummed for every chord: must fail)
+    p=A.split(':');mode=p[-1] if p[-1] in ('first','wrong') else 'right';p=[z for z in p if z not in ('first','wrong')];gid=p[0];L=int(p[1]);gi=int(p[2]) if len(p)>2 else -1   # game:level[:generator][:first] (first = the first grip strummed for every chord: must fail)
     pg=b.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto((root/'dist'/'fretwise.html').as_uri());pg.evaluate('localStorage.clear()');pg.reload()
     pg.evaluate('bpLoad()');pg.wait_for_function('BP.state!=="loading"',timeout=60000)
